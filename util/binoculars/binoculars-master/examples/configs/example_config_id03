@@ -1,0 +1,39 @@
+### the DISPATCHER is responsible for job management
+[dispatcher]
+type = local # run locally
+#ncores = 4 # optionally, specify number of cores (autodetect by default)
+
+# to use the OAR cluster:
+#type = oar
+#tmpdir = /some/globally/available/path
+#oarsub_options = walltime=0:15 # optionally, tweak oarsub parameters
+#executable = python /data/id03/inhouse/binoculars/binoculars.py # optionally, override default location of python and/or BINoculars installation
+
+# specificy destination file using scan numbers
+destination = demo_{first}-{last}.hdf5
+overwrite = true
+# or, by default: numbered files in the form output_###.hdf5:
+# destination = output.hdf5
+# overwrite = false
+
+### choose an appropriate INPUT class and specify custom options
+[input]
+type = id03:eh1 # refers to class EH1 in BINoculars/backends/id03.py
+specfile = /path/to/data/file.spec
+imagefolder = /path/to/data/images/{rUCCD[0]}/
+
+## approximate number of images per job, only useful when running on the oar cluster
+target_weight = 4000 
+
+# technical yadayada for this particular input class
+centralpixel = 40, 255   # x,y
+sdd = 1050               # sample to detector distance (mm)
+pixelsize = 0.055, 0.055 # pixel size x/y (mm)
+ymask = 185-253,262-400
+xmask = 50-235
+
+
+### choose PROJECTION plus resolution
+[projection]
+type = id03:hklprojection # refers to HKLProjection in BINoculars/backends/id03.py
+resolution = 0.002, 0.002, 1 # or just give 1 number for all dimensions

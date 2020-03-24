@@ -1,0 +1,343 @@
+import numpy as num
+import numpy as np
+#domain1A and domain1B are sequence atom list for half layer, the other two for full layer
+domain1A_long=["O1_0","O2_0","O3_0","O4_0","Fe4_0","Fe6_0","O5_0","O6_0","O7_0","O8_0","Fe8_0","Fe9_0","O9_0","O10_0","Fe10_0","Fe12_0","O11_0","O12_0","O1_1","O2_1"]
+domain1B_long=["O7_0","O8_0","O9_0","O10_0","Fe10_0","Fe12_0","O11_0","O12_0","O1_1","O2_1","Fe2_1","Fe3_1","O3_1","O4_1","Fe4_1","Fe6_1","O5_1","O6_1","O7_1","O8_1"]
+domain1A_short=["O7_0","O8_0","O9_0","O10_0","Fe10_0","Fe12_0","O11_0","O12_0","O1_1","O2_1","Fe2_1","Fe3_1","O3_1","O4_1","Fe4_1","Fe6_1","O5_1","O6_1"]
+domain1B_short=["O1_1","O2_1","O3_1","O4_1","Fe4_1","Fe6_1","O5_1","O6_1","O7_1","O8_1","Fe8_1","Fe9_1","O9_1","O10_1","Fe10_1","Fe12_1","O11_1","O12_1"]
+#for old ref full layer domain
+domain2A_long=["O11_t","O12_t","O1_0","O2_0","Fe2_0","Fe3_0","O3_0","O4_0","Fe4_0","Fe6_0","O5_0","O6_0","O7_0","O8_0","Fe8_0","Fe9_0","O9_0","O10_0","Fe10_0","Fe12_0"]
+domain2B_long=["O5_0","O6_0","O7_0","O8_0","Fe8_0","Fe9_0","O9_0","O10_0","Fe10_0","Fe12_0","O11_0","O12_0","O1_1","O2_1","Fe2_1","Fe3_1","O3_1","O4_1","Fe4_1","Fe6_1"]
+#for new ref full layer domain
+domain2A_short=["O5_0","O6_0","O7_0","O8_0","Fe8_0","Fe9_0","O9_0","O10_0","Fe10_0","Fe12_0","O11_0","O12_0","O1_1","O2_1","Fe2_1","Fe3_1","O3_1","O4_1","Fe4_1","Fe6_1"]
+domain2B_short=["O11_0","O12_0","O1_1","O2_1","Fe2_1","Fe3_1","O3_1","O4_1","Fe4_1","Fe6_1","O5_1","O6_1","O7_1","O8_1","Fe8_1","Fe9_1","O9_1","O10_1","Fe10_1","Fe12_1"]
+"""
+################explanation of each componont in structure################
+#surface1#
+'dxdy'=[8,[0.,-0.05,0.05],'True']:consider the top 8 atoms for inplane movement,start value 0,min -0.05 and max 0.05
+'dz'=[14,[0,-0.05,0.05],'True']:consider the top 7 layers for outof plane movement (NOTE here consider in pairs)
+'u' and 'oc' are same as 'dz'
+#sorbate1#(set to None if clean surface)
+'angles':first one is phi angle and second one is top angle
+'dxdy':make sure the element is suffixed with number counting from 1
+'u' and 'oc' are the same as 'dxdy'
+'oc':Note we group all sorbates together to consider occupancy of sorbates
+#water1#
+'dxdy' have the number of items the same as the water numbers
+'dz' and 'oc' and 'u' has half number of items of total water numbers, because we group each two waters at same layer for oc and u consideration
+"""
+surface1={'dxdy':[4,[0.,-0.05,0.05],'True'],'dz':[0,[0,-0.05,0.05],'False'],'oc':[0,[1,0.6,1],'False'],'u':[0,[0.4,0.32,0.8],'False']}
+surface2={'dxdy':[4,[0.,-0.05,0.05],'True'],'dz':[0,[0,-0.05,0.05],'False'],'oc':[0,[1,0.6,1],'False'],'u':[0,[0.4,0.32,0.8],'False']}
+surface3={'dxdy':[4,[0.,-0.05,0.05],'True'],'dz':[10,[0,-0.05,0.05],'True'],'oc':[10,[1,0.6,1],'True'],'u':[10,[0.4,0.32,0.8],'True']}
+surface4={'dxdy':[2,[0.,-0.05,0.05],'True'],'dz':[10,[0,-0.05,0.05],'True'],'oc':[2,[1,0.6,1],'False'],'u':[2,[0.4,0.32,0.8],'False']}
+
+sorbate1={'angles':[[5.,1,6.28],[1.4,0.7,2],'False'],'dxdy':[['Pb1',[0,-0.1,0.1],'True'],['HO1',[0,-0.1,0.1],'True']],\
+         'dz':[['Pb1',[0,-0.1,0.1],'True'],['HO1',[0,-0.1,0.1],'True']],'u':[['Pb1',[0.2,0.2,0.8],'True'],['HO1',[0.4,0.4,0.9],'True']],'oc':[[0.2,0.1,0.8],'True']}
+sorbate2={'angles':[[5.1,1,6.28],[1.5,0.7,2],'True'],'dxdy':[['Pb1',[0,-0.5,0.5],'True'],['HO1',[0,-0.5,0.5],'True']],\
+         'dz':[['Pb1',[0,-0.5,0.5],'True'],['HO1',[0,-0.5,0.5],'True']],'u':[['Pb1',[0.2,0.2,0.8],'True'],['HO1',[0.4,0.4,0.9],'True']],'oc':[[0.2,0.1,0.8],'True']}
+water1={'dxdy':[[0,-0.5,0.5,'False'],[0,-0.5,0.5,'False']],'dz':[[0,-0.5,0.5,'False'],[0,-0.5,0.5,'False']],\
+       'oc':[[0.4,0,1,'False'],[0.4,0,1,'False']],'u':[[5,0.5,10,'False'],[5,0.5,10,'False']]}
+water2={'dxdy':[[0,-0.5,0.5,'True'],[0,-0.5,0.5,'True']],'dz':[[0,-0.5,0.5,'True'],[0,-0.5,0.5,'True']],\
+       'oc':[[0.4,0,1,'True'],[0.4,0,1,'True']],'u':[[5,0.5,10,'True'],[5,0.5,10,'True']]}
+##note the domain_tag is the number to lable each domain continually from 1##
+"""
+structure={'domain1':{'domain_type':'half_layer','domain_tag':1,'surface':surface1,'sorbate':sorbate1,'water':water1},
+           'domain2':{'domain_type':'half_layer','domain_tag':2,'surface':surface2,'sorbate':None,'water':water2}}
+"""
+structure={'domain1':{'domain_type':'half_layer','domain_tag':1,'surface':surface1,'sorbate':sorbate1,'water':water1},\
+           'domain2':{'domain_type':'half_layer','domain_tag':2,'surface':surface2,'sorbate':sorbate2,'water':water2},\
+           'domain3':{'domain_type':'half_layer','domain_tag':3,'surface':surface3,'sorbate':None,'water':water2}}
+#make_structure will be used inside genx script to generate the parameter table
+def make_structure(sorbate_N,O_N,water_N,Domains,Metal,binding_mode=['BD']*3,long_slab=False,long_slab_HL=False,local_structure='tetrahedral',add_distal_wild=None,use_domains=[1]*10,N_raxr=0,domain_raxr_el=[1,1,0,0],layered_water=None,layered_sorbate=None,tab_path='D:\\',surf_layer_dxdydz_num=6,surf_layer_u_num=6):
+    structure={}
+    for i in range(len(Domains)):
+        if use_domains[i]==1:
+            oc_N=10
+            #if sorbate_N[i]==0:oc_N=6
+            temp_surface={'dxdy':[0,[0.,-0.04,0.04],'True'],'dz':[surf_layer_dxdydz_num*2,[0,-0.03,0.03],'True'],'oc':[oc_N,[1,0.6,1],'True'],'u':[surf_layer_u_num,[0.4,0.32,0.8],'True']}
+            domain_type=None
+            full_layer_type=None
+            half_layer_type=None
+            if Domains[i]==2:
+                domain_type='full_layer'
+                if long_slab[i]==0:
+                    full_layer_type='short'
+                elif long_slab[i]==1:
+                    full_layer_type='long'
+            elif Domains[i]==1:
+                domain_type='half_layer'
+                if long_slab_HL[i]==2:
+                    half_layer_type='short'
+                elif long_slab_HL[i]==3:
+                    half_layer_type='long'
+            temp_sorbate={}
+            if sorbate_N[i]==0:
+                temp_sorbate=None
+            else:
+                temp_sorbate['dxdydz']=[[Metal[i][j]+'_set'+str(2*j+1),[0,-0.5,0.5],'False'] for j in range(int(sorbate_N[i]/2))]+[['HO'+str(k+1)+'_set'+str(2*j+1),[0,-0.5,0.5],'False'] for j in range(len(O_N[i])) for k in range(O_N[i][j])]
+                #temp_sorbate['u']=[[Metal[i][j]+'_set'+str(2*j+1),[0.2,0.2,1.],'True'] for j in range(sorbate_N[i]/2)]+[['HO'+str(k+1)+'_set'+str(2*j+1),[0.2,0.2,1.],'True'] for j in range(len(O_N[i])) for k in range(O_N[i][j])]
+                temp_sorbate['u']=[[Metal[i][j]+'_set'+str(2*j+1),[0.2,0.2,1.],'True'] for j in range(int(sorbate_N[i]/2))]+[['HO'+'_set'+str(2*j+1),[0.2,0.2,10.],'True'] for j in range(int(sorbate_N[i]/2))]
+                temp_sorbate['oc']=[['sorbates_set'+str(2*j+1),[0.3,0.,0.5],'True'] for j in range(int(sorbate_N[i]/2))]
+                #temp_sorbate['oc']=[[Metal[i][j]+'_set'+str(2*j+1),[0.3,0.,1.],'True'] for j in range(sorbate_N[i]/2)]+[['HO'+str(k+1)+'_set'+str(2*j+1),[0.3,0.,1.],'True'] for j in range(len(O_N[i])) for k in range(O_N[i][j])]
+                temp_sorbate['sorbate_number']=int(sorbate_N[i]/2)
+                temp_sorbate['oxygen_number']=O_N[i]
+                temp_sorbate['distal_wild']=add_distal_wild[i]
+            temp_water={}
+            if water_N[i]==0:
+                temp_water=None
+            else:
+                temp_water['dxdy']=[[0,-0.5,0.5,'True'] for j in range(water_N[i])]
+                temp_water['dz']=[[0,-0.5,0.5,'True'] for j in range(int(water_N[i]/2))]
+                temp_water['u']=[[3,0.8,10,'True'] for j in range(int(water_N[i]/2))]
+                temp_water['oc']=[[0.3,0,0.6,'True'] for j in range(int(water_N[i]/2))]
+            structure['domain'+str(i+1)]={'binding_mode':binding_mode[i],'full_layer_type':full_layer_type,'half_layer_type':half_layer_type,'domain_type':domain_type,'domain_tag':i+1,'surface':temp_surface,'sorbate':temp_sorbate,'water':temp_water}
+        else:
+            pass
+    return table_maker(table_file_path=tab_path,structure_info=structure,local_structure=local_structure,N_raxr=N_raxr,domain_raxr_el=domain_raxr_el,layered_water=layered_water,layered_sorbate=layered_sorbate)
+
+def table_maker(table_file_path='D:\\table.tab',structure_info=structure,local_structure='tetrahedral',N_raxr=0,domain_raxr_el=[1,1,0,0],layered_water=None,layered_sorbate=None):
+
+    f=open(table_file_path,'w')
+    f.write('#Parameter Value Fit Min Max Error\n')
+    f.write('inst.set_inten\t1\tTrue\t1\t10\t-\n')
+    #f.write('rgh.setScale_CTR_specular\t1\tTrue\t0.6\t1.5\t-\n')
+    f.write('rgh.setBeta\t0\tTrue\t0\t0.4\t-\n')
+    f.write('rgh.setMu\t10\tTrue\t0\t200\t-\n')
+    f.write('rgh.setScale_CTR\t0\tTrue\t0\t10\t-\n')
+    f.write('\t0\tFalse\t0\t0\t-\n')
+    domain_N=len(structure_info.keys())
+    for i in range(domain_N):
+        f.write('rgh_domain'+str(i+1)+'.setWt\t1\tFalse\t0\t1\t-\n')
+    f.write('\t0\tFalse\t0\t0\t-\n')
+    keys=list(structure_info.keys())
+    keys.sort()
+    for key in keys:
+        temp_domain=structure_info[key]
+        domain_tag=str(structure_info[key]['domain_tag'])
+        domain_index=structure_info[key]['domain_tag']-1
+        domain_type=temp_domain['domain_type']
+        temp_surface=temp_domain['surface']
+        temp_sorbate=temp_domain['sorbate']
+        temp_water=temp_domain['water']
+        atom_list=[]
+        f.write('#############'+key+'############\n')
+        if domain_type=='half_layer':
+            if temp_domain['half_layer_type']=="long":
+                atom_list=[domain1A_long,domain1B_long]
+                f.write('gp_Fe2Fe3_Fe8Fe9_D'+domain_tag+'.setoc\t0\tFalse\t0\t0\t-\n')
+                f.write('\t0\tFalse\t0\t0\t-\n')
+            elif temp_domain['half_layer_type']=="short":
+                atom_list=[domain1A_short,domain1B_short]
+                f.write('gp_Fe8Fe9_Fe2Fe3_D'+domain_tag+'.setoc\t0\tFalse\t0\t0\t-\n')
+                f.write('\t0\tFalse\t0\t0\t-\n')
+        elif domain_type=='full_layer':
+            if temp_domain['full_layer_type']=="short":
+                atom_list=[domain2A_short,domain2B_short]
+            elif temp_domain['full_layer_type']=='long':
+                atom_list=[domain2A_long,domain2B_long]
+        ##do surface
+        #out of plane movement together with inplane movement ie dxdydz
+        f.write('#dxdydz\n')
+        for i in range(int(temp_surface['dz'][0]/2)):
+            index=2*i
+            s="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+atom_list[0][index].rsplit('_')[0]+atom_list[0][index+1].rsplit('_')[0]+'_'+atom_list[1][index].rsplit('_')[0]+atom_list[1][index+1].rsplit('_')[0]+'_D'+domain_tag+'.setdx',\
+                                                      temp_surface['dxdy'][1][0],temp_surface['dxdy'][2],temp_surface['dxdy'][1][1],temp_surface['dxdy'][1][2],'-')
+            f.write(s)
+            s="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+atom_list[0][index].rsplit('_')[0]+atom_list[0][index+1].rsplit('_')[0]+'_'+atom_list[1][index].rsplit('_')[0]+atom_list[1][index+1].rsplit('_')[0]+'_D'+domain_tag+'.setdy',\
+                                                      temp_surface['dxdy'][1][0],temp_surface['dxdy'][2],temp_surface['dxdy'][1][1],temp_surface['dxdy'][1][2],'-')
+            f.write(s)
+            s="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+atom_list[0][index].rsplit('_')[0]+atom_list[0][index+1].rsplit('_')[0]+'_'+atom_list[1][index].rsplit('_')[0]+atom_list[1][index+1].rsplit('_')[0]+'_D'+domain_tag+'.setdz',\
+                                                  temp_surface['dz'][1][0],temp_surface['dz'][2],temp_surface['dz'][1][1],temp_surface['dz'][1][2],'-')
+            f.write(s)
+        f.write('\t0\tFalse\t0\t0\t-\n')
+        f.write('#oc and u\n')
+        #occupancy and thermal factor
+        for i in range(int(temp_surface['u'][0]/2)):
+            index=2*i
+            s="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+atom_list[0][index].rsplit('_')[0]+atom_list[0][index+1].rsplit('_')[0]+'_'+atom_list[1][index].rsplit('_')[0]+atom_list[1][index+1].rsplit('_')[0]+'_D'+domain_tag+'.setu',\
+                                                  temp_surface['u'][1][0],temp_surface['u'][2],temp_surface['u'][1][1],temp_surface['u'][1][2],'-')
+            f.write(s)
+        f.write('\t0\tFalse\t0\t0\t-\n')
+        for i in range(int(temp_surface['oc'][0]/2)):
+            index=2*i
+            s="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+atom_list[0][index].rsplit('_')[0]+atom_list[0][index+1].rsplit('_')[0]+'_'+atom_list[1][index].rsplit('_')[0]+atom_list[1][index+1].rsplit('_')[0]+'_D'+domain_tag+'.setoc',\
+                                                  temp_surface['oc'][1][0],temp_surface['oc'][2],temp_surface['oc'][1][1],temp_surface['oc'][1][2],'-')
+            f.write(s)
+        f.write('\t0\tFalse\t0\t0\t-\n')
+        ##do sorbate
+        if temp_sorbate!=None:
+            #phi and top_angle
+            f.write('####sorbate####\n')
+            f.write('#angles\n')
+            for i in range(len(temp_domain['binding_mode'])):
+                binding_mode=temp_domain['binding_mode'][i]
+                tag='_'+str(i*2)
+                if binding_mode=='BD':
+                    s_phi="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi_BD'+tag,0,'True',-50,50,'-')
+                    f.write(s_phi)
+                    if local_structure[domain_index][i]=='trigonal_pyramid':
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTop_angle_BD'+tag,60,'True',50,90,'-'))
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setOffset_BD'+tag,0,'True',-0.1,0.1,'-'))
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR_BD'+tag,2.25,'True',2.25,2.35,'-'))
+                        if temp_sorbate['distal_wild'][i*2]:
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_1_BD'+tag,0.,'True',0.,180.,'-'))
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_1_BD'+tag,0.,'True',0.,360.,'-'))
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_1_BD'+tag,2.25,'True',1.9,2.35,'-'))
+                        else:
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setOffset2_BD'+tag,0,'True',-0.1,0.1,'-'))
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setAngle_offset_BD'+tag,0,'True',0.,360.,'-'))
+                    elif local_structure[domain_index][i]=='octahedral':
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_BD'+tag,0.,'True',0.,180.,'-')) for ii in range(4)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_BD'+tag,0.,'True',0.,360.,'-')) for ii in range(4)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_BD'+tag,2.26,'True',1.9,2.4,'-')) for ii in range(4)]
+                    elif local_structure[domain_index][i]=='tetrahedral':
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setAnchor_offset_BD'+tag,0,'True',-0.5,0.5,'-'))
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTop_angle_offset_BD'+tag,0,'True',-50.,50.,'-'))
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_BD'+tag,0.,'True',0.,180.,'-')) for ii in range(2)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_BD'+tag,0.,'True',0.,360.,'-')) for ii in range(2)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_BD'+tag,1.7,'True',1.5,1.9,'-')) for ii in range(2)]
+                        else:
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setAngle_offset_BD'+tag,0,'True',-50,50,'-'))
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setAngle_offset2_BD'+tag,0,'True',-50,50,'-'))
+                elif binding_mode=='MD':
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi_BD'+tag,temp_sorbate['angles'][0][0],temp_sorbate['angles'][2],temp_sorbate['angles'][0][1],temp_sorbate['angles'][0][2],'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTop_angle_BD'+tag,temp_sorbate['angles'][1][0],temp_sorbate['angles'][2],temp_sorbate['angles'][1][1],temp_sorbate['angles'][1][2],'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR_BD'+tag,2.25,'True',2.25,2.35,'-'))
+                elif binding_mode=='TD':
+                    if local_structure[domain_index][i]=='trigonal_pyramid':
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTop_angle_TD'+tag,90.,'True',50.,110.,'-'))
+                    elif local_structure[domain_index][i]=='octahedral':
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_TD'+tag,0.,'True',0.,180.,'-')) for ii in range(3)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_TD'+tag,0.,'True',0.,360.,'-')) for ii in range(3)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_TD'+tag,2.0,'True',1.8,2.2,'-')) for ii in range(3)]
+                    elif local_structure[domain_index][i]=='tetrahedral':
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_TD'+tag,0.,'True',0.,180.,'-')) for ii in range(1)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_TD'+tag,0.,'True',0.,360.,'-')) for ii in range(1)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_TD'+tag,2.0,'True',1.8,2.2,'-')) for ii in range(1)]
+                        else:
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setDr_tetrahedral_TD'+tag,0.,'True',-0.5,0.5,'-'))
+                            f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setDr_bc_tetrahedral_TD'+tag,0.,'True',-0.5,0.5,'-'))
+                elif binding_mode=='OS':
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setRot_x_OS'+tag,0,'True',0,360,'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setRot_y_OS'+tag,0,'True',0,360,'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setRot_z_OS'+tag,0,'True',0,360,'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setCt_offset_dx_OS'+tag,0,'True',-0.5,0.5,'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setCt_offset_dy_OS'+tag,0,'True',-0.5,0.5,'-'))
+                    f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setCt_offset_dz_OS'+tag,0,'True',-0.2,0.2,'-'))
+                    if local_structure[domain_index][i]=='trigonal_pyramid':
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTop_angle_OS'+tag,90.,'True',50.,110.,'-'))
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR0_OS'+tag,2.25,'True',2.0,2.5,'-'))
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_OS'+tag,0.,'True',0.,180.,'-')) for ii in range(3)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_OS'+tag,0.,'True',0.,360.,'-')) for ii in range(3)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_OS'+tag,2.0,'True',1.8,2.2,'-')) for ii in range(3)]
+                    elif local_structure[domain_index][i]=='octahedral':
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR0_OS'+tag,2.0,'True',1.8,2.2,'-'))
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_OS'+tag,0.,'True',0.,180.,'-')) for ii in range(6)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_OS'+tag,0.,'True',0.,360.,'-')) for ii in range(6)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_OS'+tag,2.0,'True',1.8,2.2,'-')) for ii in range(6)]
+                    elif local_structure[domain_index][i]=='tetrahedral':
+                        f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR0_OS'+tag,1.7,'True',1.5,1.9,'-'))
+                        if temp_sorbate['distal_wild'][i*2]:
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setTheta1_'+str(ii+1)+'_OS'+tag,0.,'True',0.,180.,'-')) for ii in range(4)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setPhi1_'+str(ii+1)+'_OS'+tag,0.,'True',0.,360.,'-')) for ii in range(4)]
+                            [f.write("%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setR1_'+str(ii+1)+'_OS'+tag,2.0,'True',1.8,2.2,'-')) for ii in range(4)]
+                f.write('\t0\tFalse\t0\t0\t-\n')
+            #dxdydz
+            f.write('#dxdydz\n')
+            for i in range(len(temp_sorbate['dxdydz'])):
+                s_x="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+temp_sorbate['dxdydz'][i][0]+'_D'+domain_tag+'.setdx',temp_sorbate['dxdydz'][i][1][0],temp_sorbate['dxdydz'][i][2],temp_sorbate['dxdydz'][i][1][1],temp_sorbate['dxdydz'][i][1][2],'-')
+                s_y="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+temp_sorbate['dxdydz'][i][0]+'_D'+domain_tag+'.setdy',temp_sorbate['dxdydz'][i][1][0],temp_sorbate['dxdydz'][i][2],temp_sorbate['dxdydz'][i][1][1],temp_sorbate['dxdydz'][i][1][2],'-')
+                s_z="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+temp_sorbate['dxdydz'][i][0]+'_D'+domain_tag+'.setdz',temp_sorbate['dxdydz'][i][1][0],temp_sorbate['dxdydz'][i][2],temp_sorbate['dxdydz'][i][1][1],temp_sorbate['dxdydz'][i][1][2],'-')
+                f.write(s_x)
+                f.write(s_y)
+                f.write(s_z)
+                f.write('\t0\tFalse\t0\t0\t-\n')
+            #u
+            f.write('#u\n')
+            for i in range(len(temp_sorbate['u'])):
+                s_u="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+temp_sorbate['u'][i][0]+'_D'+domain_tag+'.setu',temp_sorbate['u'][i][1][0],temp_sorbate['u'][i][2],temp_sorbate['u'][i][1][1],temp_sorbate['u'][i][1][2],'-')
+                f.write(s_u)
+            f.write('\t0\tFalse\t0\t0\t-\n')
+            #oc
+            f.write('#oc\n')
+            for i in range(len(temp_sorbate['oc'])):
+                s_oc="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_'+temp_sorbate['oc'][i][0]+'_D'+domain_tag+'.setoc',temp_sorbate['oc'][i][1][0],temp_sorbate['oc'][i][2],temp_sorbate['oc'][i][1][1],temp_sorbate['oc'][i][1][2],'-')
+                f.write(s_oc)
+            f.write('\t0\tFalse\t0\t0\t-\n')
+        ##do water
+        if temp_water!=None:
+            f.write('####water####\n')
+            #dxdy
+            """
+            f.write('#dxdy\n')
+            for i in range(len(temp_water['dxdy'])):
+                s_x="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_Os'+str(i+1)+'_D'+domain_tag+'.setdx',temp_water['dxdy'][i][0],temp_water['dxdy'][i][-1],temp_water['dxdy'][i][1],temp_water['dxdy'][i][2],'-')
+                s_y="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_Os'+str(i+1)+'_D'+domain_tag+'.setdy',temp_water['dxdy'][i][0],temp_water['dxdy'][i][-1],temp_water['dxdy'][i][1],temp_water['dxdy'][i][2],'-')
+                f.write(s_x)
+                f.write(s_y)
+            f.write('\t0\tFalse\t0\t0\t-\n')
+            #dz
+            f.write('#dz\n')
+            for i in range(len(temp_water['dz'])):
+                s_oc="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_waters_set'+str(i+1)+'_D'+domain_tag+'.setdz',temp_water['dz'][i][0],temp_water['dz'][i][-1],temp_water['dz'][i][1],temp_water['dz'][i][2],'-')
+                f.write(s_oc)
+            f.write('\t0\tFalse\t0\t0\t-\n')
+            """
+            f.write('#rotation angle and vertical shift\n')
+            for i in range(len(temp_water['dz'])):
+                s_alpha="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setAlpha_W_'+str(i+1),90,'True',20,160,'-')
+                s_vshift="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('rgh_domain'+domain_tag+'.setV_shift_W_'+str(i+1),1,'True',0.7,3,'-')
+                f.write(s_alpha)
+                f.write(s_vshift)
+            #f.write('\t0\tFalse\t0\t0\t-\n')
+            #oc and u and dy shift
+            f.write('#oc and u\n')
+            for i in range(len(temp_water['oc'])):
+                s_oc="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_waters_set'+str(i+1)+'_D'+domain_tag+'.setoc',temp_water['oc'][i][0],temp_water['oc'][i][-1],temp_water['oc'][i][1],temp_water['oc'][i][2],'-')
+                f.write(s_oc)
+            #f.write('\t0\tFalse\t0\t0\t-\n')
+            for i in range(len(temp_water['u'])):
+                s_u="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_waters_set'+str(i+1)+'_D'+domain_tag+'.setu',temp_water['u'][i][0],temp_water['u'][i][-1],temp_water['u'][i][1],temp_water['u'][i][2],'-')
+                f.write(s_u)
+            #f.write('\t0\tFalse\t0\t0\t-\n')
+            for i in range(int(len(temp_water['dxdy'])/2)):
+                s_u="%s\t%5.4f\t%s\t%5.4f\t%5.4f\t%s\n"%('gp_waters_set'+str(i+1)+'_D'+domain_tag+'.setdy',temp_water['dxdy'][i][0],temp_water['dxdy'][i][-1],temp_water['dxdy'][i][1],temp_water['dxdy'][i][2],'-')
+                f.write(s_u)
+            f.write('\t0\tFalse\t0\t0\t-\n')
+    if layered_water!=None:
+        for i in range(len(layered_water)):
+            if layered_water[i]:
+                f.write('rgh_domain'+str(i+1)+'.setU0\t0.4\tFalse\t0\t5\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setUbar\t0.4\tFalse\t0\t5\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setFirst_layer_height\t2\tFalse\t0\t5\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setD_w\t2.0\tFalse\t1\t4\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setDensity_w\t0.033\tFalse\t0\t0.033\t-\n')
+                f.write('\t0\tFalse\t0\t0\t-\n')
+
+    if layered_sorbate!=None:
+        for i in range(len(layered_sorbate)):
+            if layered_sorbate[i]:
+                f.write('rgh_domain'+str(i+1)+'.setU0_s\t0.4\tFalse\t0\t5\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setUbar_s\t0.4\tFalse\t0\t5\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setFirst_layer_height_s\t2\tFalse\t0\t5\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setD_s\t2.0\tFalse\t1\t4\t-\n')
+                f.write('rgh_domain'+str(i+1)+'.setDensity_s\t0.033\tFalse\t0\t0.033\t-\n')
+                f.write('\t0\tFalse\t0\t0\t-\n')
+                
+    for i in range(N_raxr):
+        f.write('rgh_raxr.setA'+str(i+1)+'\t1\tFalse\t0\t5\t-\n')
+        f.write('rgh_raxr.setB'+str(i+1)+'\t1\tFalse\t0\t5\t-\n')
+        f.write('rgh_raxr.setC'+str(i+1)+'\t1\tFalse\t0\t5\t-\n')
+        for j in range(len(domain_raxr_el)):
+            if domain_raxr_el[j]:
+                f.write('rgh_raxr.setA_D'+str(j+1)+'_'+str(i+1)+'\t1\tFalse\t0\t5\t-\n')
+                f.write('rgh_raxr.setP_D'+str(j+1)+'_'+str(i+1)+'\t1\tFalse\t0\t1\t-\n')
+        f.write('\t0\tFalse\t0\t0\t-\n')
+
+    f.close()

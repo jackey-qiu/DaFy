@@ -1,0 +1,71 @@
+
+#(C) 2017 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
+data_165961-ICSD
+_database_code_ICSD 165961
+_audit_creation_date 2010-08-01
+_chemical_name_systematic 'Nickel(III) oxide hydroxide - beta'
+_chemical_formula_structural 'Ni O (O H)'
+_chemical_formula_sum 'H1 Ni1 O2'
+_exptl_crystal_density_diffrn 4.62
+_publ_section_title
+'Characterizing nickel battery materials: crystal structure of beta-(Ni O O H)'
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'Materials Research Society Symposia Proceedings' 2009 1126 131 136
+MRSPDH
+loop_
+_publ_author_name
+'Casas-Cabanas, M.'
+'Canales-Vazquez, J.'
+'Rodriguez Carvajal, J.'
+'Palacin, M.R.'
+_cell_length_a 4.883(5)
+_cell_length_b 2.920(8)
+_cell_length_c 9.24(1)
+_cell_angle_alpha 90.
+_cell_angle_beta 88.8(1)
+_cell_angle_gamma 90.
+_cell_volume 131.72
+_cell_formula_units_Z 4
+_symmetry_space_group_name_H-M 'C 1 2/m 1'
+_symmetry_Int_Tables_number 12
+loop_
+_symmetry_equiv_pos_site_id
+_symmetry_equiv_pos_as_xyz
+1 '-x, y, -z'
+2 '-x, -y, -z'
+3 'x, -y, z'
+4 'x, y, z'
+5 '-x+1/2, y+1/2, -z'
+6 '-x+1/2, -y+1/2, -z'
+7 'x+1/2, -y+1/2, z'
+8 'x+1/2, y+1/2, z'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Ni3+ 3
+O2- -2
+H1+ 1
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+_atom_site_attached_hydrogens
+Ni1 Ni3+ 4 i 0.621(5) 0.5 0.248(1) 1.9(5) 1. 0
+O1 O2- 4 i 0.925(8) 0.5 0.147(4) 0.3(5) 1. 0
+O2 O2- 4 i 0.387(3) 0.5 0.387(3) 0.3(5) 1. 0
+H1 H1+ 4 i 0.28(2) 0 0.53(1) 0.3(5) 0.9(9) 0
+H2 H1+ 4 i 0.45(9) 0 -0.05(4) 0.3(5) 0.1(1) 0
+#End of TTdata_165961-ICSD

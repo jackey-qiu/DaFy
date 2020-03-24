@@ -1,0 +1,80 @@
+
+#(C) 2017 by FIZ Karlsruhe - Leibniz Institute for Information Infrastructure.  All rights reserved.
+data_239321-ICSD
+_database_code_ICSD 239321
+_audit_creation_date 2016-08-01
+_chemical_name_systematic 'Iron(III) oxide hydroxide - alpha phase'
+_chemical_formula_structural 'Fe O O H'
+_chemical_formula_sum 'H1 Fe1 O2'
+_chemical_name_structure_type AlOOH(Diaspore)
+_chemical_name_mineral Goethite
+_exptl_crystal_density_diffrn 4.29
+_cell_measurement_temperature 15.
+_publ_section_title
+
+;
+Magnetic and nuclear structure of goethite (alpha-Fe O O H): a neutron
+diffraction study
+;
+loop_
+_citation_id
+_citation_journal_full
+_citation_year
+_citation_journal_volume
+_citation_page_first
+_citation_page_last
+_citation_journal_id_ASTM
+primary 'Journal of Applied Crystallography' 2014 47 1983 1991 JACGAR
+loop_
+_publ_author_name
+'Zepeda-Alarcon, Eloisa'
+'Nakotte, Heinz'
+'Gualtieri, Alessandro F.'
+'King, Graham'
+'Page, Katharine'
+'Vogel, Sven C.'
+'Wang, Hsiu-Wen'
+'Wenk, Hans-Rudolf'
+_cell_length_a 4.59748(4)
+_cell_length_b 9.94115(9)
+_cell_length_c 3.013329(30)
+_cell_angle_alpha 90.
+_cell_angle_beta 90.
+_cell_angle_gamma 90.
+_cell_volume 137.72
+_cell_formula_units_Z 4
+_symmetry_space_group_name_H-M 'P b n m'
+_symmetry_Int_Tables_number 62
+loop_
+_symmetry_equiv_pos_site_id
+_symmetry_equiv_pos_as_xyz
+1 '-x+1/2, y+1/2, z'
+2 'x, y, -z+1/2'
+3 'x+1/2, -y+1/2, z+1/2'
+4 '-x, -y, -z'
+5 'x+1/2, -y+1/2, -z'
+6 '-x, -y, z+1/2'
+7 '-x+1/2, y+1/2, -z+1/2'
+8 'x, y, z'
+loop_
+_atom_type_symbol
+_atom_type_oxidation_number
+Fe3+ 3
+O2- -2
+H1+ 1
+loop_
+_atom_site_label
+_atom_site_type_symbol
+_atom_site_symmetry_multiplicity
+_atom_site_Wyckoff_symbol
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_B_iso_or_equiv
+_atom_site_occupancy
+_atom_site_attached_hydrogens
+Fe1 Fe3+ 4 c 0.04833(14) 0.85378(9) 0.25 0.00604(35) 1. 0
+O1 O2- 4 c 0.70566(26) 0.20032(13) 0.25 0.0011(5) 1. 0
+O2 O2- 4 c 0.20127(27) 0.05335(12) 0.25 0.0051(5) 1. 0
+H1 H1+ 4 c 0.4024(6) 0.08229(21) 0.25 0.0189(6) 1. 0
+#End of TTdata_239321-ICSD

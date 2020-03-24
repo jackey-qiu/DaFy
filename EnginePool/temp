@@ -1,0 +1,31 @@
+def extract_potential(pt_no = 2000, time_step = [10, 50, 10], pot_step = [0.2, 0.5, 0.8]):
+    potential_container= []
+    frames_per_time = float(pt_no)/sum(time_step)
+    for i in range(len(pot_step)):
+        potential_container = potential_container + [pot_step[i]]*int(time_step[i]*frames_per_time)
+    for i in range(abs(len(potential_container)-pt_no)):
+        potential_container.pop()
+    return potential_container
+
+def calculate_UB_matrix_p23(lattice_constants, energy, or0_angles, or1_angles,or0_hkl,or1_hkl):
+    return p23.cal_UB(lattice_constants, energy, or0_angles, or1_angles,or0_hkl, or1_hkl)
+
+def normalize_img_intensity(img, q_grid,mask_img, mask_profile, cen, offset, direction = 'horizontal'):
+    if direction == 'horizontal':
+        cut_mask = np.sum(mask_img[cen-offset:cen+offset+1,:], axis=0)
+        cut_img = np.sum(img[cen-offset:cen+offset+1,:],axis=0)
+        cut_img = cut_img/cut_mask
+        cut_img = cut_img[mask_profile]
+        cut_q = q_grid[0,mask_profile]
+        #now remove nan values
+        cut_img_nan = cut_img == np.nan
+        return cut_img[~cut_img_nan],cut_q[~cut_img_nan]
+    elif direction == 'vertical':
+        cut_mask = np.sum(mask_img[:,cen-offset:cen+offset+1], axis=1)
+        cut_img = np.sum(img[:,cen-offset:cen+offset+1],axis=1)
+        cut_img = cut_img/cut_mask
+        cut_img = cut_img[mask_profile]
+        cut_q = q_grid[mask_profile,0]
+        #now remove nan values
+        cut_img_nan = cut_img == np.nan
+        return cut_img[~cut_img_nan],cut_q[~cut_img_nan]

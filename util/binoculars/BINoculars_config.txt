@@ -1,0 +1,24 @@
+[dispatcher]
+type = Local #
+destination = /home/qiu/apps/DaFy/util/binoculars/hdf5/scan_{first}.hdf5 # optional 'output.hdf5' by default
+overwrite = true #by default: numbered files in the form output_  # .hdf5:
+ncores = 8
+[input]
+type = id03:EH1 
+sdd = 743 # sample to detector distance (mm)
+imagefolder = /home/qiu/data/ma4171/ma4171_img/ma4171_zap01 # Optional, takes specfile folder tag by default
+xmask= 1-254, 261-450, 451-514 
+ymask= 2-173, 175-193, 195-254,261-310,313-328,330-352, 354-398, 400-414, 416-493, 495-503, 505-514
+pixelsize = 0.055, 0.055 # pixel size x/y (mm) (same dimension as sdd)
+centralpixel = 294,366 # x,y
+specfile =  /home/qiu/data/ma4171/sixcvertical.spec # Location of the specfile
+[projection]
+type = id03:QProjection #
+resolution = 0.01, 0.01, 0.01 # or just give 1 number for all dimensions
+limits = [:, :, 1.65:1.95]
+
+# cd /home/reikowski/Desktop/binoculars_demo
+# python /home/reikowski/libraries/binoculars-master/scripts/binoculars process BINoculars_config.txt 110  -> process raw data 
+ 
+# python /home/reikowski/libraries/binoculars-master/scripts/binoculars-processgui   -> gui version to create process config files and to process the data
+# python /home/reikowski/libraries/binoculars-master/scripts/binoculars-gui  -> open viewer

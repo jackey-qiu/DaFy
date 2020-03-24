@@ -1,0 +1,76 @@
+data_global
+_chemical_name_mineral 'Muscovite'
+loop_
+_publ_author_name
+'Richardson S M'
+'Richardson J W'
+_journal_name_full 'American Mineralogist'
+_journal_volume 67 
+_journal_year 1982
+_journal_page_first 69
+_journal_page_last 75
+_publ_section_title
+;
+ Crystal structure of a pink muscovite from Archer's Post, Kenya: Implications
+ for reverse pleochroism in dioctahedral micas
+;
+_database_code_amcsd 0000854
+_chemical_formula_sum 'K Si3 Al3 O12 H2'
+_cell_length_a 5.1988
+_cell_length_b 9.0266
+_cell_length_c 20.1058
+_cell_angle_alpha 90
+_cell_angle_beta 95.782
+_cell_angle_gamma 90
+_cell_volume 938.715
+_exptl_crystal_density_diffrn      2.818
+_symmetry_space_group_name_H-M 'C 1 2/c 1'
+loop_
+_space_group_symop_operation_xyz
+  'x,y,z'
+  '1/2+x,1/2+y,z'
+  'x,-y,1/2+z'
+  '1/2+x,1/2-y,1/2+z'
+  '-x,y,1/2-z'
+  '1/2-x,1/2+y,1/2-z'
+  '-x,-y,-z'
+  '1/2-x,1/2-y,-z'
+loop_
+_atom_site_label
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+_atom_site_occupancy
+K   0.00000   0.09920   0.25000   1.00000
+Si1   0.45100   0.25870   0.13550   0.75000
+Al1   0.45100   0.25870   0.13550   0.25000
+Si2   0.03540   0.42980   0.36460   0.75000
+Al2   0.03540   0.42980   0.36460   0.25000
+Al3   0.25060   0.08380   0.00020   1.00000
+O1   0.38720   0.25250   0.05430   1.00000
+O2   0.03660   0.44310   0.44590   1.00000
+O3   0.41780   0.09310   0.16850   1.00000
+O4   0.24750   0.37120   0.16850   1.00000
+O5   0.25090   0.31320   0.34240   1.00000
+O-H6   0.04220   0.06220   0.44920   1.00000
+loop_
+_atom_site_aniso_label
+_atom_site_aniso_U_11
+_atom_site_aniso_U_22
+_atom_site_aniso_U_33
+_atom_site_aniso_U_12
+_atom_site_aniso_U_13
+_atom_site_aniso_U_23
+K 0.02548 0.03467 0.04034 0.00000 0.00482 0.00000
+Si1 0.01545 0.01940 0.03041 -0.00118 0.00419 0.00183
+Al1 0.01559 0.01940 0.03041 -0.00118 0.00419 0.00183
+Si2 0.01355 0.02105 0.02838 -0.00237 0.00314 -0.00091
+Al2 0.01355 0.02105 0.02838 -0.00237 0.00314 -0.00091
+Al3 0.00989 0.01858 0.02635 0.00000 0.00105 0.00183
+O1 0.02345 0.02807 0.03446 -0.00237 0.00629 0.00000
+O2 0.02155 0.02724 0.03446 0.00378 0.00157 0.00732
+O3 0.03483 0.03467 0.03446 0.00095 0.00629 0.00091
+O4 0.02087 0.03632 0.04054 0.00402 0.00210 0.00274
+O5 0.02656 0.03921 0.04662 0.00213 0.00210 -0.00640
+O-H6 0.02656 0.03344 0.03649 -0.00426 0.00524 0.00091
+
