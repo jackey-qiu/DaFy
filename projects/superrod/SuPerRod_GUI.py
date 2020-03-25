@@ -42,13 +42,22 @@ from PyQt5.QtGui import QTransform, QFont, QBrush, QColor, QIcon
 from pyqtgraph.Qt import QtGui
 import syntax_pars
 from models.structure_tools import sorbate_tool
-# from chemlab.graphics.renderers import AtomRenderer
-# from chemlab.db import ChemlabDB
-
-#from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as NavigationToolbar)
 
 class RunFit(QtCore.QObject):
+    """
+    RunFit class to interface GUI to operate fit-engine, which is ran on a different thread
+    ...
+    Attributes
+    ----------
+    updateplot : pyqtSignal to be emitted to main GUI thread during fit
+    solver: api for model fit using differential evolution algorithm
 
+    Methods
+    ----------
+    run: start the fit
+    stop: stop the fit
+
+    """
     updateplot = QtCore.pyqtSignal(str,object,bool)
     def __init__(self,solver):
         super(RunFit, self).__init__()
@@ -65,45 +74,37 @@ class RunFit(QtCore.QObject):
         self.solver.optimizer.stop = True
 
 class MyMainWindow(QMainWindow):
+    """
+    GUI class for this app
+    """
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
+        #pyqtgraph preference setting
         pg.setConfigOptions(imageAxisOrder='row-major', background = 'k')
         pg.mkQApp()
+        #load GUI ui file made by qt designer
         uic.loadUi(os.path.join(DaFy_path,'projects','SuperRod','superrod3.ui'),self)
         self.setWindowTitle('Data analysis factory: CTR data modeling')
         icon = QIcon(os.path.join(script_path,"DAFY.png"))
         self.setWindowIcon(icon)
         self.comboBox_all_motif.insertItems(0, sorbate_tool.ALL_MOTIF_COLLECTION)
-        # self.show()
-        self.stop = False
+        #self.stop = False
         self.show_checkBox_list = []
         self.domain_tag = 1
+        #structure factor for ideal structure
+        self.f_ideal=[]
         self.data_profiles = []
-        #set fom_func
-        #self.fom_func = chi2bars_2
-        #parameters
-        #self.parameters = parameters.Parameters()
-        #scripts
-        #self.script = ''
-        #script module
-        #self.script_module = types.ModuleType('genx_script_module')
         self.model = model.Model()
-        # self.solver = solvergui.SolverController(self)
+        #init run_fit
         self.run_fit = RunFit(solvergui.SolverController(self.model))
         self.fit_thread = QtCore.QThread()
-        # self.structure_view_thread = QtCore.QThread()
-        # self.widget_edp.moveToThread(self.structure_view_thread)
-        self.run_fit.moveToThread(self.fit_thread)
-        #self.run_fit.updateplot.connect(self.update_plot_data_view_upon_simulation)
+        self.run_fit.moveToThread(self.fit_thread)#move run_fit to a different thread
+        #signal-slot connection
         self.run_fit.updateplot.connect(self.update_par_during_fit)
         self.run_fit.updateplot.connect(self.update_status)
-        #self.run_fit.updateplot.connect(self.update_structure_view)
-        # self.run_fit.updateplot.connect(self.start_timer_structure_view)
-
-
         self.fit_thread.started.connect(self.run_fit.run)
 
-        #tool bar buttons to operate modeling
+        #tool bar buttons to operate model
         self.actionNew.triggered.connect(self.init_new_model)
         self.actionOpen.triggered.connect(self.open_model)
         self.actionSave.triggered.connect(self.save_model)
@@ -111,6 +112,7 @@ class MyMainWindow(QMainWindow):
         self.actionRun.triggered.connect(self.run_model)
         self.actionStop.triggered.connect(self.stop_model)
         self.actionCalculate.triggered.connect(self.calculate_error_bars)
+
         #menu items
         self.actionOpen_model.triggered.connect(self.open_model)
         self.actionSave_model.triggered.connect(self.save_model)
@@ -120,7 +122,6 @@ class MyMainWindow(QMainWindow):
         self.actionSave_table.triggered.connect(self.save_par)
         self.actionSave_script.triggered.connect(self.save_script)
         self.actionSave_data.triggered.connect(self.save_data)
-
         self.actionData.changed.connect(self.toggle_data_panel)
         self.actionPlot.changed.connect(self.toggle_plot_panel)
         self.actionScript.changed.connect(self.toggle_script_panel)
@@ -130,7 +131,6 @@ class MyMainWindow(QMainWindow):
         self.pushButton_append_data.clicked.connect(self.append_data)
         self.pushButton_delete_data.clicked.connect(self.delete_data)
         self.pushButton_save_data.clicked.connect(self.save_data)
-        # self.pushButton_calculate.clicked.connect(self.calculate)
         self.pushButton_update_mask.clicked.connect(self.update_mask_info_in_data)
 
         #pushbuttons for structure view
@@ -144,12 +144,11 @@ class MyMainWindow(QMainWindow):
         #spinBox to save the domain_tag
         self.spinBox_domain.valueChanged.connect(self.update_domain_index)
 
-        #pushbutton for changing plotting style
-        # self.pushButton_toggle_bkg_color.clicked.connect(self.change_plot_style)
         #pushbutton to load/save script
         self.pushButton_load_script.clicked.connect(self.load_script)
         self.pushButton_save_script.clicked.connect(self.save_script)
         self.pushButton_modify_script.clicked.connect(self.modify_script)
+
         #pushbutton to load/save parameter file
         self.pushButton_load_table.clicked.connect(self.load_par)
         self.pushButton_save_table.clicked.connect(self.save_par)
@@ -163,17 +162,15 @@ class MyMainWindow(QMainWindow):
         #select dataset in the viewer
         self.comboBox_dataset.activated.connect(self.update_data_view)
 
-        #syntax highlight
+        #syntax highlight for script
         self.plainTextEdit_script.setStyleSheet("""QPlainTextEdit{
 	                            font-family:'Consolas';
                                 font-size:14pt;
 	                            color: #ccc;
 	                            background-color: #2b2b2b;}""")
         self.plainTextEdit_script.setTabStopWidth(self.plainTextEdit_script.fontMetrics().width(' ')*4)
-        #self.data = data.DataList()
 
         #table view for parameters set to selecting row basis
-        # self.tableWidget_pars.itemChanged.connect(self.update_par_upon_change)
         self.tableWidget_pars.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableWidget_data.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.timer_save_data = QtCore.QTimer(self)
@@ -182,16 +179,21 @@ class MyMainWindow(QMainWindow):
         self.timer_update_structure.timeout.connect(self.pushButton_update_plot.click)
         self.setup_plot()
 
+
     def toggle_data_panel(self):
+        """data panel on the left side of GUI main frame"""
         self.tabWidget_data.setVisible(self.actionData.isChecked())
 
     def toggle_plot_panel(self):
+        """plot panel on the top right side of main GUI frame"""
         self.tabWidget.setVisible(self.actionPlot.isChecked())
 
     def toggle_script_panel(self):
+        """script panel on the bottom right side of main GUI frame"""
         self.tabWidget_2.setVisible(self.actionScript.isChecked())
 
     def update_domain_index(self):
+        """update domain index, triggering the associated structure to show"""
         self.domain_tag = int(self.spinBox_domain.text())
         if self.model.compiled:
             self.widget_edp.items = []
@@ -216,7 +218,6 @@ class MyMainWindow(QMainWindow):
         self.update_structure_view()
 
     def update_camera_position(self,widget_name = 'widget_edp', angle_type="azimuth", angle=0):
-        #getattr(self,widget_name)
         getattr(self,widget_name).setCameraPosition(pos=None, distance=None, \
             elevation=[None,angle][int(angle_type=="elevation")], \
                 azimuth=[None,angle][int(angle_type=="azimuth")])
@@ -235,17 +236,15 @@ class MyMainWindow(QMainWindow):
 
     #do this after model is loaded, so that you know len(data)
     def update_plot_dimension(self, columns = 2):
+        """Setting the layout of data profiles"""
         self.widget_data.clear()
         self.widget_data.ci.currentRow = 0
         self.widget_data.ci.currentCol = 0
 
         self.data_profiles = []
-        self.data_error_bars = []
         total_datasets = len(self.model.data)
         #current list of ax handle
-        # ax_list_now = list(range(len(self.data_profiles)))
         for i in range(total_datasets):
-            # if i not in ax_list_now:
             if 1:
                 hk_label = '{}{}L'.format(str(int(self.model.data[i].extra_data['h'][0])),str(int(self.model.data[i].extra_data['k'][0])))
                 if (i%columns)==0 and (i!=0):
@@ -253,10 +252,6 @@ class MyMainWindow(QMainWindow):
                     self.data_profiles.append(self.widget_data.addPlot(title=hk_label))
                 else:
                     self.data_profiles.append(self.widget_data.addPlot(title=hk_label))
-                #error bar item
-                # err = pg.ErrorBarItem(x=np.array([0]),y=np.array([0]),height=np.array([0]))
-                # self.data_profiles[i].addItem(err)
-                # self.data_error_bars.append(err)
 
     def setup_plot(self):
         self.fom_evolution_profile = self.widget_fom.addPlot()
@@ -264,6 +259,7 @@ class MyMainWindow(QMainWindow):
         self.fom_scan_profile = self.widget_fom_scan.addPlot()
 
     def update_data_check_attr(self):
+        """update the checkable attr of each dataset: use, show, showerror"""
         re_simulate = False
         for i in range(len(self.model.data)):
             #model.data: masked data
@@ -279,22 +275,24 @@ class MyMainWindow(QMainWindow):
         if re_simulate:
             self.simulate_model()
 
+    def calc_f_ideal(self):
+        self.f_ideal = []
+        for i in range(len(self.model.data)):
+            each = self.model.data[i]
+            self.f_ideal.append(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2)
+
     def update_plot_data_view(self):
+        """update views of all figures if script is compiled, while only plot data profiles if otherwise"""
         if self.model.compiled:
             self.update_data_check_attr()
             self.update_plot_data_view_upon_simulation()
         else:
-            # plot_data_index = []
             for i in range(len(self.model.data)):
-                # if self.tableWidget_data.cellWidget(i,1).isChecked():
                 fmt = self.tableWidget_data.item(i,4).text()
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
-                # self.selected_data_profile.plot(self.model.data[i].x, self.model.data[i].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = (len(plot_data_index) == 0))
                 self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = True)
-                #plot_data_index.append(i)
-            [each.setLogMode(x=False,y=True) for each in self.data_profiles]
+            [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each),1).isChecked()) for each in self.data_profiles]
             [each.autoRange() for each in self.data_profiles]
-            #self.selected_data_profile.autoRange()
 
     def update_plot_data_view_upon_simulation(self):
         for i in range(len(self.model.data)):
@@ -313,21 +311,23 @@ class MyMainWindow(QMainWindow):
                         y = np.append(y_d,y_u,axis = 1)
                         for ii in range(len(y)):
                             self.data_profiles[i].plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
+                
+                #plot ideal structure factor
+                scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
+                self.data_profiles[i].plot(self.model.data[i].x, self.f_ideal[i]*scale_factor**2,pen = {'color': "w", 'width': 1},clear = False)
+                #plot simulated results
                 if self.tableWidget_data.cellWidget(i,2).isChecked():
                     self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
                 else:
                     pass
-                # plot_data_index.append(i)
-        [each.setLogMode(x=False,y=True) for each in self.data_profiles]
+        [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each),1).isChecked()) for each in self.data_profiles]
         [each.autoRange() for each in self.data_profiles]
-        # self.selected_data_profile.setLogMode(x=False,y=True)
-        # self.selected_data_profile.autoRange()
         fom_log = np.array(self.run_fit.solver.optimizer.fom_log)
-        #print(fom_log)
         self.fom_evolution_profile.plot(fom_log[:,0],fom_log[:,1],pen={'color': 'r', 'width': 2}, clear = True)
         self.fom_evolution_profile.autoRange()
         
     def update_par_bar_during_fit(self):
+        """update bar chart during fit, which tells the current best fit and the searching range of each fit parameter"""
         if self.run_fit.running:
             par_max = self.run_fit.solver.optimizer.par_max
             par_min = self.run_fit.solver.optimizer.par_min
@@ -343,21 +343,19 @@ class MyMainWindow(QMainWindow):
             trial_vec_min = np.array(trial_vec_min)
             trial_vec_max = np.array(trial_vec_max)
             bg = pg.BarGraphItem(x=range(len(vec_best)), y=(trial_vec_max + trial_vec_min)/2, height=(trial_vec_max - trial_vec_min)/2, brush='b', width = 0.8)
-            # best_ = pg.ScatterPlotItem(size=10, pen=(200,200,200), brush=pg.mkBrush(255, 255, 255, 120))
-            # best_.addPoints([{'pos':range(len(vec_best)),'data':vec_best}])
-            # print(trial_vec_min)
-            # print(trial_vec_max)
-            # print(par_min)
-            # print(par_max)
             self.par_profile.clear()
             self.par_profile.addItem(bg)
-            # self.par_profile.addItem(best_)
-            # p1 = self.par_profile.addPlot()
             self.par_profile.plot(vec_best, pen=(0,0,0), symbolBrush=(255,0,0), symbolPen='w')
         else:
             pass
 
     def calculate_error_bars(self):
+        """
+        cal the error bar for each fit par after fit is completed
+        note the error bar values are only estimated from all intermediate fit reuslts from all fit generations,
+        and the error may not accutely represent the statistic errors. If you want to get statistical errors of 
+        each fit parameter, you can run a further NLLS fit using the the best fit parameters, which is not implemented in the program.
+        """
         try:
             error_bars = self.run_fit.solver.CalcErrorBars()
             total_num_par = len(self.model.parameters.data)
@@ -385,6 +383,7 @@ class MyMainWindow(QMainWindow):
         self.update_plot_data_view()
 
     def open_model(self):
+        """open a saved model file(*.rod), which is a compressed file containing data, script and fit parameters in one place"""
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","rod file (*.rod);;zip Files (*.rar)", options=options)
@@ -394,7 +393,6 @@ class MyMainWindow(QMainWindow):
             self.setWindowTitle('Data analysis factory: CTR data modeling-->{}'.format(fileName))
             self.model.load(fileName)
             self.update_plot_dimension()
-            # self.load_addition()
             try:
                 self.load_addition()
             except:
@@ -420,7 +418,6 @@ class MyMainWindow(QMainWindow):
             self.update_plot_data_view()
             self.update_par_upon_load()
             self.update_script_upon_load()
-            # self.init_structure_view()
             #model is simulated at the end of next step
             self.init_mask_info_in_data_upon_loading_model()
             #add name space for cal bond distance after simulation
@@ -433,6 +430,7 @@ class MyMainWindow(QMainWindow):
             # self.update_mask_info_in_data()
 
     def update_combo_box_list_par_set(self):
+        """atomgroup and uservars instances defined in script will be colleced and displayed in this combo box"""
         attrs = self.model.script_module.__dir__()
         attr_wanted = [each for each in attrs if type(getattr(self.model.script_module, each)) in [AtomGroup, UserVars]]
         num_items = self.comboBox_register_par_set.count()
@@ -441,6 +439,7 @@ class MyMainWindow(QMainWindow):
         self.comboBox_register_par_set.insertItems(0,attr_wanted)
 
     def append_all_par_sets(self):
+        """append fit parameters for all parset listed in the combo box, handy tool to save manual adding them in par table"""
         par_all = [self.comboBox_register_par_set.itemText(i) for i in range(self.comboBox_register_par_set.count())]
         for par in par_all:
             self.append_par_set(par)
@@ -464,7 +463,6 @@ class MyMainWindow(QMainWindow):
             par_selected = self.comboBox_register_par_set.currentText()
         else:
             pass
-        #attrs = getattr(self.model.script_module, par_selected)
         attrs = eval("self.model.script_module.{}.__dir__()".format(par_selected))
         attrs_wanted = [each for each in attrs if each.startswith("set")]
 
@@ -477,6 +475,7 @@ class MyMainWindow(QMainWindow):
             self.tableWidget_pars.insertRow(row_index)
             current_value = eval("self.model.script_module."+par_selected+'.'+attrs_wanted[ii].replace('set','get')+"()")
             bounds_temp = _get_bounds(par_selected,attrs_wanted[ii])
+            #update the bounds if the current value is out of the bound range
             if len(bounds_temp)==2:
                 if current_value<bounds_temp[0]:
                     bounds_temp[0] = current_value
@@ -511,9 +510,10 @@ class MyMainWindow(QMainWindow):
 
                     self.tableWidget_pars.setItem(row_index,i,qtablewidget)
         self.append_one_row_at_the_end()
-        #self.update_model_parameter()
 
     def auto_save_model(self):
+        """model will be saved automatically during fit, for which you need to set the interval generations for saving automatically"""
+        #the model will be renamed this way
         path = self.rod_file.replace(".rod","_ran.rod")
         if path:
             self.model.script = (self.plainTextEdit_script.toPlainText())
@@ -527,6 +527,7 @@ class MyMainWindow(QMainWindow):
             self.statusbar.showMessage("Model is saved, and {} in config saving".format(save_add_))
 
     def save_model(self):
+        """save model file, promting a dialog widget to ask the file name to save model"""
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "rod file (*.rod);;zip files (*.rar)")
         if path:
             self.model.script = (self.plainTextEdit_script.toPlainText())
@@ -541,6 +542,7 @@ class MyMainWindow(QMainWindow):
 
     #here save also the config pars for diffev solver
     def save_addition(self):
+        """save solver parameters, pulling from pyqtgraphy.parameter_tree widget"""
         values=\
                 [self.widget_solver.par.param('Diff.Ev.').param('k_m').value(),
                 self.widget_solver.par.param('Diff.Ev.').param('k_r').value(),
@@ -580,11 +582,16 @@ class MyMainWindow(QMainWindow):
                 funcs[i](value)
 
     def simulate_model(self):
+        """
+        simulate the model
+        script will be updated and compiled to make name spaces in script_module
+        """
         self.update_par_upon_change()
         self.model.script = (self.plainTextEdit_script.toPlainText())
         self.widget_solver.update_parameter_in_solver(self)
         try:
             self.model.simulate()
+            self.calc_f_ideal()
             self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,self.model.fom))
             self.update_plot_data_view_upon_simulation()
             self.init_structure_view()
@@ -593,33 +600,9 @@ class MyMainWindow(QMainWindow):
             self.statusbar.showMessage("Model is simulated successfully!")
         except model.ModelError as e:
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
-            #print("test error message!")
-            #print(str(e))
-
-        '''
-        self.compile_script()
-        # self.update_pars()
-        (funcs, vals) = self.get_sim_pars()
-        # Set the parameter values in the model
-        #[func(val) for func,val in zip(funcs, vals)]
-        i = 0
-        for func, val in zip(funcs,vals):
-            try:
-                func(val)
-            except Exception as e:
-                (sfuncs_tmp, vals_tmp) = self.parameters.get_sim_pars()
-                raise ParameterError(sfuncs_tmp[i], i, str(e), 1)
-            i += 1
-
-        self.evaluate_sim_func()
-        '''
-        #print(self.widget_solver.par.param("Fitting").param("start guess").value())
-        #print(self.widget_solver.par.param("Fitting").param("Population size").value())
 
     def run_model(self):
-        # self.solver.StartFit()
-        # self.start_timer_structure_view()
-        # self.structure_view_thread.start()
+        """start the model fit looping"""
         #button will be clicked every 2 second to update figures
         self.timer_update_structure.start(2000)
         self.widget_solver.update_parameter_in_solver(self)
@@ -631,7 +614,6 @@ class MyMainWindow(QMainWindow):
         self.timer_update_structure.stop()
         self.statusbar.clearMessage()
         self.statusbar.showMessage("Model run is aborted!")
-        # self.stop_timer_structure_view()
 
     def load_data(self, loader = 'ctr'):
         self._empty_data_pool()
@@ -646,12 +628,41 @@ class MyMainWindow(QMainWindow):
         self.model.data._counter = 1
 
     def load_data_ctr(self):
+        """
+        load data
+        ------------
+        if the data is ctr data, then you should stick to the dataformat as follows
         #8 columns in total
         #X, H, K, Y, I, eI, LB, dL
         #for CTR data, X column is L column, Y column all 0
         #for RAXR data, X column is energy column, Y column is L column
-        # self.data = data.DataList()
-        #self.model.compiled = False
+        #H, K, columns are holding H, K values
+        #I column is holding background-subtraced intensity of ctr signal
+        #LB, and dL are two values for roughness calculation
+           LB: first Bragg peak L of one rod
+           dL: interval L between two adjacent Bragg peak L's
+        To get access to these columns:
+            X column: data.x
+            I column: data.y
+            eI column: data.error
+            H column: data.extra_data["h"]
+            K column: data.extra_data["k"]
+            Y column: data.extra_data["Y"]
+            LB column: data.extra_data["LB"]
+            dL column: data.extra_data["dL"]
+        ---------------
+        if the data you want to load is not in CTR format, to make successful loading, assure:
+            1)your data file has 8 columns
+            2)columns are space-separated (or tab-seperated)
+            3)you can add comment lines heading with "#"
+            4)if your data has <8 columns, then fill the other unused columns with 0
+            5)to asscess your data column, you should use the naming rule described above, although
+              the real meaning of each column, eg X column, could be arbitrary at your wishes
+              For example, you put frequence values to the first column(X column), then to access this
+              column, you use data.X
+
+        Data file of 8 columns should be enough to encountpass many different situations.
+        """
         self.model.compiled = False
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -664,7 +675,6 @@ class MyMainWindow(QMainWindow):
                 data_loaded_pd['h'] = data_loaded_pd['h'].apply(lambda x:int(np.round(x)))
                 data_loaded_pd['k'] = data_loaded_pd['k'].apply(lambda x:int(np.round(x)))
                 data_loaded_pd.sort_values(by = ['h','k'], inplace = True)
-                # print(data_loaded_pd)
                 hk_unique = list(set(zip(list(data_loaded_pd['h']), list(data_loaded_pd['k']))))
                 hk_unique.sort()
                 h_unique = [each[0] for each in hk_unique]
@@ -704,8 +714,6 @@ class MyMainWindow(QMainWindow):
                 else:
                     pass
         self.model.data_original = copy.deepcopy(self.model.data)
-        #update script_module
-        #self.model.script_module.__dict__['data'] = self.data
         #update the view
         self.update_table_widget_data()
         self.update_combo_box_dataset()
@@ -719,7 +727,6 @@ class MyMainWindow(QMainWindow):
         row_index = sorted(row_index, reverse=True)
         for each in row_index:
             self.model.data.delete_item(each)
-        #self._deleteRows(self.tableWidget_data.selectionModel().selectedRows(), self.tableWidget_data)
         self.update_table_widget_data()
         self.update_combo_box_dataset()
         self.update_plot_dimension()
@@ -729,8 +736,7 @@ class MyMainWindow(QMainWindow):
         self.tableWidget_data.clear()
         self.tableWidget_data.setRowCount(len(self.model.data))
         self.tableWidget_data.setColumnCount(5)
-        self.tableWidget_data.setHorizontalHeaderLabels(['DataID','Show','Use','Errors','fmt'])
-        # self.tableWidget_pars.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
+        self.tableWidget_data.setHorizontalHeaderLabels(['DataID','logY','Use','Errors','fmt'])
         for i in range(len(self.model.data)):
             current_data = self.model.data[i]
             name = current_data.name
@@ -743,9 +749,10 @@ class MyMainWindow(QMainWindow):
                     self.tableWidget_data.setItem(i,j,qtablewidget)
                 else:
                     #note j=1 to j=3 corresponds to data.show, data.use, data.use_error
+                    #data.show is not used for judging showing or not(all datasets are shown)
+                    #It is instead used to specify the scale of Y(log or not)
                     check = getattr(current_data, ['show', 'use', 'use_error'][j-1])
                     check_box = QCheckBox()
-                    #self.show_checkBox_list.append(check_box)
                     check_box.setChecked(check)
                     check_box.stateChanged.connect(self.update_plot_data_view)
                     self.tableWidget_data.setCellWidget(i,j,check_box)
@@ -756,6 +763,7 @@ class MyMainWindow(QMainWindow):
         self.comboBox_dataset.addItems(new_items)
 
     def update_data_view(self):
+        """update the data view widget to show data values as table"""
         dataset_name = self.comboBox_dataset.currentText()
         dataset = None
         for each in self.model.data_original:
@@ -773,8 +781,6 @@ class MyMainWindow(QMainWindow):
         for i in range(len(dataset.x)):
             for j in range(len(all_labels)):
                 if all_labels[j] in column_labels_main:
-                    # print(getattr(dataset,'x')[i])
-                    # qtablewidget = QTableWidgetItem(str(round(getattr(dataset,all_labels[j])[i],4)))
                     item_ = getattr(dataset,all_labels[j])[i]
                     if all_labels[j] == 'mask':
                         qtablewidget = QTableWidgetItem(str(item_))
@@ -787,6 +793,7 @@ class MyMainWindow(QMainWindow):
                 self.tableWidget_data_view.setItem(i,j,qtablewidget)
 
     def update_mask_info_in_data(self):
+        """if the mask value is False, the associated data point wont be shown and wont be fitted as well"""
         dataset_name = self.comboBox_dataset.currentText()
         dataset = None
         for each in self.model.data_original:
@@ -802,6 +809,7 @@ class MyMainWindow(QMainWindow):
         self.simulate_model()
 
     def init_mask_info_in_data_upon_loading_model(self):
+        """apply mask values to each dataset"""
         self.model.data = copy.deepcopy(self.model.data_original)
         [each.apply_mask() for each in self.model.data]
         self.simulate_model()
@@ -816,7 +824,6 @@ class MyMainWindow(QMainWindow):
             domain_tag = size_domain -1
         else:
             pass
-        # print(domain_tag)
         xyz = self.model.script_module.sample.extract_xyz(domain_tag)
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
@@ -837,7 +844,6 @@ class MyMainWindow(QMainWindow):
                 domain_tag = size_domain -1
             else:
                 pass        
-            # print(size_domain,domain_tag)
             xyz = self.model.script_module.sample.extract_xyz(domain_tag)
             self.widget_edp.update_structure(xyz)
             xyz, bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
@@ -849,17 +855,8 @@ class MyMainWindow(QMainWindow):
             outp.close()
             _ = QMessageBox.question(self, "",'Runtime error message:\n{}'.format(str(val)), QMessageBox.Ok)
 
-
-    def start_timer_structure_view(self):
-        self.timer_update_structure.start(2000)
-
-    def stop_timer_structure_view(self):
-        self.timer_update_structure.stop()
-
-
     #save data plus best fit profile
     def save_data(self):
-        #potential = input('The potential corresponding to this dataset is:')
         potential, done = QInputDialog.getDouble(self, 'Potential_info', 'Enter the potential for this dataset (in V):')
         if not done:
             potential = None
@@ -901,7 +898,6 @@ class MyMainWindow(QMainWindow):
             writer_temp = pd.ExcelWriter([path+'.xlsx',path][int(path.endswith('.xlsx'))])
             df_export_data.to_excel(writer_temp, columns =['potential']+[lib_map[each_] for each_ in ['x','h','k','y','y_sim','error']]+['I_bulk','use'])
             writer_temp.save()
-            #self.writer = pd.ExcelWriter([path+'.xlsx',path][int(path.endswith('.xlsx'))],engine = 'openpyxl',mode ='a')
 
     #not implemented!
     def change_plot_style(self):
@@ -924,7 +920,6 @@ class MyMainWindow(QMainWindow):
             with open(fileName,'r') as f:
                 self.plainTextEdit_script.setPlainText(f.read())
         self.model.script = (self.plainTextEdit_script.toPlainText())
-        #self.compile_script()
 
     def update_script_upon_load(self):
         self.plainTextEdit_script.setPlainText(self.model.script)
@@ -935,11 +930,15 @@ class MyMainWindow(QMainWindow):
             f.write(self.model.script)
 
     def modify_script(self):
+        """
+        Modify script based on the specified sorbates and total domain numbers
+        To use this function, your script file should be standadized to have 
+        tags to specifpy the code block position where you define the sorbates.
+        This func is customized to modify script_model_standard.py.
+        """
         assert self.model.script!="","No script to work on, please load script first!"
         domain_num = int(self.lineEdit_domain_number.text().rstrip())
         motif_chain = self.lineEdit_sorbate_motif.text().strip().rsplit(",")
-        #print(self.lineEdit_sorbate_motif.text().strip().rsplit(","))
-        #print(self.lineEdit_sorbate_motif.text().strip().rsplit(","))
 
         assert domain_num == len(motif_chain), "Number of domain not match with the motif number. Fix it first!!"
         lines = script_block_modifier(self.model.script.rsplit("\n"), 'slabnumber',["num_surface_slabs"],[domain_num])
@@ -1032,6 +1031,7 @@ class MyMainWindow(QMainWindow):
         self.update_model_parameter()
 
     def update_model_parameter(self):
+        """After you made changes in the par table, this func is executed to update the par values in model"""
         self.model.parameters.data = []
         vertical_label = []
         label_tag=1
@@ -1051,7 +1051,7 @@ class MyMainWindow(QMainWindow):
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_label)
 
     def update_par_upon_load(self):
-
+        """upon loading model, the par table widget content will be updated with this func"""
         vertical_labels = []
         lines = self.model.parameters.data
         how_many_pars = len(lines)
@@ -1059,19 +1059,13 @@ class MyMainWindow(QMainWindow):
         self.tableWidget_pars.setRowCount(how_many_pars)
         self.tableWidget_pars.setColumnCount(6)
         self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error'])
-        # self.tableWidget_pars.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
         for i in range(len(lines)):
-            # print("test{}".format(i))
             items = lines[i]
-            #items = line.rstrip().rsplit('\t')
             j = 0
             if items[0] == '':
-                #self.model.parameters.data.append([items[0],0,False,0, 0,'-'])
                 vertical_labels.append('')
                 j += 1
             else:
-                #add items to parameter attr
-                #self.model.parameters.data.append([items[0],float(items[1]),items[2]=='True',float(items[3]), float(items[4]),items[5]])
                 #add items to table view
                 if len(vertical_labels)==0:
                     vertical_labels.append('1')
@@ -1090,7 +1084,6 @@ class MyMainWindow(QMainWindow):
                             qtablewidget = QTableWidgetItem(str(round(item,5)))
                         else:
                             qtablewidget = QTableWidgetItem(str(item))
-                        # qtablewidget.setTextAlignment(Qt.AlignCenter)
                         if j == 0:
                             qtablewidget.setFont(QFont('Times',10,QFont.Bold))
                         elif j == 1:
@@ -1111,13 +1104,11 @@ class MyMainWindow(QMainWindow):
         if fileName:
             with open(fileName,'r') as f:
                 lines = f.readlines()
-                # self.parameters.set_ascii_input(f)
                 lines = [each for each in lines if not each.startswith('#')]
                 how_many_pars = len(lines)
                 self.tableWidget_pars.setRowCount(how_many_pars)
                 self.tableWidget_pars.setColumnCount(6)
                 self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error'])
-                # self.tableWidget_pars.horizontalHeader().setSectionResizeMode(QHeaderView.Stretch)
                 for i in range(len(lines)):
                     line = lines[i]
                     items = line.rstrip().rsplit('\t')
@@ -1156,24 +1147,8 @@ class MyMainWindow(QMainWindow):
         self.tableWidget_pars.setShowGrid(False)
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_labels)
 
-    @QtCore.pyqtSlot(str,object,bool)
-    def update_par_during_fit(self,string,model,save_tag):
-        #labels = [data[0] for each in self.model.parameters.data]
-        for i in range(len(model.parameters.data)):
-            if model.parameters.data[i][0]!='':
-                # print(self.model.parameters.data[i][0])
-                #print(len(self.model.parameters.data))
-                # print(model.parameters.data[i][0])
-                item_temp = self.tableWidget_pars.item(i,1)
-                #print(type(item_temp))
-                item_temp.setText(str(round(model.parameters.data[i][1],5)))
-        self.tableWidget_pars.resizeColumnsToContents()
-        self.tableWidget_pars.resizeRowsToContents()
-        self.tableWidget_pars.setShowGrid(False)
-        # self.update_structure_view()
-
     def update_par_upon_change(self):
-        #print("before update:{}".format(len(self.model.parameters.data)))
+        """will be executed before simulation"""
         self.model.parameters.data = []
         for each_row in range(self.tableWidget_pars.rowCount()):
             if self.tableWidget_pars.item(each_row,0)==None:
@@ -1181,14 +1156,24 @@ class MyMainWindow(QMainWindow):
             elif self.tableWidget_pars.item(each_row,0).text()=='':
                 items = ['',0,False,0,0,'-']
             else:
-                # print(each_row,type(self.tableWidget_pars.item(each_row,0)))
                 items = [self.tableWidget_pars.item(each_row,0).text()] + [float(self.tableWidget_pars.item(each_row,i).text()) for i in [1,3,4]] + [self.tableWidget_pars.item(each_row,5).text()]
                 items.insert(2, self.tableWidget_pars.cellWidget(each_row,2).isChecked())
             self.model.parameters.data.append(items)
-        #print("after update:{}".format(len(self.model.parameters.data)))
+
+    @QtCore.pyqtSlot(str,object,bool)
+    def update_par_during_fit(self,string,model,save_tag):
+        """slot func to update par table widgets during fit"""
+        for i in range(len(model.parameters.data)):
+            if model.parameters.data[i][0]!='':
+                item_temp = self.tableWidget_pars.item(i,1)
+                item_temp.setText(str(round(model.parameters.data[i][1],5)))
+        self.tableWidget_pars.resizeColumnsToContents()
+        self.tableWidget_pars.resizeRowsToContents()
+        self.tableWidget_pars.setShowGrid(False)
 
     @QtCore.pyqtSlot(str,object,bool)
     def update_status(self,string,model,save_tag):
+        """slot func to update status info displaying fit status"""
         self.statusbar.clearMessage()
         self.statusbar.showMessage(string)
         self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,round(self.run_fit.solver.optimizer.best_fom,5)))
