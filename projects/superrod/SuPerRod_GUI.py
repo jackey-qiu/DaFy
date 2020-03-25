@@ -76,6 +76,49 @@ class RunFit(QtCore.QObject):
 class MyMainWindow(QMainWindow):
     """
     GUI class for this app
+    ....
+    Attributes (selected)
+    -----------
+    <<widgets>>
+    tableWidget_data: QTableWidget holding a list of datasets
+    tableWidget_data_view: QTableWidget displaying each dataset
+    widget_solver:pyqtgraph.parameter_tree_widget where you define
+                  the parameters for undertaking DE optimization
+    tableWidget_pars: QTableWidget displaying fit parameters
+    widget_data: pyqtgraph.GraphicsLayoutWidget showing figures of
+                 each ctr profile (data, fit, ideal and errorbars)
+    widget_fom: pyqtgraph.GraphicsLayoutWidget showing evolution of
+                figure of merit during fit
+    widget_pars:pyqtgraph.GraphicsLayoutWidget showing best fit of
+                each parameter at current generation and the search
+                range in bar chart at this moment. longer bar means
+                more aggressive searching during fit. If the bars 
+                converge to one narrow line, fit quality cannot improved
+                anymore. That means the fit is finished.
+    widget_edp: GLViewWidget showing the 3d molecular structure of the
+                current best fit model.
+    widget_msv_top: GLViewWidget showing the top view of 3d molecular
+                structure of the current best fit model. Only one sorbate
+                and one layer of surface atoms are shown for clarity.
+    plainTextEdit_script: QCodeEditor widget showing the model script
+    widget_terminal:TerminalWidget, where you can do whatever you can in
+                a normal python terminal. Three variables are loaded in 
+                the namespace of the terminal:
+                1) win: GUI main frame
+                2) model: model that bridget script_module, pars and Fit engine
+                you can explore the variables defined in your model script
+                using model.script_module.vars (if vars is defined in script)
+    <<others>>
+    run_fit: Run_Fit instance to be launched to start/stop a fit. Refer to
+             Run_Fit.solver to learn more about implementation of multi-processing
+             programe method.
+    model: model instance to coordinate script name space, dataset instance and par
+           instance
+    f_ideal: a list holding the structure factor values for unrelaxed structure
+    data_profile: list of handles to plot ctr profiles including data and fit reuslts
+
+    Methods (selected)
+    -----------
     """
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
@@ -209,7 +252,6 @@ class MyMainWindow(QMainWindow):
         self.widget_msv_top.opts['fov'] = 1
         self.update_structure_view()
 
-
     def projective_projection(self):
         self.widget_edp.opts['distance'] = 25
         self.widget_edp.opts['fov'] = 60
@@ -313,8 +355,11 @@ class MyMainWindow(QMainWindow):
                             self.data_profiles[i].plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
                 
                 #plot ideal structure factor
-                scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
-                self.data_profiles[i].plot(self.model.data[i].x, self.f_ideal[i]*scale_factor**2,pen = {'color': "w", 'width': 1},clear = False)
+                try:
+                    scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
+                    self.data_profiles[i].plot(self.model.data[i].x, self.f_ideal[i]*scale_factor**2,pen = {'color': "w", 'width': 1},clear = False)
+                except:
+                    pass
                 #plot simulated results
                 if self.tableWidget_data.cellWidget(i,2).isChecked():
                     self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
@@ -591,10 +636,19 @@ class MyMainWindow(QMainWindow):
         self.widget_solver.update_parameter_in_solver(self)
         try:
             self.model.simulate()
-            self.calc_f_ideal()
+            try:
+                self.calc_f_ideal()
+            except:
+                pass
             self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,self.model.fom))
             self.update_plot_data_view_upon_simulation()
-            self.init_structure_view()
+            if hasattr(self.model.script_module,'model_type'):
+                if self.model.script_module.model_type=='ctr':
+                    self.init_structure_view()
+                else:
+                    pass
+            else:
+                self.init_structure_view()
             self.statusbar.clearMessage()
             self.update_combo_box_list_par_set()
             self.statusbar.showMessage("Model is simulated successfully!")
@@ -834,6 +888,13 @@ class MyMainWindow(QMainWindow):
         self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
 
     def update_structure_view(self):
+        if hasattr(self.model.script_module,"model_type"):
+            if getattr(self.model.script_module,"model_type")=="ctr":
+                pass
+            else:
+                return
+        else:
+            pass
         try:
             if self.spinBox_domain.text()=="":
                 domain_tag = 0
@@ -860,27 +921,27 @@ class MyMainWindow(QMainWindow):
         potential, done = QInputDialog.getDouble(self, 'Potential_info', 'Enter the potential for this dataset (in V):')
         if not done:
             potential = None
-        path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "model file (*.*)")
+        path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "data file (*.*)")
         if path!="":
             keys_attri = ['x','y','y_sim','error']
-            keys_extra = ['h','k']
-            lib_map = {'x': 'L', 'y':'I','y_sim':'I_model','error':'error','h':'H','k':'K'}
+            keys_extra = ['h','k','Y','dL','LB']
+            lib_map = {'x': 'L', 'y':'I','y_sim':'I_model','error':'error','h':'H','k':'K','Y':'Y','dL':'dL','LB':'LB'}
             export_data = {}
-            for key in ['x','h','k','y','y_sim','error']:
+            for key in ['x','h','k','y','y_sim','error','Y','dL','LB']:
                 export_data[lib_map[key]] = []
             export_data['use'] = []
             export_data['I_bulk'] = []
             export_data['potential'] = []
             for each in self.model.data:
                 if each.use:
-                    for key in ['x','h','k','y','y_sim','error']:
+                    for key in ['x','h','k','y','y_sim','error','Y','dL','LB']:
                         if key in keys_attri:
                             export_data[lib_map[key]] = np.append(export_data[lib_map[key]], getattr(each,key))
                         elif key in keys_extra:
                             export_data[lib_map[key]] = np.append(export_data[lib_map[key]], each.extra_data[key])
                     export_data['use'] = np.append(export_data['use'],[True]*len(each.x))
                 else:
-                    for key in ['x','h','k','y','y_sim','error']:
+                    for key in ['x','h','k','y','y_sim','error','Y','dL','LB']:
                         if key in keys_attri:
                             if key=='y_sim':
                                 export_data[lib_map[key]] = np.append(export_data[lib_map[key]], [0]*len(getattr(each,'x')))
@@ -898,6 +959,10 @@ class MyMainWindow(QMainWindow):
             writer_temp = pd.ExcelWriter([path+'.xlsx',path][int(path.endswith('.xlsx'))])
             df_export_data.to_excel(writer_temp, columns =['potential']+[lib_map[each_] for each_ in ['x','h','k','y','y_sim','error']]+['I_bulk','use'])
             writer_temp.save()
+            writer_temp.close()
+            #also save loadable csv file
+            df_export_data.to_csv([path+'.csv',path][int(path.endswith('.csv'))],sep="\t",columns=['L','H','K','Y','I','error','LB','dL'],\
+                                 index=False, header=['#L','H','K','Y','I','error','LB','dL'])
 
     #not implemented!
     def change_plot_style(self):

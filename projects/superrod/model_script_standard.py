@@ -8,6 +8,7 @@ import models.domain_creator as domain_creator
 from models.structure_tools import tool_box
 from models.structure_tools import sorbate_tool
 
+model_type = 'ctr'
 #--global settings--#
 #/globalsetting/begin#
 #/path/begin#
