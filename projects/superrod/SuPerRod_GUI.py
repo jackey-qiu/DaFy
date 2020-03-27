@@ -49,7 +49,7 @@ class RunFit(QtCore.QObject):
     ...
     Attributes
     ----------
-    updateplot : pyqtSignal to be emitted to main GUI thread during fit
+    updateplot : pyqtSignal be emitted to be received by main GUI thread during fit
     solver: api for model fit using differential evolution algorithm
 
     Methods
@@ -83,7 +83,7 @@ class MyMainWindow(QMainWindow):
     tableWidget_data: QTableWidget holding a list of datasets
     tableWidget_data_view: QTableWidget displaying each dataset
     widget_solver:pyqtgraph.parameter_tree_widget where you define
-                  the parameters for undertaking DE optimization
+                  intrinsic parameters for undertaking DE optimization
     tableWidget_pars: QTableWidget displaying fit parameters
     widget_data: pyqtgraph.GraphicsLayoutWidget showing figures of
                  each ctr profile (data, fit, ideal and errorbars)
