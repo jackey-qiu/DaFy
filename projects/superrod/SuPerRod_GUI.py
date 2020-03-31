@@ -192,9 +192,6 @@ class MyMainWindow(QMainWindow):
         self.pushButton_save_script.clicked.connect(self.save_script)
         self.pushButton_modify_script.clicked.connect(self.modify_script)
 
-
-        self.pushButton_update_plot.clicked.connect(self.update_electron_density_profile)
-
         #pushbutton to load/save parameter file
         self.pushButton_load_table.clicked.connect(self.load_par)
         self.pushButton_save_table.clicked.connect(self.save_par)
@@ -203,6 +200,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update_plot.clicked.connect(self.update_structure_view)
         self.pushButton_update_plot.clicked.connect(self.update_plot_data_view_upon_simulation)
         self.pushButton_update_plot.clicked.connect(self.update_par_bar_during_fit)
+        self.pushButton_update_plot.clicked.connect(self.update_electron_density_profile)
         self.pushButton_add_par_set.clicked.connect(self.append_par_set)
         self.pushButton_add_all_pars.clicked.connect(self.append_all_par_sets)
         #select dataset in the viewer
@@ -344,14 +342,25 @@ class MyMainWindow(QMainWindow):
             [each.autoRange() for each in self.data_profiles]
 
     def update_electron_density_profile(self):
-        if self.run_fit.running:
-            edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=-30,z_max=150,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
+        if self.lineEdit_z_min.text()!='':
+            z_min = float(self.lineEdit_z_min.text())
         else:
-            edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=-30,z_max=150,N_layered_water=500,freeze=self.model.script_module.freeze)
-        self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][1],pen = {'color': "w", 'width': 1},clear = True)
-        self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][2],pen = {'color': "g", 'width': 1},clear = False)
-        self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],pen = {'color': "r", 'width': 1},clear = False)
-        self.fom_scan_profile.autoRange()
+            z_min = -20
+        if self.lineEdit_z_max.text()!='':
+            z_max = float(self.lineEdit_z_max.text())
+        else:
+            z_max = 100
+        try:
+            if self.run_fit.running:
+                edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
+            else:
+                edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
+            self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][1],pen = {'color': "w", 'width': 1},clear = True)
+            self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][2],fillLevel=0, brush = (0,200,0,100),clear = False)
+            self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
+            self.fom_scan_profile.autoRange()
+        except:
+            pass
 
     def update_plot_data_view_upon_simulation(self):
         for i in range(len(self.model.data)):
@@ -691,6 +700,7 @@ class MyMainWindow(QMainWindow):
                 pass
             self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,self.model.fom))
             self.update_plot_data_view_upon_simulation()
+            self.update_electron_density_profile()
             if hasattr(self.model.script_module,'model_type'):
                 if self.model.script_module.model_type=='ctr':
                     self.init_structure_view()
@@ -834,6 +844,7 @@ class MyMainWindow(QMainWindow):
         row_index = sorted(row_index, reverse=True)
         for each in row_index:
             self.model.data.delete_item(each)
+            self.model.data_original.delete_item(each)
         self.update_table_widget_data()
         self.update_combo_box_dataset()
         self.update_plot_dimension()

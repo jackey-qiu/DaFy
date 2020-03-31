@@ -385,6 +385,7 @@ class Model:
             self.parameters.get_fit_pars()
         if len(sfuncs) == 0:
             raise ParameterError(sfuncs, 0, 'None', 4)
+        """
         # Check for min and max on all the values
         for i in range(len(vals)):
             # parameter less than min
@@ -393,7 +394,7 @@ class Model:
             # parameter larger than max
             if vals[i] > maxvals[i]:
                 raise ParameterError(sfuncs[i], row_numbers[i], 'None', 2)
-
+        """
         # Compile the strings to create the functions..
         funcs = []
         # print(sfuncs)
