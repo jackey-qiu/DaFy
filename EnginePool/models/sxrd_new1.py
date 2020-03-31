@@ -1651,7 +1651,10 @@ class Sample:
         #In addition, the occupancy of layered water molecules was correctly calculated here by Auc*d_w*density_w
         #the u0 and ubar here are in A
         if h[0]==0 and k[0]==0:#layered structure has effect only on specular rod
-            u0,ubar,d_w,first_layer_height,density_w=args['u0_w'],args['ubar_w'],args['d_w'],args['first_layer_height_w'],args['density_w']
+            if type(args)==dict:
+                u0,ubar,d_w,first_layer_height,density_w=args['u0_w'],args['ubar_w'],args['d_w'],args['first_layer_height_w'],args['density_w']
+            else:
+                u0,ubar,d_w,first_layer_height,density_w=args.u0_w,args.ubar_w,args.d_w,args.first_layer_height_w,args.density_w
             dinv = self.unit_cell.abs_hkl(h, k, l)
             f=self._get_f(np.array(['O']), dinv)[:,0]
             f_H=self._get_f(np.array(['H']), dinv)[:,0]

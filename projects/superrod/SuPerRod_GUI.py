@@ -285,10 +285,12 @@ class MyMainWindow(QMainWindow):
 
         self.data_profiles = []
         total_datasets = len(self.model.data)
+        if total_datasets>10:
+            columns = 4
         #current list of ax handle
         for i in range(total_datasets):
             if 1:
-                hk_label = '{}{}L'.format(str(int(self.model.data[i].extra_data['h'][0])),str(int(self.model.data[i].extra_data['k'][0])))
+                hk_label = '{}{}_{}'.format(str(int(self.model.data[i].extra_data['h'][0])),str(int(self.model.data[i].extra_data['k'][0])),str(self.model.data[i].extra_data['Y'][0]))
                 if (i%columns)==0 and (i!=0):
                     self.widget_data.nextRow()
                     self.data_profiles.append(self.widget_data.addPlot(title=hk_label))
@@ -728,30 +730,34 @@ class MyMainWindow(QMainWindow):
                 data_loaded_pd = pd.DataFrame(data_loaded, columns = ['X','h','k','Y','I','eI','LB','dL'])
                 data_loaded_pd['h'] = data_loaded_pd['h'].apply(lambda x:int(np.round(x)))
                 data_loaded_pd['k'] = data_loaded_pd['k'].apply(lambda x:int(np.round(x)))
-                data_loaded_pd.sort_values(by = ['h','k'], inplace = True)
-                hk_unique = list(set(zip(list(data_loaded_pd['h']), list(data_loaded_pd['k']))))
+                data_loaded_pd.sort_values(by = ['h','k','Y'], inplace = True)
+                hk_unique = list(set(zip(list(data_loaded_pd['h']), list(data_loaded_pd['k']), list(data_loaded_pd['Y']))))
                 hk_unique.sort()
                 h_unique = [each[0] for each in hk_unique]
                 k_unique = [each[1] for each in hk_unique]
+                Y_unique = [each[2] for each in hk_unique]
 
                 for i in range(len(h_unique)):
-                    h_temp, k_temp = h_unique[i], k_unique[i]
-                    name = 'Data-{}{}L'.format(h_temp, k_temp)
+                    h_temp, k_temp, Y_temp = h_unique[i], k_unique[i], Y_unique[i]
+                    if Y_temp==0:#CTR data
+                        name = 'Data-{}{}L'.format(h_temp, k_temp)
+                    else:#RAXR data
+                        name = 'Data-{}{}_L={}'.format(h_temp, k_temp, Y_temp)
                     tag = sum([int(name in each) for each in current_data_set_name])+1
                     #if name in current_data_set_name:
                     name = name + '_{}'.format(tag)
                     self.model.data.add_new(name = name)
-                    self.model.data.items[-1].x = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['X'].to_numpy()
-                    self.model.data.items[-1].y = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['I'].to_numpy()
-                    self.model.data.items[-1].error = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['eI'].to_numpy()
-                    self.model.data.items[-1].x_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['X'].to_numpy()
-                    self.model.data.items[-1].y_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['I'].to_numpy()
-                    self.model.data.items[-1].error_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['eI'].to_numpy()
-                    self.model.data.items[-1].set_extra_data(name = 'h', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['h'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'k', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['k'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'Y', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['Y'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'LB', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['LB'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'dL', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)]['dL'].to_numpy())
+                    self.model.data.items[-1].x = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['X'].to_numpy()
+                    self.model.data.items[-1].y = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['I'].to_numpy()
+                    self.model.data.items[-1].error = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['eI'].to_numpy()
+                    self.model.data.items[-1].x_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['X'].to_numpy()
+                    self.model.data.items[-1].y_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['I'].to_numpy()
+                    self.model.data.items[-1].error_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['eI'].to_numpy()
+                    self.model.data.items[-1].set_extra_data(name = 'h', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['h'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'k', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['k'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'Y', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['Y'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'LB', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['LB'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'dL', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['dL'].to_numpy())
                     self.model.data.items[-1].mask = np.array([True]*len(self.model.data.items[-1].x))
         #now remove the empty datasets
         empty_data_index = []
