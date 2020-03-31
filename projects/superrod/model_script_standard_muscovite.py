@@ -1,5 +1,5 @@
 import os
-import models.structure_tools.sxrd_new1 as model
+import models.sxrd_new1 as model
 from models.utils import UserVars
 import numpy as np
 from numpy.linalg import inv
@@ -70,6 +70,7 @@ f1=lambda x1,y1,z1,x2,y2,z2:np.array([[np.dot(x2,x1),np.dot(x2,y1),np.dot(x2,z1)
                                       [np.dot(z2,x1),np.dot(z2,y1),np.dot(z2,z1)]])
 basis=np.array([unitcell.a, unitcell.b, unitcell.c])
 basis_Set=[[1,0,0],[0,1,0],[np.tan(unitcell.beta-np.pi/2.),0,1./np.cos(unitcell.beta-np.pi/2.)]]
+#from crystal to cartisian: A_cal = np.dot(T,A_cry)
 T=inv(np.transpose(f1(x0_v,y0_v,z0_v,*basis_Set)))
 T_INV=inv(T)
 #/coordinates_transformation/end#
@@ -159,7 +160,9 @@ rgh_gaussian_freeze=domain_creator.define_gaussian_vars(rgh=UserVars(),domain=su
 
 #/rgh/global/begin#
 rgh = UserVars()
+rgh.new_var('wt1', 1.0)#roughness factor
 rgh.new_var('beta', 0.0)#roughness factor
+rgh.new_var('ra_conc', 0.0)#resonant el conc in M
 rgh.new_var('mu',1)#liquid film thickness
 scales=['scale_nonspecular_rods','scale_specular_rod']
 for scale in scales:
@@ -228,7 +231,8 @@ domain={'domains':[surface_1],
         'el':raxr_el,
         'freeze':freeze,
         'exp_factors':[exp_const,rgh.mu,re,auc,rgh.ra_conc],
-        'sig_eff':sig_eff}
+        'sig_eff':sig_eff,
+        'coord_T':T}
 sample = model.Sample(inst, bulk, domain, unitcell,coherence=coherence,surface_parms={'delta1':0.,'delta2':0.})
 #/sample/end#
 
@@ -243,18 +247,16 @@ def Sim(data,VARS=vars()):
     if number_gaussian_peak_freeze>0:
         domain_creator.update_gaussian(domain=surface_1,rgh=rgh_gaussian_freeze,groups=Gaussian_groups_freeze,el = raxr_el,number=number_gaussian_peak_freeze,height_offset=height_offset,c=unitcell.c,domain_tag='_D1',shape=gaussian_shape_freeze,print_items=False,use_cumsum=True,freeze_tag=True)
 
-    ##<link groups>##
-    #[eval(each_command) for each_command in domain_creator.link_atom_group(gp_info=atom_group_info,gp_scheme=GROUP_SCHEME)]
+    ##<update groups>##
     domain_creator.setup_atom_group_2(VARS)
 
+    i = 0#counter/index of raxs dataset
     for data_set in data:
         f=np.array([])
         h = data_set.extra_data['h'][data_set.mask]
         k = data_set.extra_data['k'][data_set.mask]
         x = data_set.x[data_set.mask]
         y = data_set.extra_data['Y'][data_set.mask]
-        LB = data_set.extra_data['LB'][data_set.mask]
-        dL = data_set.extra_data['dL'][data_set.mask]
 
         if data_set.use:
             if x[0]>100:
@@ -265,7 +267,7 @@ def Sim(data,VARS=vars()):
             else:
                 q=np.pi*2*unitcell.abs_hkl(h,k,x)
                 rough = (1-rgh.beta)**2/(1+rgh.beta**2 - 2*rgh.beta*np.cos(q*unitcell.c*np.sin(np.pi-unitcell.beta)/2))
-                pre_factor=np.exp(-exp_const*rgh.mu/q)*(4*np.pi*re/auc)**2/q**2
+                pre_factor=np.exp(-exp_const*rgh.mu/q)*(4*np.pi*re/auc)**2
             f=abs(sample.calculate_structure_factor(h,k,x,y,index=i,fit_mode=raxr_fit_mode,height_offset=height_offset*unitcell.c,version=VERSION))
             F.append(3e6*pre_factor*rough*f*f)
             fom_scaler.append(1)

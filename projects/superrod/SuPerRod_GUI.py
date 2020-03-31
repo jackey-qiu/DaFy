@@ -487,9 +487,38 @@ class MyMainWindow(QMainWindow):
 
     def append_all_par_sets(self):
         """append fit parameters for all parset listed in the combo box, handy tool to save manual adding them in par table"""
-        par_all = [self.comboBox_register_par_set.itemText(i) for i in range(self.comboBox_register_par_set.count())]
-        for par in par_all:
-            self.append_par_set(par)
+        if "table_container" in self.model.script_module.__dir__():
+            if len(self.model.script_module.table_container)!=0:
+                table = self.model.script_module.table_container[::-1]
+                rows = self.tableWidget_pars.selectionModel().selectedRows()
+                if len(rows) == 0:
+                    row_index = self.tableWidget_pars.rowCount()
+                else:
+                    row_index = rows[-1].row()
+                for ii in range(len(table)):
+                    self.tableWidget_pars.insertRow(row_index)
+                    for i in range(6):
+                        if i==2:
+                            check_box = QCheckBox()
+                            check_box.setChecked(eval(table[ii][i]))
+                            self.tableWidget_pars.setCellWidget(row_index,2,check_box)
+                        else:
+                            if i == 0:
+                                qtablewidget = QTableWidgetItem(table[ii][i])
+                                qtablewidget.setFont(QFont('Times',10,QFont.Bold))
+                            elif i in [1]:
+                                qtablewidget = QTableWidgetItem(table[ii][i])
+                                qtablewidget.setForeground(QBrush(QColor(255,0,255)))
+                            elif i ==5:
+                                qtablewidget = QTableWidgetItem('(0,0)')
+                            else:
+                                qtablewidget = QTableWidgetItem(table[ii][i])
+                            self.tableWidget_pars.setItem(row_index,i,qtablewidget)
+                self.append_one_row_at_the_end()
+        else:
+            par_all = [self.comboBox_register_par_set.itemText(i) for i in range(self.comboBox_register_par_set.count())]
+            for par in par_all:
+                self.append_par_set(par)
 
     def append_par_set(self, par_selected = None):
         #boundary mapping for quick setting the bounds of fit pars
@@ -888,10 +917,13 @@ class MyMainWindow(QMainWindow):
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
-        xyz,bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
-        self.widget_msv_top.show_structure(xyz,bond_index)
-        self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
-        self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
+        try:
+            xyz,bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
+            self.widget_msv_top.show_structure(xyz,bond_index)
+            self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
+            self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
+        except:
+            pass
 
     def update_structure_view(self):
         if hasattr(self.model.script_module,"model_type"):
@@ -913,8 +945,11 @@ class MyMainWindow(QMainWindow):
                 pass        
             xyz = self.model.script_module.sample.extract_xyz(domain_tag)
             self.widget_edp.update_structure(xyz)
-            xyz, bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
-            self.widget_msv_top.update_structure(xyz, bond_index)
+            try:
+                xyz, bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
+                self.widget_msv_top.update_structure(xyz, bond_index)
+            except:
+                pass
         except Exception as e:
             outp = StringIO()
             traceback.print_exc(200, outp)
