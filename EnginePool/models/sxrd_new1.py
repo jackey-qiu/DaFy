@@ -2140,9 +2140,10 @@ class Sample:
         e_total=np.zeros(resolution)
         e_total_raxs=np.zeros(resolution)
         e_total_layer_water=np.zeros(resolution)
-
+        #only one domain
         for domain_index in range(len(slabs['domains'])):
-            wt=getattr(slabs['global_vars'],'wt'+str(domain_index+1))
+            #wt=getattr(slabs['global_vars'],'wt'+str(domain_index+1))
+            wt=1
             raxs_el=slabs['el']
             slab=[slabs['domains'][domain_index]]
             x, y, z, u, oc, el = self._surf_pars(slab)
@@ -2227,7 +2228,7 @@ class Sample:
         #water_scaling=0.33
         #pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
         return {'labels':labels,'e_data':e_data,'e_total':e_total,'e_total_raxs':e_total_raxs,'e_total_layer_water':e_total_layer_water}
-
+        #return e_data[0][0],e_data[]
     def calc_fs(self, h, k, l,slabs):
         '''Calculate the structure factors from the surface
         '''

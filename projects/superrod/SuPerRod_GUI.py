@@ -192,6 +192,9 @@ class MyMainWindow(QMainWindow):
         self.pushButton_save_script.clicked.connect(self.save_script)
         self.pushButton_modify_script.clicked.connect(self.modify_script)
 
+
+        self.pushButton_update_plot.clicked.connect(self.update_electron_density_profile)
+
         #pushbutton to load/save parameter file
         self.pushButton_load_table.clicked.connect(self.load_par)
         self.pushButton_save_table.clicked.connect(self.save_par)
@@ -330,6 +333,8 @@ class MyMainWindow(QMainWindow):
         if self.model.compiled:
             self.update_data_check_attr()
             self.update_plot_data_view_upon_simulation()
+            
+            self.update_electron_density_profile()
         else:
             for i in range(len(self.model.data)):
                 fmt = self.tableWidget_data.item(i,4).text()
@@ -337,6 +342,16 @@ class MyMainWindow(QMainWindow):
                 self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = True)
             [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each),1).isChecked()) for each in self.data_profiles]
             [each.autoRange() for each in self.data_profiles]
+
+    def update_electron_density_profile(self):
+        if self.run_fit.running:
+            edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=-30,z_max=150,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
+        else:
+            edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=-30,z_max=150,N_layered_water=500,freeze=self.model.script_module.freeze)
+        self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][1],pen = {'color': "w", 'width': 1},clear = True)
+        self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][2],pen = {'color': "g", 'width': 1},clear = False)
+        self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],pen = {'color': "r", 'width': 1},clear = False)
+        self.fom_scan_profile.autoRange()
 
     def update_plot_data_view_upon_simulation(self):
         for i in range(len(self.model.data)):
@@ -468,7 +483,10 @@ class MyMainWindow(QMainWindow):
             #model is simulated at the end of next step
             self.init_mask_info_in_data_upon_loading_model()
             #add name space for cal bond distance after simulation
-            self.widget_terminal.update_name_space("report_distance",self.model.script_module.sample.inter_atom_distance_report)
+            try:
+                self.widget_terminal.update_name_space("report_distance",self.model.script_module.sample.inter_atom_distance_report)
+            except:
+                pass
             #now set the comboBox for par set
             self.update_combo_box_list_par_set()
 
