@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1247</width>
-    <height>989</height>
+    <height>1151</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -184,27 +184,38 @@
            </property>
           </widget>
          </item>
-         <item row="1" column="0">
+         <item row="0" column="1">
+          <widget class="QLineEdit" name="lineEdit_x">
+           <property name="text">
+            <string>potential</string>
+           </property>
+          </widget>
+         </item>
+         <item row="2" column="1">
+          <layout class="QHBoxLayout" name="horizontalLayout_13">
+           <item>
+            <widget class="QLineEdit" name="lineEdit_y">
+             <property name="text">
+              <string>current,strain_ip,strain_oop,grain_size_ip,grain_size_oop</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_max">
+             <property name="text">
+              <string>max2zero</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item row="2" column="0">
           <widget class="QLabel" name="label_5">
            <property name="frameShape">
             <enum>QFrame::StyledPanel</enum>
            </property>
            <property name="text">
             <string>y</string>
-           </property>
-          </widget>
-         </item>
-         <item row="1" column="1">
-          <widget class="QLineEdit" name="lineEdit_y">
-           <property name="text">
-            <string>current,strain_ip,strain_oop,grain_size_ip,grain_size_oop</string>
-           </property>
-          </widget>
-         </item>
-         <item row="0" column="1">
-          <widget class="QLineEdit" name="lineEdit_x">
-           <property name="text">
-            <string>potential</string>
            </property>
           </widget>
          </item>
@@ -756,7 +767,7 @@
      <x>0</x>
      <y>0</y>
      <width>1247</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>

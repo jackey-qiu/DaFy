@@ -28,7 +28,7 @@ from scipy import signal
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'scripts','Viewer','data_viewer_new.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
         self.setWindowTitle('XRV and CTR data Viewer')
@@ -541,7 +541,11 @@ class MyMainWindow(QMainWindow):
             else:
                 if each in ['peak_intensity','peak_intensity_error','strain_ip','strain_oop','grain_size_ip','grain_size_oop']:
                     temp_data = np.array(self.data[condition][each])[l:r]
-                    self.data_to_plot[scan_number][each] = list(temp_data-max(temp_data))
+                    # self.data_to_plot[scan_number][each] = list(temp_data-max(temp_data))
+                    if self.checkBox_max.isChecked():
+                        self.data_to_plot[scan_number][each] = list(temp_data-max(temp_data))
+                    else:
+                        self.data_to_plot[scan_number][each] = list(temp_data)
                 else:
                     self.data_to_plot[scan_number][each] = list(self.data[condition][each])[l:r]
 

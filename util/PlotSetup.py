@@ -326,6 +326,29 @@ def extract_cv_data(file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
     else:
         return data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
 
+file_head='/Users/cqiu/data/I20180835_Jul_2019_CVs'                                                                           
+file_names_ph13_1=['039_S201_CV','041_S206_CV','043_S214_CV','045_S219_CV']                                                   
+file_names_ph10=['047_S220_CV','049_S224_CV','050_S225_CV','051_S226_CV']                                                     
+file_names_ph8=['056_S230_CV','057_S231_CV','058_S232_CV','059_S235_CV']                                                      
+file_names_ph7=['063_S242_CV','064_S243_CV']                                                                                  
+file_names_ph13_2=['053_S228_CV','054_S229_CV']                                                                               
+file_names_ph13_3=['060_S236_CV','061_S237_CV']                                                                               
+file_names_ph13_4=['065_S244_CV','066_S245_CV']  
+file_names_ph13_all=['039_S201_CV','053_S228_CV','060_S236_CV','065_S244_CV']
+file_names_different_phs=['047_S220_CV','053_S228_CV','056_S230_CV','060_S236_CV','063_S242_CV','065_S244_CV'] 
+
+def plot_cvs_together(file_head, file_names, phs, labels,func=extract_cv_data, which_cycle=1):
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot(111)
+    ax.set_xlabel(r'E / V$_{RHE}$')
+    ax.set_ylabel(r'j / mAcm$^{-2}$')
+    for i in range(len(file_names)):
+        file = os.path.join(file_head, file_names[i])
+        pot,current = func(file, which_cycle)
+        pot = RHE(pot,pH=phs[i])
+        ax.plot(pot,current*8,label =labels[i])
+    plt.legend()
+    plt.show()
 
 def ir_drop_analysis(pot, current,pot_first, half = 1):
     #half:1 or 2 (which half of the CV profile)
@@ -346,13 +369,13 @@ def ir_drop_analysis(pot, current,pot_first, half = 1):
     plt.plot(current*slope+intercept,current)
     plt.show()
 
-def plot_tafel(file_head='/home/qiu/apps', cv_files = ['054_S229_CV','048_S221_CV','057_S231_CV','064_S243_CV'],phs=[13,10,8,7],pot_starts=[1.6,1.6,1.69,1.7], colors = ['r','g','b','m'],half = 1):
+def plot_tafel(file_head='/home/qiu/apps', cv_files = ['054_S229_CV','048_S221_CV','057_S231_CV','064_S243_CV'],phs=[13,10,8,7],pot_starts=[1.6,1.6,1.69,1.7], colors = ['r','g','b','m'],labels=[],half = 1):
     fig = plt.figure(figsize=(6,6))
     ax = fig.add_subplot(111)
     ax.set_yscale('log')
     ax.set_xlabel(r'E / V$_{RHE}$')
     ax.set_ylabel(r'j / mAcm$^{-2}$')
-    labels = ['pH {}'.format(ph) for ph in phs]
+    #labels = ['pH {}'.format(ph) for ph in phs]
     for i in range(len(phs)):
         cv = os.path.join(file_head,cv_files[i])
         ph = phs[i]
@@ -365,7 +388,7 @@ def plot_tafel(file_head='/home/qiu/apps', cv_files = ['054_S229_CV','048_S221_C
             pot_fit = RHE(pot[int(len(pot)/2):len(pot)][::-1],ph)
             current_fit = current[int(len(pot)/2):len(pot)][::-1]
         indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),len(pot_fit)]
-        ax.plot(pot_fit[indx1:indx2],current_fit[indx1:indx2]*8,label=labels[i],color = colors[i])
+        ax.plot(pot_fit[indx1:indx2],current_fit[indx1:indx2]*8,label=labels[i])
     plt.legend()
     plt.show()
     fig.savefig('Tafel.png', dpi=300, bbox_inches='tight')
