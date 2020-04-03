@@ -350,13 +350,32 @@ class MyMainWindow(QMainWindow):
             z_max = float(self.lineEdit_z_max.text())
         else:
             z_max = 100
+        raxs_A_list, raxs_P_list = [], []
+        num_raxs = len(self.model.data)-1
+        if hasattr(self.model.script_module, "rgh_raxs"):
+            for i in range(num_raxs):
+                raxs_A_list.append(eval("self.model.script_module.rgh_raxs.getA{}_D1()".format(i+1)))
+                raxs_P_list.append(eval("self.model.script_module.rgh_raxs.getP{}_D1()".format(i+1)))
+        else:
+            raxs_A_list.append(0)
+            raxs_P_list.append(0)
+        HKL_raxs_list = [[],[],[]]
+        for each in self.model.data:
+            if each.x[0]>100:
+                HKL_raxs_list[0].append(each.extra_data['h'][0])
+                HKL_raxs_list[1].append(each.extra_data['k'][0])
+                HKL_raxs_list[2].append(each.extra_data['Y'][0])
         try:
             if self.run_fit.running:
                 edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
+                z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
             else:
                 edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
+                z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
+            eden_plot = [each*int(each>0) for each in eden_plot]
             self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][1],pen = {'color': "w", 'width': 1},clear = True)
             self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][2],fillLevel=0, brush = (0,200,0,100),clear = False)
+            self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
             self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
             self.fom_scan_profile.autoRange()
         except:
@@ -717,6 +736,8 @@ class MyMainWindow(QMainWindow):
     def run_model(self):
         """start the model fit looping"""
         #button will be clicked every 2 second to update figures
+        self.simulate_model()
+        self.statusbar.showMessage("Initializing model running ...")
         self.timer_update_structure.start(2000)
         self.widget_solver.update_parameter_in_solver(self)
         self.fit_thread.start()

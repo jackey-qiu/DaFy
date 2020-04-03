@@ -529,7 +529,8 @@ class Sample:
         return abs(ftot)*self.inst.inten
 
     def calc_f4_muscovite_RAXR_MI(self,h,k,x,y,index,height_offset=0,version=1):
-        h, k, l, E, E0, f1f2, a, b, c, resonant_el=h,k,y,x,self.domain['E0'],self.domain['F1F2'],self.domain['raxs_vars']['a'+str(index)],self.domain['raxs_vars']['b'+str(index)],self.domain['raxs_vars']['c'+str(index)],self.domain['el']
+        raxs_vars = vars(self.domain['raxs_vars'])
+        h, k, l, E, E0, f1f2, a, b, c, resonant_el=h,k,y,x,self.domain['E0'],self.domain['F1F2'],raxs_vars['a'+str(index)], raxs_vars['b'+str(index)],raxs_vars['c'+str(index)],self.domain['el']
         ftot=0
 
         def _extract_f1f2(f1f2,E):
@@ -555,8 +556,10 @@ class Sample:
         else:
             f_layered_sorbate=self.calc_f_layered_sorbate_muscovite_RAXR(h,k,l,self.domain['layered_sorbate_pars'],height_offset,f1f2)
         #only consider one set of Fourier components in the whole strucutre
-        A_list=[self.domain['raxs_vars']['A'+str(index)+'_D'+str(i+1)] for i in range(1)]
-        P_list=[self.domain['raxs_vars']['P'+str(index)+'_D'+str(i+1)] for i in range(1)]
+        # A_list=[self.domain['raxs_vars']['A'+str(index)+'_D'+str(i+1)] for i in range(1)]
+        # P_list=[self.domain['raxs_vars']['P'+str(index)+'_D'+str(i+1)] for i in range(1)]
+        A_list=[raxs_vars['A'+str(index)+'_D'+str(i+1)] for i in range(1)]
+        P_list=[raxs_vars['P'+str(index)+'_D'+str(i+1)] for i in range(1)]
 
 
         domains=self.domain['domains']
