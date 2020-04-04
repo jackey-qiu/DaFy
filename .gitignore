@@ -1,4 +1,7 @@
-dump_files/
+dump_files/xrv
+dump_file/*.csv
+dump_file/*.xlsx
+dump_file/*.tab
 !dump_files/__init__.py
 !dump_files/locate_path.py
 legacy/*
