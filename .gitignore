@@ -1,4 +1,5 @@
 dump_files/
-!dump_files/*.py
+!dump_files/__init__.py
+!dump_files/locate_path.py
 legacy/*
 *.pyc
