@@ -736,6 +736,7 @@ class MyMainWindow(QMainWindow):
     def run_model(self):
         """start the model fit looping"""
         #button will be clicked every 2 second to update figures
+        self.stop_model()
         self.simulate_model()
         self.statusbar.showMessage("Initializing model running ...")
         self.timer_update_structure.start(2000)

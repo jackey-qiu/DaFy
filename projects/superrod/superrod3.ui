@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1440</width>
-    <height>830</height>
+    <height>805</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -775,8 +775,7 @@
   <action name="actionSimulate">
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/simulate.png</normaloff>
-     <normalon>../../../DaFy_P23/scripts/SuperRod/icons/simulate.png</normalon>../../../DaFy_P23/scripts/SuperRod/icons/simulate.png</iconset>
+     <normaloff>icons/simulate.png</normaloff>icons/simulate.png</iconset>
    </property>
    <property name="text">
     <string>Simulate model</string>
@@ -791,8 +790,7 @@
   <action name="actionRun">
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/run.png</normaloff>
-     <normalon>../../../DaFy_P23/scripts/SuperRod/icons/run.png</normalon>../../../DaFy_P23/scripts/SuperRod/icons/run.png</iconset>
+     <normaloff>icons/run.png</normaloff>icons/run.png</iconset>
    </property>
    <property name="text">
     <string>Run model</string>
@@ -804,8 +802,7 @@
   <action name="actionStop">
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/stop.png</normaloff>
-     <normalon>../../../DaFy_P23/scripts/SuperRod/icons/stop.png</normalon>../../../DaFy_P23/scripts/SuperRod/icons/stop.png</iconset>
+     <normaloff>icons/stop.png</normaloff>icons/stop.png</iconset>
    </property>
    <property name="text">
     <string>Stop model</string>
@@ -814,8 +811,7 @@
   <action name="actionNew">
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/open.png</normaloff>
-     <normalon>../../../DaFy_P23/scripts/SuperRod/icons/open.png</normalon>../../../DaFy_P23/scripts/SuperRod/icons/open.png</iconset>
+     <normaloff>icons/open.png</normaloff>icons/open.png</iconset>
    </property>
    <property name="text">
     <string>New</string>
@@ -824,8 +820,7 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/load.png</normaloff>
-     <normalon>../../../DaFy_P23/scripts/SuperRod/icons/load.png</normalon>../../../DaFy_P23/scripts/SuperRod/icons/load.png</iconset>
+     <normaloff>icons/load.png</normaloff>icons/load.png</iconset>
    </property>
    <property name="text">
     <string>Open</string>
@@ -834,8 +829,7 @@
   <action name="actionSave">
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/save.png</normaloff>
-     <normalon>../../../DaFy_P23/scripts/SuperRod/icons/save.png</normalon>../../../DaFy_P23/scripts/SuperRod/icons/save.png</iconset>
+     <normaloff>icons/save.png</normaloff>icons/save.png</iconset>
    </property>
    <property name="text">
     <string>Save</string>
@@ -850,7 +844,7 @@
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>../../../DaFy_P23/scripts/SuperRod/icons/calculator3.png</normaloff>../../../DaFy_P23/scripts/SuperRod/icons/calculator3.png</iconset>
+     <normaloff>icons/calculator3.png</normaloff>icons/calculator3.png</iconset>
    </property>
    <property name="text">
     <string>calculate error bars</string>

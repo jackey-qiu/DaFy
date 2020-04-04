@@ -1,3 +1,4 @@
-dump_files/*
+dump_files/
+!dump_file/*.py
 legacy/*
 *.pyc
