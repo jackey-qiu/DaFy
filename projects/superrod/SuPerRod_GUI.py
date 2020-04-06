@@ -2,7 +2,7 @@ import sys,os, qdarkstyle
 import traceback
 from io import StringIO
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
-from PyQt5 import uic
+from PyQt5 import uic, QtWidgets
 import random
 import numpy as np
 import pandas as pd
@@ -175,6 +175,10 @@ class MyMainWindow(QMainWindow):
         self.pushButton_delete_data.clicked.connect(self.delete_data)
         self.pushButton_save_data.clicked.connect(self.save_data)
         self.pushButton_update_mask.clicked.connect(self.update_mask_info_in_data)
+        self.pushButton_use_all.clicked.connect(self.use_all_data)
+        self.pushButton_use_none.clicked.connect(self.use_none_data)
+        self.pushButton_use_selected.clicked.connect(self.use_selected_data)
+        self.pushButton_invert_use.clicked.connect(self.invert_use_data)
 
         #pushbuttons for structure view
         self.pushButton_azimuth_0.clicked.connect(self.azimuth_0)
@@ -197,12 +201,21 @@ class MyMainWindow(QMainWindow):
         self.pushButton_save_table.clicked.connect(self.save_par)
         self.pushButton_remove_rows.clicked.connect(self.remove_selected_rows)
         self.pushButton_add_one_row.clicked.connect(self.append_one_row)
+        self.pushButton_add_par_set.clicked.connect(self.append_par_set)
+        self.pushButton_add_all_pars.clicked.connect(self.append_all_par_sets)
+        self.pushButton_fit_all.clicked.connect(self.fit_all)
+        self.pushButton_fit_none.clicked.connect(self.fit_none)
+        self.pushButton_fit_selected.clicked.connect(self.fit_selected)
+        self.pushButton_fit_next_5.clicked.connect(self.fit_next_5)
+        self.pushButton_invert_fit.clicked.connect(self.invert_fit)
+
+        #pushButton to operate plots
         self.pushButton_update_plot.clicked.connect(self.update_structure_view)
         self.pushButton_update_plot.clicked.connect(self.update_plot_data_view_upon_simulation)
         self.pushButton_update_plot.clicked.connect(self.update_par_bar_during_fit)
         self.pushButton_update_plot.clicked.connect(self.update_electron_density_profile)
-        self.pushButton_add_par_set.clicked.connect(self.append_par_set)
-        self.pushButton_add_all_pars.clicked.connect(self.append_all_par_sets)
+        self.pushButton_previous_screen.clicked.connect(self.show_plots_on_previous_screen)
+        self.pushButton_next_screen.clicked.connect(self.show_plots_on_next_screen)
         #select dataset in the viewer
         self.comboBox_dataset.activated.connect(self.update_data_view)
 
@@ -223,6 +236,38 @@ class MyMainWindow(QMainWindow):
         self.timer_update_structure.timeout.connect(self.pushButton_update_plot.click)
         self.setup_plot()
 
+    def show_plots_on_next_screen(self):
+        """
+        show plots on next screen, if one screen is not enough to fill all plots
+        """
+        if not hasattr(self,"num_screens_plot"):
+            return
+
+        if self.num_screens_plot>1:
+            if self.current_index_plot_screen<(self.num_screens_plot-1):
+                self.update_plot_dimension(self.current_index_plot_screen+1)
+                self.update_plot_data_view()
+            else:
+                pass
+        else:
+            pass
+
+    def show_plots_on_previous_screen(self):
+        """
+        show plots on previous screen
+        """
+
+        if not hasattr(self,"num_screens_plot"):
+            return
+
+        if self.num_screens_plot>1:
+            if self.current_index_plot_screen>0:
+                self.update_plot_dimension(self.current_index_plot_screen-1)
+                self.update_plot_data_view()
+            else:
+                pass
+        else:
+            pass
 
     def toggle_data_panel(self):
         """data panel on the left side of GUI main frame"""
@@ -278,20 +323,59 @@ class MyMainWindow(QMainWindow):
         self.update_camera_position(angle_type="elevation", angle=90)
 
     #do this after model is loaded, so that you know len(data)
-    def update_plot_dimension(self, columns = 2):
+    def update_plot_dimension(self, current_index_plot_screen = 0):
         """Setting the layout of data profiles"""
+        sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
+        height, width = sizeObject.height()*25.4/dpi,sizeObject.width()*25.4/dpi
+        #maximum number of plots allowd to be fit in one screen
+        #assuming the minimum plot panel has a size of (w:50mm * h:40mm)
+        plot_cols, plot_rows = int(width/50), int(height/40)
+        self.max_num_plots_per_screen = plot_cols*plot_rows
+
         self.widget_data.clear()
         self.widget_data.ci.currentRow = 0
         self.widget_data.ci.currentCol = 0
 
         self.data_profiles = []
         total_datasets = len(self.model.data)
-        if total_datasets>10:
-            columns = 4
+
+        if total_datasets<self.max_num_plots_per_screen:
+            self.num_screens_plot = 1
+        else:
+            self.num_screens_plot = int(total_datasets/self.max_num_plots_per_screen)+[0,1][int((total_datasets%self.max_num_plots_per_screen)>0)]
+        self.current_index_plot_screen = current_index_plot_screen
+        if self.num_screens_plot>1:#more than one screen
+            if self.current_index_plot_screen<(self.num_screens_plot-1):
+                columns = plot_cols#should be occupied in maximum
+                num_plots_on_current_screen = self.max_num_plots_per_screen
+            else:#last screen
+                num_plots_ = total_datasets%self.max_num_plots_per_screen
+                if num_plots_ == 0:
+                    columns = plot_cols
+                    num_plots_on_current_screen = self.max_num_plots_per_screen
+                else:
+                    num_plots_on_current_screen = num_plots_
+                    if num_plots_>10:
+                        columns = 4
+                    else:
+                        columns = 2
+        elif self.num_screens_plot==1:#only one screen
+            if total_datasets==self.max_num_plots_per_screen:
+                num_plots_on_current_screen = self.max_num_plots_per_screen
+                columns = plot_cols
+            else:
+                num_plots_on_current_screen = total_datasets
+                if total_datasets>10:
+                    columns = 4
+                else:
+                    columns = 2
+
         #current list of ax handle
-        for i in range(total_datasets):
+        self.num_plots_on_current_screen = num_plots_on_current_screen
+        offset = self.current_index_plot_screen*self.max_num_plots_per_screen
+        for i in range(num_plots_on_current_screen):
             if 1:
-                hk_label = '{}{}_{}'.format(str(int(self.model.data[i].extra_data['h'][0])),str(int(self.model.data[i].extra_data['k'][0])),str(self.model.data[i].extra_data['Y'][0]))
+                hk_label = '{}{}_{}'.format(str(int(self.model.data[i+offset].extra_data['h'][0])),str(int(self.model.data[i+offset].extra_data['k'][0])),str(self.model.data[i+offset].extra_data['Y'][0]))
                 if (i%columns)==0 and (i!=0):
                     self.widget_data.nextRow()
                     self.data_profiles.append(self.widget_data.addPlot(title=hk_label))
@@ -334,10 +418,11 @@ class MyMainWindow(QMainWindow):
             
             self.update_electron_density_profile()
         else:
-            for i in range(len(self.model.data)):
-                fmt = self.tableWidget_data.item(i,4).text()
+            offset = self.max_num_plots_per_screen*self.current_index_plot_screen
+            for i in range(self.num_plots_on_current_screen):
+                fmt = self.tableWidget_data.item(i+offset,4).text()
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
-                self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = True)
+                self.data_profiles[i].plot(self.model.data[i+offset].x, self.model.data[i+offset].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = True)
             [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each),1).isChecked()) for each in self.data_profiles]
             [each.autoRange() for each in self.data_profiles]
 
@@ -382,19 +467,20 @@ class MyMainWindow(QMainWindow):
             pass
 
     def update_plot_data_view_upon_simulation(self):
-        for i in range(len(self.model.data)):
+        offset = self.max_num_plots_per_screen*self.current_index_plot_screen
+        for i in range(self.num_plots_on_current_screen):
             if 1:
-                fmt = self.tableWidget_data.item(i,4).text()
+                fmt = self.tableWidget_data.item(i+offset,4).text()
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
                 line_symbol = list(fmt.rstrip().rsplit(';')[1].rsplit(':')[1])
-                self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
-                if self.tableWidget_data.cellWidget(i,3).isChecked():
+                self.data_profiles[i].plot(self.model.data[i+offset].x, self.model.data[i+offset].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
+                if self.tableWidget_data.cellWidget(i+offset,3).isChecked():
                     #create error bar data, graphiclayout widget doesn't have a handy api to plot lines along with error bars
                     #disable this while the model is running
                     if not self.run_fit.solver.optimizer.running:
-                        x = np.append(self.model.data[i].x[:,np.newaxis],self.model.data[i].x[:,np.newaxis],axis=1)
-                        y_d = self.model.data[i].y[:,np.newaxis] - self.model.data[i].error[:,np.newaxis]/2
-                        y_u = self.model.data[i].y[:,np.newaxis] + self.model.data[i].error[:,np.newaxis]/2
+                        x = np.append(self.model.data[i+offset].x[:,np.newaxis],self.model.data[i+offset].x[:,np.newaxis],axis=1)
+                        y_d = self.model.data[i+offset].y[:,np.newaxis] - self.model.data[i+offset].error[:,np.newaxis]/2
+                        y_u = self.model.data[i+offset].y[:,np.newaxis] + self.model.data[i+offset].error[:,np.newaxis]/2
                         y = np.append(y_d,y_u,axis = 1)
                         for ii in range(len(y)):
                             self.data_profiles[i].plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
@@ -402,15 +488,15 @@ class MyMainWindow(QMainWindow):
                 #plot ideal structure factor
                 try:
                     scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
-                    self.data_profiles[i].plot(self.model.data[i].x, self.f_ideal[i]*scale_factor**2,pen = {'color': "w", 'width': 1},clear = False)
+                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.f_ideal[i+offset]*scale_factor**2,pen = {'color': "w", 'width': 1},clear = False)
                 except:
                     pass
                 #plot simulated results
-                if self.tableWidget_data.cellWidget(i,2).isChecked():
-                    self.data_profiles[i].plot(self.model.data[i].x, self.model.data[i].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
+                if self.tableWidget_data.cellWidget(i+offset,2).isChecked():
+                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.model.data[i+offset].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
                 else:
                     pass
-        [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each),1).isChecked()) for each in self.data_profiles]
+        [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each)+offset,1).isChecked()) for each in self.data_profiles]
         [each.autoRange() for each in self.data_profiles]
         fom_log = np.array(self.run_fit.solver.optimizer.fom_log)
         self.fom_evolution_profile.plot(fom_log[:,0],fom_log[:,1],pen={'color': 'r', 'width': 2}, clear = True)
@@ -708,6 +794,7 @@ class MyMainWindow(QMainWindow):
         simulate the model
         script will be updated and compiled to make name spaces in script_module
         """
+        self.update_data_check_attr()
         self.update_par_upon_change()
         self.model.script = (self.plainTextEdit_script.toPlainText())
         self.widget_solver.update_parameter_in_solver(self)
@@ -894,8 +981,43 @@ class MyMainWindow(QMainWindow):
                     check = getattr(current_data, ['show', 'use', 'use_error'][j-1])
                     check_box = QCheckBox()
                     check_box.setChecked(check)
-                    check_box.stateChanged.connect(self.update_plot_data_view)
+                    #check_box.stateChanged.connect(self.update_plot_data_view)
                     self.tableWidget_data.setCellWidget(i,j,check_box)
+        
+        # self.tableWidget_data.resizeColumnsToContents()
+        # self.tableWidget_data.resizeRowsToContents()
+
+    def use_all_data(self):
+        num_rows_table = self.tableWidget_data.rowCount()
+        for i in range(num_rows_table):
+            self.tableWidget_data.cellWidget(i,2).setChecked(True)
+        self.simulate_model()
+
+    def use_none_data(self):
+        num_rows_table = self.tableWidget_data.rowCount()
+        for i in range(num_rows_table):
+            self.tableWidget_data.cellWidget(i,2).setChecked(False)
+        self.simulate_model()
+
+    def use_selected_data(self):
+        selected_row_index = [each.row() for each in self.tableWidget_data.selectionModel().selectedRows()]
+        num_rows_table = self.tableWidget_data.rowCount()
+        for i in range(num_rows_table):
+            if i in selected_row_index:
+                self.tableWidget_data.cellWidget(i,2).setChecked(True)
+            else:
+                self.tableWidget_data.cellWidget(i,2).setChecked(False)
+        self.simulate_model()
+
+    def invert_use_data(self):
+        num_rows_table = self.tableWidget_data.rowCount()
+        for i in range(num_rows_table):
+            checkstate = self.tableWidget_data.cellWidget(i,2).checkState()
+            if checkstate == 0:
+                self.tableWidget_data.cellWidget(i,2).setChecked(True)
+            else:
+                self.tableWidget_data.cellWidget(i,2).setChecked(False)
+        self.simulate_model()
 
     def update_combo_box_dataset(self):
         new_items = [each.name for each in self.model.data]
@@ -1207,6 +1329,77 @@ class MyMainWindow(QMainWindow):
                 label_tag += 1
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_label)
 
+    def fit_all(self):
+        """fit all fit parameters
+        """
+        num_rows_table = self.tableWidget_pars.rowCount()
+        for i in range(num_rows_table):
+            try:
+                self.tableWidget_pars.cellWidget(i,2).setChecked(True)
+            except:
+                pass
+        self.update_model_parameter()
+
+    def fit_next_5(self):
+        """fit next 5 parameters starting from first selected row
+        """
+        num_rows_table = 5
+        rows = self.tableWidget_pars.selectionModel().selectedRows()
+        starting_row = 0
+        if len(rows)!=0:
+            starting_row = rows[0].row()
+
+        for i in range(num_rows_table):
+            try:
+                self.tableWidget_pars.cellWidget(i+starting_row,2).setChecked(True)
+            except:
+                pass
+        self.update_model_parameter()
+
+    def fit_none(self):
+        """fit none of parameters
+        """
+        num_rows_table = self.tableWidget_pars.rowCount()
+        for i in range(num_rows_table):
+            try:
+                self.tableWidget_pars.cellWidget(i,2).setChecked(False)
+            except:
+                pass
+        self.update_model_parameter()
+
+    def fit_selected(self):
+        """fit selected parameters
+        """
+        selected_row_index = [each.row() for each in self.tableWidget_pars.selectionModel().selectedRows()]
+        num_rows_table = self.tableWidget_pars.rowCount()
+        for i in range(num_rows_table):
+            if i in selected_row_index:
+                try:
+                    self.tableWidget_pars.cellWidget(i,2).setChecked(True)
+                except:
+                    pass
+            else:
+                try:
+                    self.tableWidget_pars.cellWidget(i,2).setChecked(False)
+                except:
+                    pass
+        self.update_model_parameter()
+
+    def invert_fit(self):
+        """invert the selection of fit parameters
+        """
+        num_rows_table = self.tableWidget_pars.rowCount()
+        for i in range(num_rows_table):
+            try:
+                checkstate = self.tableWidget_pars.cellWidget(i,2).checkState()
+                if checkstate == 0:
+                    self.tableWidget_pars.cellWidget(i,2).setChecked(True)
+                else:
+                    self.tableWidget_pars.cellWidget(i,2).setChecked(False)
+            except:
+                pass
+        self.update_model_parameter()
+
     def update_par_upon_load(self):
         """upon loading model, the par table widget content will be updated with this func"""
         vertical_labels = []
@@ -1249,7 +1442,7 @@ class MyMainWindow(QMainWindow):
                     j += 1
         self.tableWidget_pars.resizeColumnsToContents()
         self.tableWidget_pars.resizeRowsToContents()
-        self.tableWidget_pars.setShowGrid(False)
+        self.tableWidget_pars.setShowGrid(True)
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_labels)
 
 
@@ -1345,6 +1538,9 @@ class MyMainWindow(QMainWindow):
 if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
+    #get dpi info: dots per inch
+    screen = app.screens()[0]
+    dpi = screen.physicalDotsPerInch()
     myWin = MyMainWindow()
     myWin.setWindowIcon(QtGui.QIcon('DAFY.png'))
     hightlight = syntax_pars.PythonHighlighter(myWin.plainTextEdit_script.document())
