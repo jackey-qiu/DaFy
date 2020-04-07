@@ -479,7 +479,7 @@ class SolverController(QtCore.QObject):
         self.start_parameter_values = None
 
 
-    def StartFit(self, signal = None):
+    def StartFit(self, signal = None, signal_fitended = None):
         ''' StartFit(self) --> None
         Function to start running the fit
         '''
@@ -490,7 +490,7 @@ class SolverController(QtCore.QObject):
         model.parameters.clear_error_pars()
         #self.start_parameter_values = model.get_fit_values()
         self.optimizer.model = model
-        self.optimizer.start_fit(signal)
+        self.optimizer.start_fit(signal, signal_fitended)
 
 
     def StartFit_old(self):

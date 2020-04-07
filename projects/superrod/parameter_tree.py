@@ -52,3 +52,13 @@ class SolverParameters(ParameterTree):
         diffev_solver.set_max_generations(self.par.param('Fitting').param('Generation size').value())
         diffev_solver.set_pop_size(self.par.param('Fitting').param('Population size').value())
 
+    def update_parameter_in_solver_batch(self,parent):
+        diffev_solver = parent.run_batch.solver.optimizer
+        diffev_solver.set_km(self.par.param('Diff.Ev.').param('k_m').value())
+        diffev_solver.set_kr(self.par.param('Diff.Ev.').param('k_r').value())
+        diffev_solver.set_create_trial(self.par.param('Diff.Ev.').param('Method').value())
+        parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
+        diffev_solver.set_autosave_interval(self.par.param('FOM').param('Auto save, interval').value())
+        diffev_solver.set_use_start_guess(self.par.param('Fitting').param('start guess').value())
+        diffev_solver.set_max_generations(self.par.param('Fitting').param('Generation size').value())
+        diffev_solver.set_pop_size(self.par.param('Fitting').param('Population size').value())

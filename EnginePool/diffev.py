@@ -337,7 +337,7 @@ class DiffEv:
             else:
                 self.eval_fom = self.calc_trial_fom
 
-    def start_fit(self,signal = None):
+    def start_fit(self,signal = None, signal_fitended = None):
         '''
         Starts fitting in a seperate thred.
         '''
@@ -351,7 +351,8 @@ class DiffEv:
             # Start fitting in a new thread
             # thread.start_new_thread(self.optimize, ())
             self.text_output('Starting the fit...')
-            self.optimize(signal = signal)
+            print('Starting the fit...')
+            self.optimize(signal = signal, signal_fitended = signal_fitended)
             # self.optimize()
             # For debugging
             #self.optimize()
@@ -436,7 +437,7 @@ class DiffEv:
 
         #self.parameter_output(self)
 
-    def optimize(self, signal = None):
+    def optimize(self, signal = None, signal_fitended = None):
         '''
         Method implementing the main loop of the differential evolution
         algorithm. Note that this method does not run in a separate thread.
@@ -446,6 +447,7 @@ class DiffEv:
         # self.model = model
         if not MPI_RUN:
             self.text_output('Calculating start FOM ...')
+            print('Calculating start FOM ...')
             self.running = True
             self.error = False
             self.n_fom = 0
@@ -473,6 +475,7 @@ class DiffEv:
             self.new_best = True
 
             self.text_output('Going into optimization ...')
+            print('Going into optimization ...')
 
             # Update the plot data for any gui or other output
             self.plot_output(self)
@@ -483,10 +486,10 @@ class DiffEv:
             for gen in range(int(self.fom_log[-1,0]) + 1, self.max_gen\
                                     + int(self.fom_log[-1,0]) + 1):
                 if self.stop:
+                    signal_fitended.emit()
                     break
 
                 t_start = time.time()
-
                 self.init_new_generation(gen)
 
                 # Create the vectors who will be compared to the
@@ -566,6 +569,7 @@ class DiffEv:
                 # print('pop_vec',type(self.pop_vec),len(self.pop_vec))
                 if signal!=None:
                     signal.emit(outputtext, self.model, save_tag)
+            signal_fitended.emit()
 
             if not self.error:
                 self.text_output('Stopped at Generation: %d after %d fom evaluations...'%(gen, self.n_fom))

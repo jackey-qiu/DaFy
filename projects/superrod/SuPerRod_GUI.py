@@ -59,6 +59,7 @@ class RunFit(QtCore.QObject):
 
     """
     updateplot = QtCore.pyqtSignal(str,object,bool)
+    fitended = QtCore.pyqtSignal()
     def __init__(self,solver):
         super(RunFit, self).__init__()
         self.solver = solver
@@ -67,7 +68,38 @@ class RunFit(QtCore.QObject):
     def run(self):
         self.running = True
         self.solver.optimizer.stop = False
-        self.solver.StartFit(self.updateplot)
+        self.solver.StartFit(self.updateplot,self.fitended)
+
+    def stop(self):
+        self.running = False
+        self.solver.optimizer.stop = True
+
+class RunBatch(QtCore.QObject):
+    """
+    RunFit class to interface GUI to operate fit-engine, which is ran on a different thread
+    ...
+    Attributes
+    ----------
+    updateplot : pyqtSignal be emitted to be received by main GUI thread during fit
+    solver: api for model fit using differential evolution algorithm
+
+    Methods
+    ----------
+    run: start the fit
+    stop: stop the fit
+
+    """
+    updateplot = QtCore.pyqtSignal(str,object,bool)
+    fitended = QtCore.pyqtSignal()
+    def __init__(self,solver):
+        super(RunBatch, self).__init__()
+        self.solver = solver
+        self.running = False
+
+    def run(self):
+        self.running = True
+        self.solver.optimizer.stop = False
+        self.solver.StartFit(self.updateplot,self.fitended)
 
     def stop(self):
         self.running = False
@@ -145,7 +177,18 @@ class MyMainWindow(QMainWindow):
         #signal-slot connection
         self.run_fit.updateplot.connect(self.update_par_during_fit)
         self.run_fit.updateplot.connect(self.update_status)
+        self.run_fit.fitended.connect(self.stop_model)
         self.fit_thread.started.connect(self.run_fit.run)
+
+        #init run_batch
+        self.run_batch = RunBatch(solvergui.SolverController(self.model))
+        self.batch_thread = QtCore.QThread()
+        self.run_batch.moveToThread(self.batch_thread)
+        #signal-slot connection
+        self.run_batch.updateplot.connect(self.update_par_during_fit)
+        self.run_batch.updateplot.connect(self.update_status_batch)
+        self.run_batch.fitended.connect(self.stop_model_batch)
+        self.batch_thread.started.connect(self.run_batch.run)
 
         #tool bar buttons to operate model
         self.actionNew.triggered.connect(self.init_new_model)
@@ -155,6 +198,8 @@ class MyMainWindow(QMainWindow):
         self.actionRun.triggered.connect(self.run_model)
         self.actionStop.triggered.connect(self.stop_model)
         self.actionCalculate.triggered.connect(self.calculate_error_bars)
+        self.actionRun_batch_script.triggered.connect(self.run_model_batch)
+        self.actionStopBatch.triggered.connect(self.terminate_model_batch)
 
         #menu items
         self.actionOpen_model.triggered.connect(self.open_model)
@@ -235,6 +280,8 @@ class MyMainWindow(QMainWindow):
         self.timer_update_structure = QtCore.QTimer(self)
         self.timer_update_structure.timeout.connect(self.pushButton_update_plot.click)
         self.setup_plot()
+
+
 
     def show_plots_on_next_screen(self):
         """
@@ -451,7 +498,7 @@ class MyMainWindow(QMainWindow):
                 HKL_raxs_list[1].append(each.extra_data['k'][0])
                 HKL_raxs_list[2].append(each.extra_data['Y'][0])
         try:
-            if self.run_fit.running:
+            if self.run_fit.running or self.run_batch.running:
                 edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
                 z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
             else:
@@ -504,12 +551,19 @@ class MyMainWindow(QMainWindow):
         
     def update_par_bar_during_fit(self):
         """update bar chart during fit, which tells the current best fit and the searching range of each fit parameter"""
-        if self.run_fit.running:
-            par_max = self.run_fit.solver.optimizer.par_max
-            par_min = self.run_fit.solver.optimizer.par_min
-            vec_best = copy.deepcopy(self.run_fit.solver.optimizer.best_vec)
-            vec_best = (vec_best-par_min)/(par_max-par_min)
-            pop_vec = np.array(copy.deepcopy(self.run_fit.solver.optimizer.pop_vec))
+        if self.run_fit.running or self.run_batch.running:
+            if self.run_fit.running:
+                par_max = self.run_fit.solver.optimizer.par_max
+                par_min = self.run_fit.solver.optimizer.par_min
+                vec_best = copy.deepcopy(self.run_fit.solver.optimizer.best_vec)
+                vec_best = (vec_best-par_min)/(par_max-par_min)
+                pop_vec = np.array(copy.deepcopy(self.run_fit.solver.optimizer.pop_vec))
+            elif self.run_batch.running:
+                par_max = self.run_batch.solver.optimizer.par_max
+                par_min = self.run_batch.solver.optimizer.par_min
+                vec_best = copy.deepcopy(self.run_batch.solver.optimizer.best_vec)
+                vec_best = (vec_best-par_min)/(par_max-par_min)
+                pop_vec = np.array(copy.deepcopy(self.run_batch.solver.optimizer.pop_vec))
 
             trial_vec_min =[]
             trial_vec_max =[]
@@ -814,8 +868,10 @@ class MyMainWindow(QMainWindow):
                     pass
             else:
                 self.init_structure_view()
+            # print("sensor9")
             self.statusbar.clearMessage()
             self.update_combo_box_list_par_set()
+            # print("sensor10")
             self.statusbar.showMessage("Model is simulated successfully!")
         except model.ModelError as e:
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
@@ -836,6 +892,69 @@ class MyMainWindow(QMainWindow):
         self.timer_update_structure.stop()
         self.statusbar.clearMessage()
         self.statusbar.showMessage("Model run is aborted!")
+
+    def _stop_model(self):
+        self.run_batch.stop()
+        self.batch_thread.terminate()
+        self.timer_update_structure.stop()
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage("Batch model run is aborted!")
+
+    def run_model_batch(self):
+        """start the model fit looping in a batch mode
+        To speed up the structure and plots are not to be updated!
+        """
+        #self._stop_model()
+        self.simulate_model()
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage("Initializing model running ...")
+        self.widget_solver.update_parameter_in_solver_batch(self)
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage("Parameters in solver are updated!")
+        self.batch_thread.start()
+
+    def stop_model_batch(self):
+        self.run_batch.stop()
+        self.batch_thread.terminate()
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage("Batch model run is aborted to work on next task!")
+        if self.update_fit_setup_for_batch_run():
+            self.run_model_batch()
+        else:
+            pass
+
+    def terminate_model_batch(self):
+        self.run_batch.stop()
+        self.batch_thread.terminate()
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage("Batch model run is aborted now!")
+
+    def update_fit_setup_for_batch_run(self):
+        """
+        Update the fit parameters and the fit dataset for next batch job!
+        
+        Returns:
+            [bool] -- move to the end of datasets or not?
+        """
+        first_checked_data_item, first_checked_par_item = None, None
+        for i in range(self.tableWidget_data.rowCount()):
+            if self.tableWidget_data.cellWidget(i,2).checkState()!=0:
+                first_checked_data_item = i
+                break
+        for i in range(self.tableWidget_pars.rowCount()):
+            if self.tableWidget_pars.cellWidget(i,2)!=None:
+                if self.tableWidget_pars.cellWidget(i,2).checkState()!=0:
+                    first_checked_par_item = i
+                    break
+        self.use_none_data()
+        self.fit_none()
+        try:
+            [self.tableWidget_pars.cellWidget(i+6+first_checked_par_item,2).setChecked(True) for i in range(5)]
+            self.tableWidget_data.cellWidget(1+first_checked_data_item,2).setChecked(True)
+            self.update_model_parameter()
+            return True
+        except:
+            return False
 
     def load_data(self, loader = 'ctr'):
         self._empty_data_pool()
@@ -988,18 +1107,24 @@ class MyMainWindow(QMainWindow):
         # self.tableWidget_data.resizeRowsToContents()
 
     def use_all_data(self):
+        """fit all datasets
+        """
         num_rows_table = self.tableWidget_data.rowCount()
         for i in range(num_rows_table):
             self.tableWidget_data.cellWidget(i,2).setChecked(True)
         self.simulate_model()
 
     def use_none_data(self):
+        """fit none of those datasets
+        """
         num_rows_table = self.tableWidget_data.rowCount()
         for i in range(num_rows_table):
             self.tableWidget_data.cellWidget(i,2).setChecked(False)
         self.simulate_model()
 
     def use_selected_data(self):
+        """fit those that have been selected
+        """
         selected_row_index = [each.row() for each in self.tableWidget_data.selectionModel().selectedRows()]
         num_rows_table = self.tableWidget_data.rowCount()
         for i in range(num_rows_table):
@@ -1010,6 +1135,8 @@ class MyMainWindow(QMainWindow):
         self.simulate_model()
 
     def invert_use_data(self):
+        """invert the selection of to-be-fit datasets
+        """
         num_rows_table = self.tableWidget_data.rowCount()
         for i in range(num_rows_table):
             checkstate = self.tableWidget_data.cellWidget(i,2).checkState()
@@ -1527,6 +1654,15 @@ class MyMainWindow(QMainWindow):
         self.statusbar.clearMessage()
         self.statusbar.showMessage(string)
         self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,round(self.run_fit.solver.optimizer.best_fom,5)))
+        if save_tag:
+            self.auto_save_model()
+
+    @QtCore.pyqtSlot(str,object,bool)
+    def update_status_batch(self,string,model,save_tag):
+        """slot func to update status info displaying fit status"""
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage(string)
+        self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,round(self.run_batch.solver.optimizer.best_fom,5)))
         if save_tag:
             self.auto_save_model()
 

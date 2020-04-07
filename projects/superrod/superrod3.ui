@@ -40,7 +40,7 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="tab_5">
         <attribute name="title">
@@ -841,8 +841,11 @@
    <addaction name="actionSimulate"/>
    <addaction name="actionRun"/>
    <addaction name="actionStop"/>
-   <addaction name="separator"/>
    <addaction name="actionCalculate"/>
+   <addaction name="separator"/>
+   <addaction name="actionRun_batch_script"/>
+   <addaction name="actionStopBatch"/>
+   <addaction name="separator"/>
   </widget>
   <action name="actionSimulate">
    <property name="icon">
@@ -1026,6 +1029,24 @@
   <action name="actionManuel">
    <property name="text">
     <string>Manual</string>
+   </property>
+  </action>
+  <action name="actionRun_batch_script">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/batch_script.png</normaloff>icons/batch_script.png</iconset>
+   </property>
+   <property name="text">
+    <string>batch_script</string>
+   </property>
+  </action>
+  <action name="actionStopBatch">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/stop2.png</normaloff>icons/stop2.png</iconset>
+   </property>
+   <property name="text">
+    <string>stopBatch</string>
    </property>
   </action>
  </widget>
