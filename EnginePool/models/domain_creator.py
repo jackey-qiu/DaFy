@@ -1286,13 +1286,13 @@ def print_data2(N_sorbate=4,domain='',z_shift=1,half_layer=False,half_layer_long
     index_all=range(len(data[0]))
     index=None
     if half_layer and half_layer_long==3:
-        index=index_all[0:20]+index_all[40:40+N_sorbate]
+        index=list(index_all[0:20])+list(index_all[40:40+N_sorbate])
     elif half_layer and half_layer_long==2:
-        index=index_all[0:20]+index_all[30:30+N_sorbate]
+        index=list(index_all[0:20])+list(index_all[30:30+N_sorbate])
     elif not half_layer and full_layer_long==1:
-        index=index_all[0:22]+index_all[42:42+N_sorbate]
+        index=list(index_all[0:22])+list(index_all[42:42+N_sorbate])
     elif not half_layer and full_layer_long==0:
-        index=index_all[0:22]+index_all[32:32+N_sorbate]
+        index=list(index_all[0:22])+list(index_all[32:32+N_sorbate])
     if half_layer:
         index.pop(2)
         index.pop(2)
@@ -1330,24 +1330,24 @@ def print_data2_muscovite(N_sorbate=4,domain='',z_shift=0.8,save_file='D://model
 def print_data2C(N_sorbate=4,domain='',z_shift=1,half_layer=False,half_layer_long=None,full_layer_long=0,save_file='D://model.xyz',sorbate_index_list=[],each_segment_length=[]):
     #extract only one set of sorbate
     data=domain._extract_values()
-    index_all=range(len(data[0]))
+    index_all=list(range(len(data[0])))
     index=None
     if half_layer and half_layer_long==3:
         index=index_all[0:20]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[40+sorbate_index_list[i]:40+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(40+sorbate_index_list[i]):int(40+sorbate_index_list[i]+each_segment_length[i])]
     elif half_layer and half_layer_long==2:
         index=index_all[0:20]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[30+sorbate_index_list[i]:30+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(30+sorbate_index_list[i]):int(30+sorbate_index_list[i]+each_segment_length[i])]
     elif not half_layer and full_layer_long==1:
         index=index_all[0:22]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[42+sorbate_index_list[i]:42+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(42+sorbate_index_list[i]):int(42+sorbate_index_list[i]+each_segment_length[i])]
     elif not half_layer and full_layer_long==0:
         index=index_all[0:22]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[32+sorbate_index_list[i]:32+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(32+sorbate_index_list[i]):int(32+sorbate_index_list[i]+each_segment_length[i])]
     if half_layer:
         index.pop(2)
         index.pop(2)
@@ -1388,24 +1388,24 @@ def print_data2C_muscovite(N_sorbate=4,domain='',z_shift=0.8,save_file='D://mode
 def make_cif_file(N_sorbate=4,domain='',z_shift=1,half_layer=False,half_layer_long=None,full_layer_long=0,save_file='D://model.xyz',sorbate_index_list=[],each_segment_length=[]):
     #extract only one set of sorbate
     data=domain._extract_values()
-    index_all=range(len(data[0]))
+    index_all=list(range(len(data[0])))
     index=None
     if half_layer and half_layer_long==3:
         index=index_all[0:20]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[40+sorbate_index_list[i]:40+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(40+sorbate_index_list[i]):int(40+sorbate_index_list[i]+each_segment_length[i])]
     elif half_layer and half_layer_long==2:
         index=index_all[0:20]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[30+sorbate_index_list[i]:30+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(30+sorbate_index_list[i]):int(30+sorbate_index_list[i]+each_segment_length[i])]
     elif not half_layer and full_layer_long==1:
         index=index_all[0:22]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[42+sorbate_index_list[i]:42+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(42+sorbate_index_list[i]):int(42+sorbate_index_list[i]+each_segment_length[i])]
     elif not half_layer and full_layer_long==0:
         index=index_all[0:22]
         for i in range(len(sorbate_index_list)):
-            index=index+index_all[32+sorbate_index_list[i]:32+sorbate_index_list[i]+each_segment_length[i]]
+            index=index+index_all[int(32+sorbate_index_list[i]):int(32+sorbate_index_list[i]+each_segment_length[i])]
     if half_layer:
         index.pop(2)
         index.pop(2)
@@ -1641,15 +1641,15 @@ def print_data_for_publication_B2(N_sorbate=4,domain='',z_shift=1,layer_types=0,
     index_all=range(len(data[0]))
     index=None
     if layer_types==0:
-        index=index_all[0:12]+index_all[32:32+N_sorbate]
+        index=list(index_all[0:12])+list(index_all[32:int(32+N_sorbate)])
     elif layer_types==1:
-        index=index_all[0:22]+index_all[42:42+N_sorbate]
+        index=list(index_all[0:22])+list(index_all[42:42+int(N_sorbate)])
     elif layer_types==2:
-        index=index_all[0:10]+index_all[30:30+N_sorbate]
+        index=list(index_all[0:10])+list(index_all[30:30+int(N_sorbate)])
         index.pop(2)
         index.pop(2)
     elif layer_types==3:
-        index=index_all[0:20]+index_all[40:40+N_sorbate]
+        index=list(index_all[0:20])+list(index_all[40:40+int(N_sorbate)])
         index.pop(2)
         index.pop(2)
     f=open(save_file,'w')
@@ -2122,6 +2122,15 @@ def create_match_lib_before_fitting(domain_class,domain,atm_list,search_range,ba
         atms,offset=domain_class.find_neighbors(domain,i,search_range,basis,T)
         match_lib[i]=[atms,offset]
     return match_lib
+
+def create_match_lib_before_fitting_new(domain_class,domain,atm_list,search_range,basis=np.array([5.038,5.434,7.3707]),T=None):
+
+    match_lib={}
+    for i in atm_list:
+        atms,offset=domain_class.find_neighbors(domain,i,search_range,basis,T)
+        match_lib[i]=[atms,offset]
+    return match_lib
+
 #Here we consider match with sorbate atoms, sorbates move around within one unitcell, so the offset will be change accordingly
 #So this function should be placed inside sim function
 #Note there is no return in this function, which will only update match_lib
@@ -2446,7 +2455,7 @@ def rotate_along_one_axis(domain=None,pass_point_id='',rotation_ids=[],rotation_
 
 
 class domain_creator(domain_creator_water,domain_creator_sorbate,domain_creator_surface):
-    def __init__(self,ref_domain,id_list,terminated_layer=0,domain_tag='_D1',new_var_module=None,N_layers=5):
+    def __init__(self,ref_domain,id_list=[],terminated_layer=0,domain_tag='_D1',new_var_module=None,N_layers=5):
         #id_list is a list of id in the order of ref_domain,terminated_layer is the index number of layer to be considered
         #for termination,domain_N is a index number for this specific domain, new_var_module is a UserVars module to be used in
         #function of set_new_vars
@@ -2456,11 +2465,23 @@ class domain_creator(domain_creator_water,domain_creator_sorbate,domain_creator_
         self.terminated_layer=terminated_layer
         self.domain_tag=domain_tag
         self.share_face,self.share_edge,self.share_corner=(False,False,False)
+        self.binding_type = None
         #self.anchor_list=[]
         self.polyhedra_list=[]
         self.new_var_module=new_var_module
         self.N_layers=N_layers
-        self.domain_A,self.domain_B=self.create_equivalent_domains_2()
+        self.wt = 1
+        self.domainA,self.domainB=self.create_equivalent_domains_2()
+
+    @classmethod
+    def add_atom_in_slab(cls,slab,filename,domain_tag='',new_var=None,terminated_layer=0, N_layers = 5,height_offset=0):
+        f=open(filename)
+        lines=f.readlines()
+        for line in lines:
+            if line[0]!='#':
+                items=line.strip().rsplit(',')
+                slab.add_atom(str(items[0].strip()),str(items[1].strip()),float(items[2]),float(items[3]),float(items[4])+height_offset,float(items[5]),float(items[6]),float(items[7]))
+        return cls(slab,domain_tag = domain_tag, terminated_layer = terminated_layer, new_var_module=new_var, N_layers = N_layers)
 
     def build_super_cell(self,ref_domain,rem_atom_ids=None):
     #build a super cell based on the ref_domain, the super cell is actually two domains stacking together in x direction
@@ -2471,13 +2492,13 @@ class domain_creator(domain_creator_water,domain_creator_sorbate,domain_creator_
                 super_cell.del_atom(i)
 
         def _extract_coor(domain,id):
-            index=np.where(domain.id==id)[0][0]
+            index=np.where(np.array(domain.id)==id)[0][0]
             x=domain.x[index]+domain.dx1[index]+domain.dx2[index]+domain.dx3[index]
             y=domain.y[index]+domain.dy1[index]+domain.dy2[index]+domain.dy3[index]
             z=domain.z[index]+domain.dz1[index]+domain.dz2[index]+domain.dz3[index]
             return np.array([x,y,z])
         for id in super_cell.id:
-            index=np.where(ref_domain.id==id)[0][0]
+            index=np.where(np.array(ref_domain.id)==id)[0][0]
             super_cell.add_atom(id=str(id)+'_+x',element=ref_domain.el[index], x=_extract_coor(ref_domain,id)[0]+1.0, y=_extract_coor(ref_domain,id)[1], z=_extract_coor(ref_domain,id)[2], u = ref_domain.u[index], oc = ref_domain.oc[index], m = ref_domain.m[index])
             super_cell.add_atom(id=str(id)+'_-x',element=ref_domain.el[index], x=_extract_coor(ref_domain,id)[0]-1.0, y=_extract_coor(ref_domain,id)[1], z=_extract_coor(ref_domain,id)[2], u = ref_domain.u[index], oc = ref_domain.oc[index], m = ref_domain.m[index])
             super_cell.add_atom(id=str(id)+'_+y',element=ref_domain.el[index], x=_extract_coor(ref_domain,id)[0], y=_extract_coor(ref_domain,id)[1]+1., z=_extract_coor(ref_domain,id)[2], u = ref_domain.u[index], oc = ref_domain.oc[index], m = ref_domain.m[index])
@@ -2590,7 +2611,7 @@ class domain_creator(domain_creator_water,domain_creator_sorbate,domain_creator_
             id=str(ref_domain_original.id[i])
             container[id,str(ref_domain_original.el[i])]=_extract_coor(ref_domain_original,id)
 
-        for id in container.keys():
+        for id in list(container.keys()):
             container[id[0]+'_+x',id[1]]=container[id]+[1,0,0]
             container[id[0]+'_-x',id[1]]=container[id]+[-1,0,0]
             container[id[0]+'_+y',id[1]]=container[id]+[0,1,0]
@@ -2617,11 +2638,15 @@ class domain_creator(domain_creator_water,domain_creator_sorbate,domain_creator_
     def create_equivalent_domains_2(self):
         new_domain_A=self.ref_domain.copy()
         new_domain_B=self.ref_domain.copy()
-        for id in self.id_list[:self.terminated_layer*2]:
+        if len(self.id_list)==0:
+            id_list = list(self.ref_domain.id)
+        else:
+            id_list = self.id_list
+        for id in id_list[:self.terminated_layer*2]:
             if id!=[]:
                 new_domain_A.del_atom(id)
         #N_layers here is crystal specific, 5 for hematite(1-102) and 19 for muscovite(001)
-        for id in self.id_list[:(self.terminated_layer+self.N_layers)*2]:
+        for id in id_list[:(self.terminated_layer+self.N_layers)*2]:
             #print id in new_domain_B.id
             new_domain_B.del_atom(id)
         new_domain_A.id=list(list(map(lambda x:x+self.domain_tag+'A',new_domain_A.id)))

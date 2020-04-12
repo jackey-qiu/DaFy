@@ -1,0 +1,200 @@
+#Parameter Value Fit Min Max Error
+inst.set_inten	1	True	1	10	-
+rgh.setBeta	0	True	0	0.4	-
+rgh.setMu	10	True	0	200	-
+rgh.setScale_CTR	0	True	0	10	-
+	0	False	0	0	-
+rgh_domain1.setWt	1	False	0	1	-
+rgh_domain2.setWt	1	False	0	1	-
+rgh_domain3.setWt	1	False	0	1	-
+	0	False	0	0	-
+#############domain1############
+gp_Fe2Fe3_Fe8Fe9_D1.setoc	0	False	0	0	-
+	0	False	0	0	-
+#dxdydz
+gp_O1O2_O7O8_D1.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O1O2_O7O8_D1.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O1O2_O7O8_D1.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O3O4_O9O10_D1.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O3O4_O9O10_D1.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O3O4_O9O10_D1.setdz	0.0000	True	-0.0300	0.0300	-
+gp_Fe4Fe6_Fe10Fe12_D1.setdx	0.0000	True	-0.0400	0.0400	-
+gp_Fe4Fe6_Fe10Fe12_D1.setdy	0.0000	True	-0.0400	0.0400	-
+gp_Fe4Fe6_Fe10Fe12_D1.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O5O6_O11O12_D1.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O5O6_O11O12_D1.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O5O6_O11O12_D1.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O7O8_O1O2_D1.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O7O8_O1O2_D1.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O7O8_O1O2_D1.setdz	0.0000	True	-0.0300	0.0300	-
+gp_Fe8Fe9_Fe2Fe3_D1.setdx	0.0000	True	-0.0400	0.0400	-
+gp_Fe8Fe9_Fe2Fe3_D1.setdy	0.0000	True	-0.0400	0.0400	-
+gp_Fe8Fe9_Fe2Fe3_D1.setdz	0.0000	True	-0.0300	0.0300	-
+	0	False	0	0	-
+#oc and u
+gp_O1O2_O7O8_D1.setu	0.4000	True	0.3200	0.8000	-
+gp_O3O4_O9O10_D1.setu	0.4000	True	0.3200	0.8000	-
+gp_Fe4Fe6_Fe10Fe12_D1.setu	0.4000	True	0.3200	0.8000	-
+	0	False	0	0	-
+gp_O1O2_O7O8_D1.setoc	1.0000	True	0.6000	1.0000	-
+gp_O3O4_O9O10_D1.setoc	1.0000	True	0.6000	1.0000	-
+gp_Fe4Fe6_Fe10Fe12_D1.setoc	1.0000	True	0.6000	1.0000	-
+gp_O5O6_O11O12_D1.setoc	1.0000	True	0.6000	1.0000	-
+gp_O7O8_O1O2_D1.setoc	1.0000	True	0.6000	1.0000	-
+	0	False	0	0	-
+####water####
+#rotation angle and vertical shift
+rgh_domain1.setAlpha_W_1	90.0000	True	20.0000	160.0000	-
+rgh_domain1.setV_shift_W_1	1.0000	True	0.7000	3.0000	-
+rgh_domain1.setAlpha_W_2	90.0000	True	20.0000	160.0000	-
+rgh_domain1.setV_shift_W_2	1.0000	True	0.7000	3.0000	-
+#oc and u
+gp_waters_set1_D1.setoc	0.3000	True	0.0000	0.6000	-
+gp_waters_set2_D1.setoc	0.3000	True	0.0000	0.6000	-
+gp_waters_set1_D1.setu	3.0000	True	0.8000	10.0000	-
+gp_waters_set2_D1.setu	3.0000	True	0.8000	10.0000	-
+gp_waters_set1_D1.setdy	0.0000	True	-0.5000	0.5000	-
+gp_waters_set2_D1.setdy	0.0000	True	-0.5000	0.5000	-
+	0	False	0	0	-
+#############domain2############
+#dxdydz
+gp_O5O6_O11O12_D2.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O5O6_O11O12_D2.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O5O6_O11O12_D2.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O7O8_O1O2_D2.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O7O8_O1O2_D2.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O7O8_O1O2_D2.setdz	0.0000	True	-0.0300	0.0300	-
+gp_Fe8Fe9_Fe2Fe3_D2.setdx	0.0000	True	-0.0400	0.0400	-
+gp_Fe8Fe9_Fe2Fe3_D2.setdy	0.0000	True	-0.0400	0.0400	-
+gp_Fe8Fe9_Fe2Fe3_D2.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O9O10_O3O4_D2.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O9O10_O3O4_D2.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O9O10_O3O4_D2.setdz	0.0000	True	-0.0300	0.0300	-
+gp_Fe10Fe12_Fe4Fe6_D2.setdx	0.0000	True	-0.0400	0.0400	-
+gp_Fe10Fe12_Fe4Fe6_D2.setdy	0.0000	True	-0.0400	0.0400	-
+gp_Fe10Fe12_Fe4Fe6_D2.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O11O12_O5O6_D2.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O11O12_O5O6_D2.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O11O12_O5O6_D2.setdz	0.0000	True	-0.0300	0.0300	-
+	0	False	0	0	-
+#oc and u
+gp_O5O6_O11O12_D2.setu	0.4000	True	0.3200	0.8000	-
+gp_O7O8_O1O2_D2.setu	0.4000	True	0.3200	0.8000	-
+gp_Fe8Fe9_Fe2Fe3_D2.setu	0.4000	True	0.3200	0.8000	-
+	0	False	0	0	-
+gp_O5O6_O11O12_D2.setoc	1.0000	True	0.6000	1.0000	-
+gp_O7O8_O1O2_D2.setoc	1.0000	True	0.6000	1.0000	-
+gp_Fe8Fe9_Fe2Fe3_D2.setoc	1.0000	True	0.6000	1.0000	-
+gp_O9O10_O3O4_D2.setoc	1.0000	True	0.6000	1.0000	-
+gp_Fe10Fe12_Fe4Fe6_D2.setoc	1.0000	True	0.6000	1.0000	-
+	0	False	0	0	-
+####sorbate####
+#angles
+rgh_domain2.setTop_angle_TD_0	90.0000	True	50.0000	110.0000	-
+	0	False	0	0	-
+#dxdydz
+gp_Pb_set1_D2.setdx	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D2.setdy	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D2.setdz	0.0000	False	-0.5000	0.5000	-
+	0	False	0	0	-
+#u
+gp_Pb_set1_D2.setu	0.2000	True	0.2000	1.0000	-
+gp_HO_set1_D2.setu	0.2000	True	0.2000	10.0000	-
+	0	False	0	0	-
+#oc
+gp_sorbates_set1_D2.setoc	0.3000	True	0.0000	0.5000	-
+	0	False	0	0	-
+####water####
+#rotation angle and vertical shift
+rgh_domain2.setAlpha_W_1	90.0000	True	20.0000	160.0000	-
+rgh_domain2.setV_shift_W_1	1.0000	True	0.7000	3.0000	-
+rgh_domain2.setAlpha_W_2	90.0000	True	20.0000	160.0000	-
+rgh_domain2.setV_shift_W_2	1.0000	True	0.7000	3.0000	-
+#oc and u
+gp_waters_set1_D2.setoc	0.3000	True	0.0000	0.6000	-
+gp_waters_set2_D2.setoc	0.3000	True	0.0000	0.6000	-
+gp_waters_set1_D2.setu	3.0000	True	0.8000	10.0000	-
+gp_waters_set2_D2.setu	3.0000	True	0.8000	10.0000	-
+gp_waters_set1_D2.setdy	0.0000	True	-0.5000	0.5000	-
+gp_waters_set2_D2.setdy	0.0000	True	-0.5000	0.5000	-
+	0	False	0	0	-
+#############domain3############
+#dxdydz
+gp_O11O12_O5O6_D3.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O11O12_O5O6_D3.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O11O12_O5O6_D3.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O1O2_O7O8_D3.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O1O2_O7O8_D3.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O1O2_O7O8_D3.setdz	0.0000	True	-0.0300	0.0300	-
+gp_Fe2Fe3_Fe8Fe9_D3.setdx	0.0000	True	-0.0400	0.0400	-
+gp_Fe2Fe3_Fe8Fe9_D3.setdy	0.0000	True	-0.0400	0.0400	-
+gp_Fe2Fe3_Fe8Fe9_D3.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O3O4_O9O10_D3.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O3O4_O9O10_D3.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O3O4_O9O10_D3.setdz	0.0000	True	-0.0300	0.0300	-
+gp_Fe4Fe6_Fe10Fe12_D3.setdx	0.0000	True	-0.0400	0.0400	-
+gp_Fe4Fe6_Fe10Fe12_D3.setdy	0.0000	True	-0.0400	0.0400	-
+gp_Fe4Fe6_Fe10Fe12_D3.setdz	0.0000	True	-0.0300	0.0300	-
+gp_O5O6_O11O12_D3.setdx	0.0000	True	-0.0400	0.0400	-
+gp_O5O6_O11O12_D3.setdy	0.0000	True	-0.0400	0.0400	-
+gp_O5O6_O11O12_D3.setdz	0.0000	True	-0.0300	0.0300	-
+	0	False	0	0	-
+#oc and u
+gp_O11O12_O5O6_D3.setu	0.4000	True	0.3200	0.8000	-
+gp_O1O2_O7O8_D3.setu	0.4000	True	0.3200	0.8000	-
+gp_Fe2Fe3_Fe8Fe9_D3.setu	0.4000	True	0.3200	0.8000	-
+	0	False	0	0	-
+gp_O11O12_O5O6_D3.setoc	1.0000	True	0.6000	1.0000	-
+gp_O1O2_O7O8_D3.setoc	1.0000	True	0.6000	1.0000	-
+gp_Fe2Fe3_Fe8Fe9_D3.setoc	1.0000	True	0.6000	1.0000	-
+gp_O3O4_O9O10_D3.setoc	1.0000	True	0.6000	1.0000	-
+gp_Fe4Fe6_Fe10Fe12_D3.setoc	1.0000	True	0.6000	1.0000	-
+	0	False	0	0	-
+####sorbate####
+#angles
+rgh_domain3.setTop_angle_TD_0	90.0000	True	50.0000	110.0000	-
+	0	False	0	0	-
+#dxdydz
+gp_Pb_set1_D3.setdx	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D3.setdy	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D3.setdz	0.0000	False	-0.5000	0.5000	-
+	0	False	0	0	-
+#u
+gp_Pb_set1_D3.setu	0.2000	True	0.2000	1.0000	-
+gp_HO_set1_D3.setu	0.2000	True	0.2000	10.0000	-
+	0	False	0	0	-
+#oc
+gp_sorbates_set1_D3.setoc	0.3000	True	0.0000	0.5000	-
+	0	False	0	0	-
+####water####
+#rotation angle and vertical shift
+rgh_domain3.setAlpha_W_1	90.0000	True	20.0000	160.0000	-
+rgh_domain3.setV_shift_W_1	1.0000	True	0.7000	3.0000	-
+rgh_domain3.setAlpha_W_2	90.0000	True	20.0000	160.0000	-
+rgh_domain3.setV_shift_W_2	1.0000	True	0.7000	3.0000	-
+#oc and u
+gp_waters_set1_D3.setoc	0.3000	True	0.0000	0.6000	-
+gp_waters_set2_D3.setoc	0.3000	True	0.0000	0.6000	-
+gp_waters_set1_D3.setu	3.0000	True	0.8000	10.0000	-
+gp_waters_set2_D3.setu	3.0000	True	0.8000	10.0000	-
+gp_waters_set1_D3.setdy	0.0000	True	-0.5000	0.5000	-
+gp_waters_set2_D3.setdy	0.0000	True	-0.5000	0.5000	-
+	0	False	0	0	-
+rgh_domain1.setU0	0.4	False	0	5	-
+rgh_domain1.setUbar	0.4	False	0	5	-
+rgh_domain1.setFirst_layer_height	2	False	0	5	-
+rgh_domain1.setD_w	2.0	False	1	4	-
+rgh_domain1.setDensity_w	0.033	False	0	0.033	-
+	0	False	0	0	-
+rgh_domain2.setU0	0.4	False	0	5	-
+rgh_domain2.setUbar	0.4	False	0	5	-
+rgh_domain2.setFirst_layer_height	2	False	0	5	-
+rgh_domain2.setD_w	2.0	False	1	4	-
+rgh_domain2.setDensity_w	0.033	False	0	0.033	-
+	0	False	0	0	-
+rgh_domain3.setU0	0.4	False	0	5	-
+rgh_domain3.setUbar	0.4	False	0	5	-
+rgh_domain3.setFirst_layer_height	2	False	0	5	-
+rgh_domain3.setD_w	2.0	False	1	4	-
+rgh_domain3.setDensity_w	0.033	False	0	0.033	-
+	0	False	0	0	-

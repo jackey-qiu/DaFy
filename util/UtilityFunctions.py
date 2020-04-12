@@ -33,6 +33,59 @@ import matplotlib.pyplot as pyplot
 if (sys.version_info > (3, 0)):
     raw_input = input
 
+def config_file_parser_bv(config_file):
+    return_lib = {}
+    config = configparser.RawConfigParser()
+    #preserve the case of items
+    config.optionxform = str
+    config.read(config_file)
+    for section in config.sections():
+        return_lib[section] = {}
+        for each in config.items(section):
+            each = list(each)
+            if section in ['R0_BV', 'IDEAL_BOND_LENGTH']:
+                each[0] = tuple([each_ for each_ in each[0].rsplit("_")])
+            else:
+                pass
+            return_lib[section][each[0]] = eval(each[1])
+    settings = return_lib['SETTINGS']
+    del return_lib['SETTINGS']
+    #extract items in SETTINGS tag
+    return_lib.update(settings)
+    return return_lib
+
+#O_NUMBER_lib = {'O_NUMBER_HL':[[0,4]],'O_NUMBER_HL_EXTRA':[[0,3]]}
+def update_O_NUMBER(sorbate,pickup_index,metal_valence):
+    O_NUMBER_lib = {'O_NUMBER_HL':[],'O_NUMBER_HL_EXTRA':[],'O_NUMBER_FL':[],'O_NUMBER_FL_EXTRA':[]}
+    key_map ={'O_NUMBER_HL':list(range(0,8)),'O_NUMBER_HL_EXTRA':list(range(8,15)),'O_NUMBER_FL':list(range(15,23)),'O_NUMBER_FL_EXTRA':list(range(23,30))} 
+    match_table = {0:[6,7,21,22],1:[8,9,10,23,24,25],2:[0,1,2,3,11,12,13,15,16,17,18,26,27,28],3:[4,5,14,19,20,19]}
+    for i in range(len(sorbate)):
+        current_sorbate_list = sorbate[i]
+        current_index_list = pickup_index[i]
+        for j in range(len(current_sorbate_list)):
+            current_sorbate = current_sorbate_list[j]
+            current_index = current_index_list[j]
+            current_key = None
+            for key in key_map:
+                if current_index in key_map[key]:
+                    current_key = key
+                    break
+            anchor_o_number = 0 
+            for key in match_table:
+                if current_index in match_table[key]:
+                    anchor_o_number = key
+                    break
+            CN = metal_valence[current_sorbate][1]
+            temp = [int(current_index-key_map[current_key][0]),int(CN-anchor_o_number)]
+            if temp not in O_NUMBER_lib[current_key]:
+                O_NUMBER_lib[current_key].append(temp)
+    O_NUMBER_lib_final = {}
+
+    for key in O_NUMBER_lib:
+        if len(O_NUMBER_lib[key])!=0:
+            O_NUMBER_lib_final[key] = O_NUMBER_lib[key]
+    return O_NUMBER_lib_final
+
 def locate_tag(lines, tag='wavelength'):
     target_zone_begin = None
     target_zone_end = None

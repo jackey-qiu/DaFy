@@ -344,22 +344,17 @@ class Sample:
         for n in range(len(coherence)):
             ftot_A_C, ftot_A_IC=0,0
             ftot_B_C, ftot_B_IC=0,0
-            keys_domainA=[]
-            keys_domainB=[]
+            keys_domain=[]
 
             for i in list(coherence[n].values())[0]:
-                keys_domainA.append('domain'+str(i+1)+'A')
-                keys_domainB.append('domain'+str(i+1)+'B')
-            for i in keys_domainA:
+                keys_domain.append('domain'+str(i+1))
+            for i in keys_domain:
                 if list(coherence[n].keys())[0]:
-                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']]))*self.domain[i]['wt']
+                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
+                    ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
                 else:
-                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']]))*self.domain[i]['wt']
-            for i in keys_domainB:
-                if list(coherence[n].keys())[0]:
-                    ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']]))*self.domain[i]['wt']
-                else:
-                    ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']]))*self.domain[i]['wt']
+                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
+                    ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
             ftot=ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C)
             #ftot=ftot+ftot_A_C+ftot_A_IC+ftot_B_IC+ftot_B_C
         return abs(ftot)*self.inst.inten
@@ -412,35 +407,34 @@ class Sample:
         for n in range(len(coherence)):
             ftot_A_C, ftot_A_IC=0,0
             ftot_B_C, ftot_B_IC=0,0
-            keys_domainA=[]
-            keys_domainB=[]
+            keys_domain = []
 
             for i in list(coherence[n].values())[0]:
-                keys_domainA.append('domain'+str(i+1)+'A')
-                keys_domainB.append('domain'+str(i+1)+'B')
-            for i in keys_domainA:
-                f_layered_water=0
-                f_layered_sorbate=0
-                if self.domain[i]['layered_water']!=[]:
-                    f_layered_water=self.calc_f_layered_water(h,k,l,*self.domain[i]['layered_water'])
-                if 'layered_sorbate' in self.domain[i].keys():
-                    if self.domain[i]['layered_sorbate']!=[]:
-                        f_layered_sorbate=self.calc_f_layered_sorbate(h,k,l,raxr_el,*self.domain[i]['layered_sorbate'])
+                keys_domain.append('domain'+str(i+1))
+
+            for i in keys_domain:
+                f_layered_water_A, f_layered_water_B = 0, 0
+                f_layered_sorbate_A, f_layered_sorbate_B = 0, 0
+                if self.domain[i].water_info['layered_water_pars']['yes_OR_no']:
+                    par_water = [getattr(self.domain[i].new_var_module,par) for par in ['u0','ubar','d_w','first_layer_height','density_w']]
+                    ref_height_water = self.domain[i].water_info['layered_water_pars']['ref_layer_height']*self.unit_cell.c
+                    par_water_domainA = np.array(par_water)+[0,0,0,ref_height_water,0]
+                    par_water_domainB = np.array(par_water)+[0,0,0,ref_height_water-self.unit_cell.c/2,0]
+                    f_layered_water_A=self.calc_f_layered_water(h,k,l,*par_water_domainA)
+                    f_layered_water_B=self.calc_f_layered_water(h,k,l,*par_water_domainB)
+                if self.domain[i].water_info['layered_sorbate_pars']['yes_OR_no']:
+                    par_sorbate = [getattr(self.domain[i].new_var_module,par) for par in ['u0_s','ubar_s','d_s','first_layer_height_s','density_s','oc_damping_factor']]
+                    ref_height_sorbate = self.domain[i].water_info['layered_sorbate_pars']['ref_layer_height']*self.unit_cell.c
+                    par_sorbate_domainA = np.array(par_sorbate)+[0,0,0,ref_height_sorbate,0,0]
+                    par_sorbate_domainB = np.array(par_water)+[0,0,0,ref_height_sorbate-self.unit_cell.c/2,0,0]
+                    f_layered_sorbate_A=self.calc_f_layered_sorbate(h,k,l,raxr_el,*par_sorbate_domainA)
+                    f_layered_sorbate_B=self.calc_f_layered_sorbate(h,k,l,raxr_el,*par_sorbate_domainB)
                 if list(coherence[n].keys())[0]:
-                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
+                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A+f_layered_sorbate_A)*self.domain[i].wt
+                    ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B+f_layered_sorbate_B)*self.domain[i].wt
                 else:
-                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
-            for i in keys_domainB:
-                f_layered_water=0
-                if self.domain[i]['layered_water']!=[]:
-                    f_layered_water=self.calc_f_layered_water(h,k,l,*self.domain[i]['layered_water'])
-                if 'layered_sorbate' in self.domain[i].keys():
-                    if self.domain[i]['layered_sorbate']!=[]:
-                        f_layered_sorbate=self.calc_f_layered_sorbate(h,k,l,raxr_el,*self.domain[i]['layered_sorbate'])
-                if list(coherence[n].keys())[0]:
-                    ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
-                else:
-                    ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
+                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A+f_layered_sorbate_A)*self.domain[i].wt
+                    ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B+f_layered_sorbate_B)*self.domain[i].wt
             ftot=ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C)
             #ftot=ftot+ftot_A_C+ftot_A_IC+ftot_B_IC+ftot_B_C
         return abs(ftot)*self.inst.inten
@@ -657,6 +651,7 @@ class Sample:
                 else:
                     f = rough*self.calc_f4_nonspecular_hematite_RAXR_MD(h, k, y, x, E0, F1F2, a, b, c, RESONANT_EL_LIST)
         return f
+
     def calc_f4_specular_hematite_RAXR_MD(self, h, k, l,E,E0,f1f2,a,b,c,resonant_els=[1,0,0],raxr_el=''):
         #now the coherence looks like [{True:[0,1]},{False:[2,3]}] which means adding up first two domains coherently
         #and last two domains in-coherently. After calculation of structure factor for each item of the list, absolute
@@ -692,52 +687,38 @@ class Sample:
         for n in range(len(coherence)):
             ftot_A_C, ftot_A_IC=0,0
             ftot_B_C, ftot_B_IC=0,0
-            keys_domainA=[]
-            keys_domainB=[]
+            keys_domain = []
 
             for i in coherence[n].values()[0]:
-                keys_domainA.append('domain'+str(i+1)+'A')
-                keys_domainB.append('domain'+str(i+1)+'B')
-            for i in keys_domainA:
-                ii=int(i[6:-1])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
-                f_layered_water=0
-                f_layered_sorbate=0
-                if self.domain[i]['layered_water']!=[]:#consider layered water?
-                    f_layered_water=self.calc_f_layered_water_hematite(h,k,l,*self.domain[i]['layered_water'])
-                if 'layered_sorbate' in self.domain[i].keys():#consider layered sorbate?
-                    if self.domain[i]['layered_sorbate']!=[]:
-                        f_layered_sorbate=self.calc_f_layered_sorbate_hematite_RAXR_MD(h,k,l,raxr_el,*self.domain[i]['layered_sorbate'])
+                #keys_domainA.append('domain'+str(i+1)+'A')
+                #keys_domainB.append('domain'+str(i+1)+'B')
+                keys_domain.append('domain'+str(i+1))
+            for i in keys_domain:
+                ii=int(i[6:])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
+                f_layered_water_A, f_layered_water_B=0, 0
+                f_layered_sorbate_A, f_layered_sorbate_B = 0, 0
+                #layered_water_pars = self.domain[i]
+                if len(self.domain[i].layered_water)!=0:#consider layered water?
+                    f_layered_water_A=self.calc_f_layered_water_hematite(h,k,l,*self.domain[i].layered_water['A'])
+                    f_layered_water_B=self.calc_f_layered_water_hematite(h,k,l,*self.domain[i].layered_water['B'])
+                if len(self.domain[i].layered_sorbate)!=0:#consider layered sorbate?
+                    #if self.domain[i]['layered_sorbate']!=[]:
+                    f_layered_sorbate_A=self.calc_f_layered_sorbate_hematite_RAXR_MD(h,k,l,raxr_el,*self.domain[i].layered_sorbate['A'])
+                    f_layered_sorbate_B=self.calc_f_layered_sorbate_hematite_RAXR_MD(h,k,l,raxr_el,*self.domain[i].layered_sorbate['B'])
                 if coherence[n].keys()[0]:
                     if resonant_els[ii]:
-                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el)+f_layered_water_A+f_layered_sorbate_A)*self.domain[i].new_var_module.wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el)+f_layered_water_B+f_layered_sorbate_B)*self.domain[i].new_var_module.wt
                     else:
-                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water)*self.domain[i]['wt']
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el)+f_layered_water_A)*self.domain[i].new_var_module.wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el)+f_layered_water_B)*self.domain[i].new_var_module.wt
                 else:
                     if resonant_els[ii]:
-                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el)+f_layered_water_A+f_layered_sorbate_A)*self.domain[i].new_var_module.wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el)+f_layered_water_B+f_layered_sorbate_B)*self.domain[i].new_var_module.wt
                     else:
-                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water)*self.domain[i]['wt']
-            for i in keys_domainB:
-                #in this specific case (rcut hematite, domainB is symmetricaly related to domainA with half unit cell step lower)
-                #in light of that, the Fourier component A(amplitude) is same as that for the associated domainA, but the other one (phase) should be 0.5 off
-                ii=int(i[6:-1])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
-                f_layered_water=0
-                f_layered_sorbate=0
-                if self.domain[i]['layered_water']!=[]:
-                    f_layered_water=self.calc_f_layered_water(h,k,l,*self.domain[i]['layered_water'])
-                if 'layered_sorbate' in self.domain[i].keys():
-                    if self.domain[i]['layered_sorbate']!=[]:
-                        f_layered_sorbate=self.calc_f_layered_sorbate_hematite_RAXR_MD(h,k,l,*self.domain[i]['layered_sorbate'])
-                if coherence[n].keys()[0]:
-                    if resonant_els[ii]:
-                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
-                    else:
-                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water)*self.domain[i]['wt']
-                else:
-                    if resonant_els[ii]:
-                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water+f_layered_sorbate)*self.domain[i]['wt']
-                    else:
-                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el)+f_layered_water)*self.domain[i]['wt']
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el)+f_layered_water_A)*self.domain[i].new_var_module.wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el)+f_layered_water_B)*self.domain[i].new_var_module.wt
 
             ftot=np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c*(ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C))
         return abs(ftot)*self.inst.inten
@@ -777,26 +758,29 @@ class Sample:
         for n in range(len(coherence)):
             ftot_A_C, ftot_A_IC=0,0
             ftot_B_C, ftot_B_IC=0,0
-            keys_domainA=[]
-            keys_domainB=[]
+            keys_domain = []
 
             for i in coherence[n].values()[0]:
-                keys_domainA.append('domain'+str(i+1)+'A')
-                keys_domainB.append('domain'+str(i+1)+'B')
-            for i in keys_domainA:
-                ii=int(i[6:-1])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
+                #keys_domainA.append('domain'+str(i+1)+'A')
+                #keys_domainB.append('domain'+str(i+1)+'B')
+                keys_domain.append('domain'+str(i+1))
+            for i in keys_domain:
+                ii=int(i[6:])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
                 if coherence[n].keys()[0]:
-                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el))*self.domain[i]['wt']
+                    if resonant_els[ii]:
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+                    else:
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el))*self.domain[i].new_var_module.wt
                 else:
-                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el))*self.domain[i]['wt']
-            for i in keys_domainB:
-                #in this specific case (rcut hematite, domainB is symmetricaly related to domainA with half unit cell step lower)
-                #in light of that, the Fourier component A(amplitude) is same as that for the associated domainA, but the other one (phase) should be 0.5 off
-                ii=int(i[6:-1])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
-                if coherence[n].keys()[0]:
-                    ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el))*self.domain[i]['wt']
-                else:
-                    ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']],f1f2,raxr_el))*self.domain[i]['wt']
+                    if resonant_els[ii]:
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+                    else:
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB],f1f2,raxr_el))*self.domain[i].new_var_module.wt
+
             ftot=np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c*(ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C))
         return abs(ftot)*self.inst.inten
 
@@ -836,57 +820,100 @@ class Sample:
         for n in range(len(coherence)):
             ftot_A_C, ftot_A_IC=0,0
             ftot_B_C, ftot_B_IC=0,0
-            keys_domainA=[]
-            keys_domainB=[]
+            keys_domain = []
 
             for i in coherence[n].values()[0]:
-                keys_domainA.append('domain'+str(i+1)+'A')
-                keys_domainB.append('domain'+str(i+1)+'B')
-            for i in keys_domainA:
-                ii=int(i[6:-1])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
-                f_layered_water=0
-                f_layered_sorbate=0
-                if self.domain[i]['layered_water']!=[]:#consider layered water?
-                    f_layered_water=self.calc_f_layered_water_hematite(h,k,l,*self.domain[i]['layered_water'])
-                if 'layered_sorbate' in self.domain[i].keys():#consider layered sorbate?
-                    if self.domain[i]['layered_sorbate']!=[]:
-                        f_layered_sorbate=self.calc_f_layered_sorbate_hematite(h,k,l,raxr_el,*self.domain[i]['layered_sorbate'])
+                keys_domain.append('domain'+str(i+1))
+            for i in keys_domain:
+                ii=int(i[6:])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
+                f_layered_water_A=0
+                f_layered_water_B=0
+                f_layered_sorbate_A=0
+                f_layered_sorbate_B=0
+                if len(self.domain[i].layered_water)!=0:#consider layered water?
+                    f_layered_water_A=self.calc_f_layered_water_hematite(h,k,l,*self.domain[i].layered_water['A'])
+                    f_layered_water_B=self.calc_f_layered_water_hematite(h,k,l,*self.domain[i].layered_water['B'])
+                if len(self.domain[i].layered_sorbate)!=0:#consider layered sorbate?
+                    f_layered_sorbate_A=self.calc_f_layered_sorbate_hematite(h,k,l,raxr_el,*self.domain[i].layered_sorbate['A'])
+                    f_layered_sorbate_B=self.calc_f_layered_sorbate_hematite(h,k,l,raxr_el,*self.domain[i].layered_sorbate['B'])
                 if coherence[n].keys()[0]:
                     if resonant_els[ii]:
-                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*P_list[ii]))*self.domain[i]['wt']
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A+f_layered_sorbate_A+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*P_list[ii]))*self.domain[i].wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B+f_layered_sorbate_B+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*(P_list[ii]-0.5*l[0])))*self.domain[i].wt
                     else:
-                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water)*self.domain[i]['wt']
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A)*self.domain[i].wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B)*self.domain[i].wt
                 else:
                     if resonant_els[ii]:
-                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*P_list[ii]))*self.domain[i]['wt']
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A+f_layered_sorbate_A+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*P_list[ii]))*self.domain[i].wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B+f_layered_sorbate_B+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*(P_list[ii]-0.5*l[0])))*self.domain[i].wt
                     else:
-                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water)*self.domain[i]['wt']
-            for i in keys_domainB:
-                #in this specific case (rcut hematite, domainB is symmetricaly related to domainA with half unit cell step lower)
-                #in light of that, the Fourier component A(amplitude) is same as that for the associated domainA, but the other one (phase) should be 0.5 off
-                ii=int(i[6:-1])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
-                f_layered_water=0
-                f_layered_sorbate=0
-                if self.domain[i]['layered_water']!=[]:
-                    f_layered_water=self.calc_f_layered_water(h,k,l,*self.domain[i]['layered_water'])
-                if 'layered_sorbate' in self.domain[i].keys():
-                    if self.domain[i]['layered_sorbate']!=[]:
-                        f_layered_sorbate=self.calc_f_layered_sorbate_hematite(h,k,l,*self.domain[i]['layered_sorbate'])
-                if coherence[n].keys()[0]:
-                    if resonant_els[ii]:
-                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*(P_list[ii]-0.5*l[0])))*self.domain[i]['wt']
-                    else:
-                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water)*self.domain[i]['wt']
-                else:
-                    if resonant_els[ii]:
-                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water+f_layered_sorbate+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*(P_list[ii]-0.5*l[0])))*self.domain[i]['wt']
-                    else:
-                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i]['slab']])+f_layered_water)*self.domain[i]['wt']
-
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A)*self.domain[i].wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B)*self.domain[i].wt
             ftot=np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c*(ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C))
         return abs(ftot)*self.inst.inten
 
     def calc_f4_nonspecular_hematite_RAXR_MI(self, h, k, l,E,E0,f1f2,a,b,c,A_list=[],P_list=[],resonant_els=[1,0,0],raxr_el=''):
+        #now the coherence looks like [{True:[0,1]},{False:[2,3]}] which means adding up first two domains coherently
+        #and last two domains in-coherently. After calculation of structure factor for each item of the list, absolute
+        #value of SF will be calculated followed by being summed up
+        #so [{True:[0,1]},{True:[2,3]}] is different from [{True:[0,1,2,3]}]
+        #resonant_els:a list of True or False specifying whether or not considering the resonant scattering in each domain
+        #             so the len(resonant_els) is equal to the total domain numbers
+        #E is the energy scan list, and make sure items in E is one-to-one corresponding to those in f1f2
+        #E0 is the center of the range of energy scan
+        #f1f2 numpy array of anomalous correction items (n*2 shape) with the first column as f' and the second as f''
+        #a,b are fitting parameters for extrinsic factors
+        #P_list and A_list are two lists of Fourier components. Depending on the total domains, you can consider different Fourier
+        #                  components for chemically different domains.Note in P or A_list, the 0 item means no resonant element
+        #                  so len(P_list)==len(resonant_els)
+        #Resonant structure factor is calculated using equation (9) presented in paper of "Park, Changyong and Fenter, Paul A.(2007) J. Appl. Cryst.40, 290-301"
+
+        ftot=0
+        coherence=self.coherence
+        fb = self.calc_fb(h, k, l)
+        f_surface=self.calc_fs
+
+        def _extract_f1f2(f1f2,E):
+            E_f1f2=np.around(f1f2[:,2],0)#make sure E in eV
+            E=np.around(E,0)
+            index=[]
+            for each_E in E_f1f2:
+                if each_E in E:
+                    index.append(np.where(E_f1f2==each_E)[0][0])
+            return f1f2[index,:]
+
+        if len(f1f2)!=len(E):
+            f1f2=_extract_f1f2(f1f2,E)
+
+        for n in range(len(coherence)):
+            ftot_A_C, ftot_A_IC=0,0
+            ftot_B_C, ftot_B_IC=0,0
+            keys_domain = []
+
+            for i in coherence[n].values()[0]:
+                keys_domain.append('domain'+str(i+1))
+            for i in keys_domain:
+                ii=int(i[6:])-1#extract the domain index from the domain key, eg for "domain10A" will have a 9 as the domain index
+
+                if coherence[n].keys()[0]:
+                    if resonant_els[ii]:
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA])+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*P_list[ii]))*self.domain[i].wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB])+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*(P_list[ii]-0.5*l[0])))*self.domain[i].wt
+                    else:
+                        ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
+                        ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
+                else:
+                    if resonant_els[ii]:
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA])+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*P_list[ii]))*self.domain[i].wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB])+(f1f2[:,0]+1.0J*f1f2[:,1])*A_list[ii]*np.exp(1.0J*np.pi*2*(P_list[ii]-0.5*l[0])))*self.domain[i].wt
+                    else:
+                        ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
+                        ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
+            ftot=np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c*(ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C))
+        return abs(ftot)*self.inst.inten
+
+    def calc_f4_nonspecular_hematite_RAXR_MI_old(self, h, k, l,E,E0,f1f2,a,b,c,A_list=[],P_list=[],resonant_els=[1,0,0],raxr_el=''):
         #now the coherence looks like [{True:[0,1]},{False:[2,3]}] which means adding up first two domains coherently
         #and last two domains in-coherently. After calculation of structure factor for each item of the list, absolute
         #value of SF will be calculated followed by being summed up

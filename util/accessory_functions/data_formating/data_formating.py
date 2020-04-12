@@ -1,5 +1,37 @@
 import numpy as num
 import numpy as np
+
+def format_hkl(h_,k_,x_,h_list = [1,2,3],k_list=[0]):
+    """
+    func to deal with the symmetrical shape of 10,30 and 20L rod at positive and negative sides
+    
+    Arguments:
+        h_ {[type]} -- [description]
+        k_ {[type]} -- [description]
+        x_ {[type]} -- [description]
+    
+    Keyword Arguments:
+        h_list {list} -- [description] (default: {[1,2,3]})
+        k_list {list} -- [description] (default: {[0]})
+    
+    Returns:
+        [type] -- [description]
+    """
+    new_h,new_k,new_x=[],[],[]
+    if np.around(h_[0],0) in h_list and np.around(k_[0],0) in k_list:
+        for iii in range(len(x_)):
+            if x_[iii]>0:
+                new_h.append(-h_[iii])
+                new_k.append(-k_[iii])
+                new_x.append(-x_[iii])
+            else:
+                new_h.append(h_[iii])
+                new_k.append(k_[iii])
+                new_x.append(x_[iii])
+        return  np.array(new_h),np.array(new_k),np.array(new_x)
+    else:
+        return np.array(h_),np.array(k_),np.array(x_)
+
 hk=['3_0','2_0','2_1','2_2','2_-1','1_1','1_0','0_2','0_0','-1_0','0_-2','-2_-2','-2_-1','-2_0','-2_1','-1_-1','-3_0']
 dl_bl={'3_0':{'segment':[[0,1],[1,9]],'info':[[2,1],[6,1]]},'2_0':{'segment':[[0,9]],'info':[[2,2.0]]},'2_1':{'segment':[[0,9]],'info':[[4,0.8609]]},'2_2':{'segment':[[0,9]],'info':[[2,1.7218]]},
         '2_-1':{'segment':[[0,3.1391],[3.1391,9]],'info':[[4,3.1391],[2,3.1391]]},'1_1':{'segment':[[0,9]],'info':[[2,1.8609]]},'1_0':{'segment':[[0,3],[3,9]],'info':[[6,3],[2,3]]},'0_2':{'segment':[[0,9]],'info':[[2,1.7218]]},

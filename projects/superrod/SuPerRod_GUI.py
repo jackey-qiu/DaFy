@@ -405,7 +405,7 @@ class MyMainWindow(QMainWindow):
                     if num_plots_>10:
                         columns = 4
                     else:
-                        columns = 2
+                        columns = 3
         elif self.num_screens_plot==1:#only one screen
             if total_datasets==self.max_num_plots_per_screen:
                 num_plots_on_current_screen = self.max_num_plots_per_screen
@@ -415,7 +415,7 @@ class MyMainWindow(QMainWindow):
                 if total_datasets>10:
                     columns = 4
                 else:
-                    columns = 2
+                    columns = 3
 
         #current list of ax handle
         self.num_plots_on_current_screen = num_plots_on_current_screen

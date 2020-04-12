@@ -209,7 +209,31 @@ class domain_creator_surface():
             atm_gp_list.append(temp_atm_gp)
 
         return atm_gp_list
-        
+
+    def grouping_sequence_layer_new3(self, layers_N=1,matrix_list=[[[1,0,0,0,1,0,0,0,1],[-1,0,0,0,1,0,0,0,1]],[[-1,0,0,0,1,0,0,0,1],[1,0,0,0,1,0,0,0,1]]]):
+        #looping the domain eg. domain=[[domain1A,domain1B],[domain2A,domain2B]]
+        #group the atoms at the same layer in one domain and the associated atoms in its chemically equivalent domain
+        #domain is list of domains
+        #first_atom_id is list of first id in id array of two domains eg [['id1','id2]],['id11','id21']]
+        #dont consdier symmetry relationship(so for oc and u)
+        #layers_N is the number of layer you consider for grouping operation
+        domain = [[self.domainA,self.domainB]]
+        first_atom_id = [[self.domainA.id[0],self.domainB.id[0]]]
+        atm_gp_list=[]
+        for i in range(layers_N):
+            temp_atm_gp=model.AtomGroup()
+            for j in range(len(domain)):
+                for k in range(len(domain[j])):
+                    matrix=matrix_list[k]
+                    #if k==1:#note the k can be either 0 for domainA or 1 for domainB
+                    #matrix=matrix_list[::-1]
+                    index=np.where(domain[j][k].id==first_atom_id[j][k])[0][0]+i*2
+                    temp_atm_gp.add_atom(domain[j][k],str(domain[j][k].id[index]),matrix[0])
+                    temp_atm_gp.add_atom(domain[j][k],str(domain[j][k].id[index+1]),matrix[1])
+            atm_gp_list.append(temp_atm_gp)
+
+        return atm_gp_list
+
     def grouping_sequence_layer2(self, domain=[], first_atom_id=[],sym_file={},id_match_in_sym={},layers_N=1,use_sym=False):
         #different from first edition, we consider only one domain
         #group the atoms at the same layer in one domain and the associated atoms in its chemically equivalent domain
@@ -262,6 +286,58 @@ class domain_creator_surface():
                 #print sym_array[i]
         return atm_gp
         
+    def grouping_discrete_metal_layer(self):
+        #we usually do discrete grouping for sorbates, so there is no symmetry used in this case
+        atom_ids = self.sorbate_info['sorbate_list_a'] + self.sorbate_info['sorbate_list_b']
+        if len(atom_ids) == 4:#if sorbate are in pairs
+            domain = [self.domainA,self.domainA,self.domainB,self.domainB]
+            sym_array = [[1.,0.,0.,0.,1.,0.,0.,0.,1.],[-1.,0.,0.,0.,1.,0.,0.,0.,1.],[-1.,0.,0.,0.,1.,0.,0.,0.,1.],[1.,0.,0.,0.,1.,0.,0.,0.,1.]]
+        elif len(atom_ids) == 2:#if sorbate is bounded at single site
+            domain = [self.domainA,self.domainB]
+            sym_array = [[1.,0.,0.,0.,1.,0.,0.,0.,1.],[-1.,0.,0.,0.,1.,0.,0.,0.,1.]]
+
+        atm_gp=model.AtomGroup()
+        for i in range(len(domain)):
+            if sym_array==None:
+                atm_gp.add_atom(domain[i],atom_ids[i])
+            else:
+                atm_gp.add_atom(domain[i],atom_ids[i],sym_array[i])
+                #print sym_array[i]
+        return atm_gp
+
+    def grouping_discrete_HO_layer(self, which_set = 0, which_domain = 0):
+        gp_names, gps = [], []
+        N_metal = len(self.sorbate_info['sorbate_list_a'])
+        if N_metal!=0:
+            N_HO = int(len(self.sorbate_info['HO_list_a'])/N_metal)
+        else:
+            N_HO = 0
+        for i in range(N_HO):
+            atom_ids = ['HO{}_{}'.format(i+1,each) for each in self.sorbate_info['sorbate_list_a'] + self.sorbate_info['sorbate_list_b']]
+            if len(atom_ids) == 4:#sorbate in pairs (HO1_Pb1_D1A, HO1_Pb2_D1A, HO1_Pb1_D1B, HO1_Pb2_D1B)
+                domain = [self.domainA,self.domainA,self.domainB,self.domainB]
+                sym_array = [[1.,0.,0.,0.,1.,0.,0.,0.,1.],[-1.,0.,0.,0.,1.,0.,0.,0.,1.],[-1.,0.,0.,0.,1.,0.,0.,0.,1.],[1.,0.,0.,0.,1.,0.,0.,0.,1.]]
+            elif len(atom_ids) == 2:#sorbate bound at one site (HO1_Pb1_D1A, HO1_Pb1_D1B)
+                domain = [self.domainA,self.domainB]
+                sym_array = [[1.,0.,0.,0.,1.,0.,0.,0.,1.],[-1.,0.,0.,0.,1.,0.,0.,0.,1.]]
+
+            gp_names.append('gp_HO'+str(i+1)+'_set'+str(which_set+1)+'_D'+str(which_domain+1))
+            gps.append(self.grouping_discrete_layer3(domain, atom_ids, sym_array))
+
+        return dict(zip(gp_names, gps))
+
+    def grouping_discrete_layer4(self,atom_ids=[],sym_array=None):
+        #we usually do discrete grouping for sorbates, so there is no symmetry used in this case
+        domain = [self.domainA, self.domainB]
+        atm_gp=model.AtomGroup()
+        for i in range(len(domain)):
+            if sym_array==None:
+                atm_gp.add_atom(domain[i],atom_ids[i])
+            else:
+                atm_gp.add_atom(domain[i],atom_ids[i],sym_array[i])
+                #print sym_array[i]
+        return atm_gp
+
     def grouping_discrete_layer_batch(self,filename):
         gp_list=[]
         f=open(filename)
