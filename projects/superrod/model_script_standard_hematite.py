@@ -61,8 +61,22 @@ DOMAIN_NUMBER=len(DOMAIN)
 
 #metal_id/begin#
 SORBATE=[['Pb'], ['Pb'], ['Pb']]#same shape as pickup_index
+assert len(SORBATE) == len(pickup_index),"shape of SORBATE not match with pick_up_index!"
 SORBATE_EL_LIST = list(set(sum(SORBATE,[])))
 #metal_id/end#
+
+#/setup_raxr_fitting/begin#
+RAXR_EL='Pb'
+RAXR_FIT_MODE='MI'#model dependent (MD) or Model independent (MI)
+NUMBER_SPECTRA=0
+RESONANT_EL_LIST=[1]+[0]*(len(pickup_index)-1)#use average A+P for the whole domain
+E0=11873
+F1F2_FILE='As_K_edge_March28_2018.f1f2'
+##set up Fourier pars if there are RAXR datasets
+#Fourier component looks like A_Dn0_n1, where n0, n1 are used to specify the index for domain, and spectra, respectively
+#Each spectra will have its own set of A and P list, and each domain has its own set of P and A list
+rgh_raxr,F1F2=setup_domain_hematite_rcut.setup_raxr_pars(NUMBER_SPECTRA,batch_path_head,F1F2_FILE,RESONANT_EL_LIST)
+#/setup_raxr_fitting/end#
 
 #setup_sorbate/begin#
 #-------------------------------------------------------#
@@ -114,6 +128,7 @@ OS_X_REF, OS_Y_REF, OS_Z_REF = domain_creator.init_OS_auto(pickup_index,half_lay
 
 #/setup_layered_water/sorbate/begin#
 WATER_LAYER_NUM=[4, 4, 4]
+assert len(WATER_LAYER_NUM)==len(pickup_index), "shape of WATER_LAYER_NUM not match with pickup_index"
 ref_height_adsorb_water_map={0:[['O1_5_0','O1_6_0']],1:[['O1_11_t','O1_12_t']],2:[['O1_7_0','O1_8_0']],3:[['O1_1_0','O1_2_0']]}
 WATER_LAYER_REF=list(map(lambda key,n:ref_height_adsorb_water_map[key]*int(n/2),half_layer+full_layer,WATER_LAYER_NUM))
 water_pars={'use_default':False,'number':WATER_LAYER_NUM,'ref_point':WATER_LAYER_REF}
@@ -124,7 +139,7 @@ WATER_PAIR=True#add water pair each time if True, otherwise only add single wate
 WATER_NUMBER,REF_POINTS=setup_domain_hematite_rcut.setup_water_pars(water_pars,N_HL,N_FL,
                                                                     pickup_index,FULL_LAYER_PICK_INDEX,
                                                                     HALF_LAYER_PICK_INDEX)
-layered_sorbate_pars={'yes_OR_no':[0]*len(pickup_index),'ref_layer_height':['O1_1_0']*len(pickup_index),'el':'Pb'}
+layered_sorbate_pars={'yes_OR_no':[0]*len(pickup_index),'ref_layer_height':layered_water_pars['ref_layer_height'],'el':RAXR_EL}
 #----------------------------------------------#
 #/setup_layered_water/sorbate/end#
 
@@ -185,21 +200,8 @@ PROTONATION_DISTAL_OXYGEN=[[0,0]]*len(pickup_index)
 #--------------------------------------------------#
 #/bond_valence_constraint/end#
 
-#/setup_raxr_fitting/begin#
-RAXR_EL='Pb'
-RAXR_FIT_MODE='MI'#model dependent (MD) or Model independent (MI)
-NUMBER_SPECTRA=0
-RESONANT_EL_LIST=[1]+[0]*(len(pickup_index)-1)#use average A+P for the whole domain
-E0=11873
-F1F2_FILE='As_K_edge_March28_2018.f1f2'
-##set up Fourier pars if there are RAXR datasets
-#Fourier component looks like A_Dn0_n1, where n0, n1 are used to specify the index for domain, and spectra, respectively
-#Each spectra will have its own set of A and P list, and each domain has its own set of P and A list
-rgh_raxr,F1F2=setup_domain_hematite_rcut.setup_raxr_pars(NUMBER_SPECTRA,batch_path_head,F1F2_FILE,RESONANT_EL_LIST)
-#/setup_raxr_fitting/end#
-
 #/setup_group_scheme/begin#
-GROUPING_SCHEMES=[[2, 1]]#domain tag of first domain is 1 (Domain2=Domain1)
+GROUPING_SCHEMES=[]#eg[[2,1]]domain tag of first domain is 1 (Domain2=Domain1)
 GROUPING_DEPTH=[[0, 10]]#means I will group top 10 (range(0,10)) layers of domain2 to those of domain1
 commands_surface=domain_creator.generate_commands_for_surface_atom_grouping_new(np.array(GROUPING_SCHEMES),\
                                                                    domain_creator.translate_domain_type(GROUPING_SCHEMES,half_layer+full_layer),\
@@ -249,9 +251,18 @@ make_grid.make_structure(list(map(sum,SORBATE_NUMBER)),O_N,WATER_NUMBER,DOMAIN,
                         Metal=SORBATE,binding_mode=binding_mode,\
                         long_slab=full_layer_pick,long_slab_HL=half_layer_pick,\
                         local_structure=LOCAL_STRUCTURE,add_distal_wild=ADD_DISTAL_LIGAND_WILD,\
-                        use_domains=TABLE_DOMAINS,N_raxr=NUMBER_SPECTRA,domain_raxr_el=RESONANT_EL_LIST,\
+                        use_domains=[1]*DOMAIN_NUMBER,N_raxr=NUMBER_SPECTRA,domain_raxr_el=RESONANT_EL_LIST,\
                         layered_water=layered_water_pars['yes_OR_no'],layered_sorbate=layered_sorbate_pars['yes_OR_no'],\
                         tab_path=os.path.join(output_file_path,'table.tab'))
+table_container = []
+with open(os.path.join(output_file_path,'table.tab'),'r') as f:
+    lines = f.readlines()
+    for each_line in lines:
+        if not each_line.startswith('#'):
+            items = each_line.rsplit()
+            if len(items)==5:
+                items = [""] + items
+            table_container.append(items)
 #/build_parameter/end#
 
 ######################################do grouping###############################################
@@ -342,10 +353,13 @@ def Sim(data):
         #update sorbates
         if UPDATE_SORBATE_IN_SIM:
             binding_mode_ = VARS['domain_class_'+str(int(i+1))].binding_type
-            update_sorbate_method = getattr(setup_domain_hematite_rcut, "update_sorbate_in_SIM_{}_new".format(binding_mode_))
-            for j in range(sum(VARS['SORBATE_NUMBER'][i])):
-                if not USE_COORS[i][j]:
-                    update_sorbate_method(VARS['domain_class_'+str(int(i+1))], i, j)
+            if binding_mode_!=None:
+                update_sorbate_method = getattr(setup_domain_hematite_rcut, "update_sorbate_in_SIM_{}_new".format(binding_mode_))
+                for j in range(sum(VARS['SORBATE_NUMBER'][i])):
+                    if (not USE_COORS[i][j]) and (binding_mode_!=None):
+                        update_sorbate_method(VARS['domain_class_'+str(int(i+1))], i, j)
+            else:
+                pass
 
         #updata adsorbed water structure
         setup_domain_hematite_rcut.update_water_structure(VARS['domain_class_'+str(int(i+1))],i)

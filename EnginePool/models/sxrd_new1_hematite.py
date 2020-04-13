@@ -242,7 +242,7 @@ class Sample:
         z = domain.z[index] + domain.dz1[index] + domain.dz2[index] + domain.dz3[index] + domain.dz4[index]
         return np.array([x, y, z])
 
-    def extract_xyz(self, which_domain = 0):
+    def extract_xyz_old(self, which_domain = 0):
         xyz_list = []
         for i in range(len(self.domain['domains'][0].id)):
             el = self.domain['domains'][0].el[i]
@@ -250,6 +250,17 @@ class Sample:
             translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
             for each in translation_offsets:
                 x, y, z = np.dot(self.domain['coord_T'], np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c])
+                xyz_list.append((el, x, y, z))
+        return xyz_list
+
+    def extract_xyz(self, which_domain = 0):
+        xyz_list = []
+        for i in range(len(self.domain['domain{}'.format(which_domain+1)].domainA.id)):
+            el = self.domain['domain{}'.format(which_domain+1)].domainA.el[i]
+            x_, y_, z_ = self._extract_coord(self.domain['domain{}'.format(which_domain+1)].domainA, self.domain['domain{}'.format(which_domain+1)].domainA.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+            translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+            for each in translation_offsets:
+                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
                 xyz_list.append((el, x, y, z))
         return xyz_list
 
