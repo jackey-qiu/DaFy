@@ -1455,7 +1455,7 @@ def update_sorbate_in_SIM_OS_new(domain_class, i,j):
     domain_creator.add_atom(domain=domain_class.domainB,ref_coor=np.array(SORBATE_coors_a+O_coors_a)*[-1,1,1]-[-1.,0.06955,0.5],ids=sorbate_ids,els=sorbate_els)
     return None
 
-def calculate_BV_sum_in_SIM(i,VARS):
+def calculate_BV_sum_in_SIM_old(i,VARS):
     var_tags = ["BV_TOLERANCE",\
                 "DOMAIN",\
                 "SORBATE_NUMBER",\
@@ -1467,19 +1467,16 @@ def calculate_BV_sum_in_SIM(i,VARS):
                 "debug_bv",\
                 "SORBATE_EL_LIST",\
                 "SEARCH_MODE_FOR_SURFACE_ATOMS",\
-                "EARCH_RANGE_OFFSET",\
+                "SEARCH_RANGE_OFFSET",\
                 "IDEAL_BOND_LENGTH",\
                 "SEARCH_RANGE_OFFSET",\
-                "running_mode",\
                 "R0_BV",\
                 "COUNT_DISTAL_OXYGEN",\
                 "SEARCHING_PARS",\
                 "METAL_BV",\
-                "PRINT_BV",\
                 "COVALENT_HYDROGEN_RANDOM",\
                 "COVALENT_HYDROGEN_ACCEPTOR",\
                 "POTENTIAL_COVALENT_HYDROGEN_ACCEPTOR",\
-                "PRINT_PROTONATION",\
                 "POTENTIAL_HYDROGEN_ACCEPTOR",\
                 "COVALENT_HYDROGEN_NUMBER"]
     for var in var_tags:
@@ -1587,6 +1584,238 @@ def calculate_BV_sum_in_SIM(i,VARS):
             else:
                 #no searching in this algorithem
                 temp_bv=domain_class.cal_bond_valence4B(super_cell_surface,key,VARS['match_lib_'+str(i+1)+'A'][key],2.5)
+        else:#sorbates including water
+            #searching included in this algorithem
+            if "HO" in key and COUNT_DISTAL_OXYGEN:#distal oxygen and its associated hydrogen
+                el="O"
+                if "HB" in key:
+                    el="H"
+                if el=="O":
+                    try:
+                        temp_bv=domain_class.cal_bond_valence1_new2B_7_2(super_cell_sorbate,key,el,SEARCH_RANGE_OFFSET,IDEAL_BOND_LENGTH,VARS['match_lib_'+str(i+1)+'A'][key],50,False,R0_BV,2.5,BOND_VALENCE_WAIVER,check=not running_mode)['total_valence']
+                    except:
+                        temp_bv=2
+                else:
+                    try:
+                        temp_bv=domain_class.cal_bond_valence1_new2B_4(super_cell_sorbate,key,el,2.5,VARS['match_lib_'+str(i+1)+'A'][key],1,False,R0_BV,2.5)['total_valence']
+                    except:
+                        temp_bv=1
+            elif "HO" in key and not COUNT_DISTAL_OXYGEN:
+                temp_bv=2
+            elif "Os" in key:#water and the associated hydrogen
+                el="O"
+                if "HB" in key:
+                    el="H"
+                if el=="O":
+                    temp_bv=domain_class.cal_bond_valence1_new2B_7_2(super_cell_sorbate,key,el,SEARCH_RANGE_OFFSET,IDEAL_BOND_LENGTH,VARS['match_lib_'+str(i+1)+'A'][key],50,False,R0_BV,2.5,BOND_VALENCE_WAIVER,check=not running_mode)['total_valence']
+                else:
+                    temp_bv=domain_class.cal_bond_valence1_new2B_4(super_cell_sorbate,key,el,2.5,VARS['match_lib_'+str(i+1)+'A'][key],1,False,R0_BV,2.5)['total_valence']
+            else:#metals
+                try:
+                    temp_bv=domain_class.cal_bond_valence1_new2B_7_2(super_cell_sorbate,key,SORBATE_LIST[i][0],SEARCH_RANGE_OFFSET,IDEAL_BOND_LENGTH,VARS['match_lib_'+str(i+1)+'A'][key],SEARCHING_PARS['sorbate'][1],False,R0_BV,2.5,BOND_VALENCE_WAIVER,check=not running_mode)['total_valence']
+                except:
+                    temp_bv=METAL_BV[i][int(key.rsplit('_')[0][-1])-1][0]
+
+        if PRINT_BV:print(key, temp_bv)
+        #consider possible hydrogen bond and hydroxyl bond fro oxygen atoms
+        if 'O' in key:
+            #For O you may consider possible binding to proton (+0.8)
+            #And note the maximum coordination number for O is 4
+            case_tag=len(VARS['match_lib_'+str(i+1)+'A'][key])#current coordination number
+            if COVALENT_HYDROGEN_RANDOM==True:
+                if case_tag<4 and key in list(map(lambda x:x+'_D'+str(i+1)+'A',POTENTIAL_COVALENT_HYDROGEN_ACCEPTOR[i])):
+                    C_H_N=range(4-case_tag+1)#max CN allowed is 4,if case_tag=3, then range(4-case_tag+1)=[0,1]
+                    bv_offset=[ _widen_validness_range(2-0.88*N-temp_bv,2-0.68*N-temp_bv) for N in C_H_N]
+                    C_H_N=C_H_N[bv_offset.index(min(bv_offset))]
+                    case_tag=case_tag+C_H_N#CN after considering the proton
+                    if PRINT_PROTONATION:
+                        print(key,C_H_N)
+                    if key in list(map(lambda x:x+'_D'+str(i+1)+'A',POTENTIAL_HYDROGEN_ACCEPTOR[i])):#consider potential hydrogen bond (you can have or have not H-bonding)
+                        if _widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)==0 or _widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)==100:
+                        #if saturated already or over-saturated, then adding H-bonding wont help decrease the the total bv anyhow
+                        #or reach the maximum CN(4), the adding one hydrogen bond is not allowed
+                            bv=bv+_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                            if debug_bv:bv_container[key]=_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                        else:#you can add one hydrogen bond at most
+                        #if undersaturation, then compare the cases of inclusion of H-bonding and exclusion of H-bonding. Whichever give rise to the lower bv will be used.
+                            bv=bv+min([_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv),_widen_validness_range(2-0.88*C_H_N-temp_bv-0.25,2-0.68*C_H_N-temp_bv)])
+                            if debug_bv:bv_container[key]=min([_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv),_widen_validness_range(2-0.88*C_H_N-temp_bv-0.25,2-0.68*C_H_N-temp_bv)])
+                    else:#consider covalent hydrogen bond only
+                        bv=bv+_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                        if debug_bv:bv_container[key]=_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                elif case_tag==4:#coordination saturation achieved, so neighter covalent hydrogen bond nor hydrogen bond
+                    bv=bv+_widen_validness(2-temp_bv)
+                    if debug_bv:bv_container[key]=_widen_validness(2-temp_bv)
+            else:
+                if key in list(map(lambda x:x+'_D'+str(i+1)+'A',COVALENT_HYDROGEN_ACCEPTOR[i])):
+                    #if consider convalent hydrogen bond (bv=0.68 to 0.88) while the hydrogen bond has bv from 0.13 to 0.25
+                    C_H_N=COVALENT_HYDROGEN_NUMBER[i][list(map(lambda x:x+'_D'+str(i+1)+'A',COVALENT_HYDROGEN_ACCEPTOR[i])).index(key)]
+                    case_tag=case_tag+C_H_N
+                    if key in list(map(lambda x:x+'_D'+str(i+1)+'A',POTENTIAL_HYDROGEN_ACCEPTOR[i])):#consider potential hydrogen bond (you can have or have not H-bonding)
+                        if _widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)==0 or _widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)==100 or case_tag>=4:
+                        #if saturated already or over-saturated, then adding H-bonding wont help decrease the the total bv anyhow
+                            bv=bv+_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                            if debug_bv:bv_container[key]=_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                        else:
+                        #if undersaturation, then compare the cases of inclusion of H-bonding and exclusion of H-bonding. Whichever give rise to the lower bv will be used.
+                            bv=bv+min([_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv),_widen_validness_range(2-0.88*C_H_N-temp_bv-0.25,2-0.68*C_H_N-temp_bv)])
+                            if debug_bv:bv_container[key]=min([_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv),_widen_validness_range(2-0.88*C_H_N-temp_bv-0.25,2-0.68*C_H_N-temp_bv)])
+                    else:
+                        bv=bv+_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                        if debug_bv:bv_container[key]=_widen_validness_range(2-0.88*C_H_N-temp_bv,2-0.68*C_H_N-temp_bv)
+                else:
+                    if key in map(lambda x:x+'_D'+str(i+1)+'A',POTENTIAL_HYDROGEN_ACCEPTOR[i]):#consider hydrogen bond
+                        if _widen_validness(2-temp_bv)==0 or _widen_validness(2-temp_bv)==100 or case_tag>=4:
+                            bv=bv+_widen_validness(2-temp_bv)
+                            if debug_bv:bv_container[key]=_widen_validness(2-temp_bv)
+                        else:
+                            bv=bv+min([_widen_validness(2-temp_bv),_widen_validness_range(2-temp_bv-0.25,2-temp_bv-0.13)])
+                            if debug_bv:bv_container[key]=min([_widen_validness(2-temp_bv),_widen_validness_range(2-temp_bv-0.25,2-temp_bv-0.13)])
+                    else:
+                        bv=bv+_widen_validness(2-temp_bv)
+                        if debug_bv:bv_container[key]=_widen_validness(2-temp_bv)
+        elif 'Fe' in key:
+            bv=bv+_widen_validness(3-temp_bv)
+            if debug_bv:bv_container[key]=_widen_validness(3-temp_bv)
+        else:#do metal sorbates
+            metal_bv_range=[]
+            metal_bv_range=METAL_BV[i][int(key.rsplit('_')[0][-1])-1]
+            bv=bv+_widen_validness_range(metal_bv_range[0]-temp_bv,metal_bv_range[1]-temp_bv)
+            if debug_bv:bv_container[key]=_widen_validness_range(metal_bv_range[0]-temp_bv,metal_bv_range[1]-temp_bv)
+
+def calculate_BV_sum_in_SIM(i,VARS):
+    BV_TOLERANCE=VARS["BV_TOLERANCE"]
+    DOMAIN=VARS["DOMAIN"]
+    SORBATE_NUMBER=VARS["SORBATE_NUMBER"]
+    SORBATE_LIST=VARS["SORBATE_LIST"]
+    WATER_NUMBER=VARS["WATER_NUMBER"]
+    O_NUMBER=VARS["O_NUMBER"]
+    BOND_VALENCE_WAIVER=VARS["BOND_VALENCE_WAIVER"]
+    CONSIDER_WATER_IN_BV=VARS["CONSIDER_WATER_IN_BV"]
+    debug_bv=VARS["debug_bv"]
+    SORBATE_EL_LIST=VARS["SORBATE_EL_LIST"]
+    SEARCH_MODE_FOR_SURFACE_ATOMS=VARS["SEARCH_MODE_FOR_SURFACE_ATOMS"]
+    SEARCH_RANGE_OFFSET=VARS["SEARCH_RANGE_OFFSET"]
+    IDEAL_BOND_LENGTH=VARS["IDEAL_BOND_LENGTH"]
+    SEARCH_RANGE_OFFSET=VARS["SEARCH_RANGE_OFFSET"]
+    R0_BV=VARS["R0_BV"]
+    COUNT_DISTAL_OXYGEN=VARS["COUNT_DISTAL_OXYGEN"]
+    SEARCHING_PARS=VARS["SEARCHING_PARS"]
+    METAL_BV=VARS["METAL_BV"]
+    COVALENT_HYDROGEN_RANDOM=VARS["COVALENT_HYDROGEN_RANDOM"]
+    COVALENT_HYDROGEN_ACCEPTOR=VARS["COVALENT_HYDROGEN_ACCEPTOR"]
+    POTENTIAL_COVALENT_HYDROGEN_ACCEPTOR=VARS["POTENTIAL_COVALENT_HYDROGEN_ACCEPTOR"]
+    POTENTIAL_HYDROGEN_ACCEPTOR=VARS["POTENTIAL_HYDROGEN_ACCEPTOR"]
+    COVALENT_HYDROGEN_NUMBER=VARS["COVALENT_HYDROGEN_NUMBER"]
+    # locals().update(dict(zip(var_tags,[VARS[each] for each in var_tags])))
+    domain_class = VARS['domain_class_'+str(int(i+1))]
+    bv_container={}
+    bv=0
+    running_mode = 1
+    PRINT_BV = 0
+    #set up dynamic super cells,where water and sorbate is a library and surface is a domain instance
+    def _widen_validness(value):#acceptable bond valence offset can be adjusted (here is 0.08)
+        if value<BV_TOLERANCE[0]:return 100
+        elif value>=BV_TOLERANCE[0] and value<BV_TOLERANCE[1]:return 0
+        else:return value
+    def _widen_validness_range(value_min,value_max):#consider a range of (ideal_bv-temp_bv)
+        if (value_min<BV_TOLERANCE[0] and value_max>BV_TOLERANCE[1]) or (value_min>=BV_TOLERANCE[0] and value_min<=BV_TOLERANCE[1]) or (value_max>=BV_TOLERANCE[0] and value_max<=BV_TOLERANCE[1]):
+            return 0
+        elif value_min>BV_TOLERANCE[1]:return value_min
+        else:return 100
+    def _widen_validness_hydrogen_acceptor(value,H_N=0):#here consider possible contribution of hydrogen bond (~0.2)
+        if (value-H_N*0.2)<BV_TOLERANCE[0]:return 100
+        elif (value-H_N*0.2)>=BV_TOLERANCE[0] and (value-H_N*0.2)<BV_TOLERANCE[1]:return 0
+        else:return (value-H_N*0.2)
+    def _widen_validness_potential_hydrogen_acceptor(value):#value=2-temp_bv(temp_bv include covalent hydrogen bond possibly)
+        if value<0.2 and value>BV_TOLERANCE[0]: return 0
+        elif value<BV_TOLERANCE[0]: return 100
+        else:return value
+
+    super_cell_sorbate,super_cell_surface,super_cell_water=None,None,None
+    if WATER_NUMBER[i]!=0:
+        if DOMAIN[i]==1:
+            super_cell_water=domain_class.build_super_cell2_simple(domain_class.domainA,[0,1]+[4,5]+list(range(-(sum(SORBATE_NUMBER[i])+WATER_NUMBER[i]+sum([np.sum(N_list) for N_list in O_NUMBER[i]])),0)))
+        elif DOMAIN[i]==2:
+            super_cell_water=domain_class.build_super_cell2_simple(domain_class.domainA,[0,1,2,3]+list(range(-(sum(SORBATE_NUMBER[i])+WATER_NUMBER[i]+sum([np.sum(N_list) for N_list in O_NUMBER[i]])),0)))
+
+    def _return_right_value(value):
+        if value:return value
+        else:return 1
+    NN=_return_right_value(sum(SORBATE_NUMBER[i]))#number of sorbate sets(1 or 2)
+    N_HB_SURFACE,N_HB_DISTAL=0,0
+    O_N_for_this_domain=O_NUMBER[i]
+    total_sorbate_number=sum(SORBATE_NUMBER[i])+sum(O_N_for_this_domain)
+    #the idea is that we want to have only one set of sorbate and hydrogen within each domain (ie don't count symmetry counterpart twice)
+    def _cal_segment2(O_N_list=[],water_N=0):
+        cum_list=[-water_N]
+        segment2_boundary=[]
+        segment2=[]
+        for O_N in O_N_list[::-1]:
+            cum_list.append(cum_list[-1]-(O_N+1))
+        for i in range(0,len(cum_list)-1,2):
+            segment2_boundary.append([cum_list[i],cum_list[i+1]])
+        for each in segment2_boundary:
+            segment2=segment2+list(range(each[1],each[0]))
+        return segment2
+
+    segment1=list(range(-WATER_NUMBER[i],0))
+    segment2=list(_cal_segment2(O_N_for_this_domain,WATER_NUMBER[i]))
+    segment3=list(range(-(WATER_NUMBER[i]+total_sorbate_number),-(WATER_NUMBER[i]+total_sorbate_number)))
+
+    if DOMAIN[i]==1:
+        #note here if there are two symmetry pair, then only consider one of the couple for bv consideration, the other one will be skipped in the try except statement
+        super_cell_sorbate=domain_class.build_super_cell2_simple(domain_class.domainA,[0,1]+list(range(4,8))+segment1+segment2+segment3)
+        if SEARCH_MODE_FOR_SURFACE_ATOMS:
+            super_cell_surface=domain_class.build_super_cell2_simple(domain_class.domainA,[0,1]+list(range(4,30))+segment1+segment2+segment3)
+        else:
+            super_cell_surface=domain_class.domainA.copy()
+            #delete the first iron layer atoms if considering a half layer
+            super_cell_surface.del_atom(super_cell_surface.id[2])
+            super_cell_surface.del_atom(super_cell_surface.id[2])
+    elif DOMAIN[i]==2:
+        super_cell_sorbate=domain_class.build_super_cell2_simple(domain_class.domainA,list(range(0,6))+segment1+segment2+segment3)
+        if SEARCH_MODE_FOR_SURFACE_ATOMS:
+            super_cell_surface=domain_class.build_super_cell2_simple(domain_class.domainA,list(range(0,30))+segment1+segment2+segment3)
+        else:
+            super_cell_surface=domain_class.domainA.copy()
+
+    #consider hydrogen bond only among interfacial water molecules and top surface Oxygen layer and Oxygen ligand
+    if WATER_NUMBER[i]!=0:
+        water_ids=VARS['Os_list_domain'+str(int(i+1))+'a']
+        for id in water_ids:
+            tmp_bv=domain_class.cal_hydrogen_bond_valence2B(super_cell_water,id,3.,2.5,BOND_VALENCE_WAIVER)*int(CONSIDER_WATER_IN_BV)
+            bv=bv+tmp_bv
+            if debug_bv:bv_container[id]=tmp_bv
+    #cal bv for surface atoms and sorbates
+    #only consdier domainA since domain B is symmetry related to domainA
+    waiver_box=[]#the first set of anchored oxygens will be waived for being considered for bond valence constraints
+    attach_atom_ids=VARS['SORBATE_ATTACH_ATOM'][i]
+    if len(attach_atom_ids)==0:
+        pass
+    elif len(attach_atom_ids)!=0 and len(attach_atom_ids)%2==0:
+        if len(attach_atom_ids[0])<3:#only for monodentate and bidentate binding mode
+            waiver_box=list(map(lambda x:x+'_D'+str(i+1)+'A',attach_atom_ids[0]))
+        else:
+            pass
+    for key in [each_key for each_key in VARS['match_lib_'+str(i+1)+'A'].keys() if each_key not in waiver_box]:
+        temp_bv=None
+        if ([sorbate not in key for sorbate in SORBATE_EL_LIST]==[True]*len(SORBATE_EL_LIST)) and ("HO" not in key) and ("Os" not in key):#surface atoms
+            if SEARCH_MODE_FOR_SURFACE_ATOMS:#cal temp_bv based on searching within spherical region
+                el=None
+                if "Fe" in key: el="Fe"
+                elif "O" in key and "HB" not in key: el="O"
+                elif "HB" in key: el="H"
+                if el=="H":
+                    temp_bv=domain_class.cal_bond_valence1_new2B_4(super_cell_surface,key,el,2.5,VARS['match_lib_'+str(i+1)+'A'][key],1,False,R0_BV,2.5)['total_valence']
+                else:
+                    temp_bv=domain_class.cal_bond_valence1_new2B_7_2(super_cell_surface,key,el,SEARCH_RANGE_OFFSET,IDEAL_BOND_LENGTH,VARS['match_lib_'+str(i+1)+'A'][key],50,False,R0_BV,2.5,BOND_VALENCE_WAIVER,check=not running_mode)['total_valence']
+
+            else:
+                #no searching in this algorithem
+                t0 = time.time()
+                temp_bv=domain_class.cal_bond_valence4B(super_cell_surface,key,VARS['match_lib_'+str(i+1)+'A'][key],2.5)
+
         else:#sorbates including water
             #searching included in this algorithem
             if "HO" in key and COUNT_DISTAL_OXYGEN:#distal oxygen and its associated hydrogen
