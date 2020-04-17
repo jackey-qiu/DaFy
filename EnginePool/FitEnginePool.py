@@ -190,18 +190,41 @@ def backcor(n,y,ord_cus,s,fct):
     #print((t2-t1,t3-t2,t4-t3,t5-t4,t6-t5))
     return z,a,it,ord_cus,s,fct
 
+valence_lib = {'Pb':2, 'O':2, 'Fe':3, 'Al':3, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5}
 class bond_valence_constraint(object):
-    def __init__(self, r0_container, CN_container, domain, lattice_abc, waiver_ids = [], covalent_H = [0.6,0.8], H_bond = [0.16,0.3]):
+    def __init__(self, r0_container, domain, lattice_abc, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3]):
         self.r0_container = r0_container
-        self.CN_container = CN_container
         self.waiver_ids = waiver_ids
+        self.panelty_factor = panelty_factor
+        self.panelty_factor_total = 0
         self.domain = domain
         self.lattice_abc = lattice_abc
+        self.valence_lib = valence_lib
         self.covalent_H = covalent_H
         self.H_bond = H_bond
         self.consolidate_index_for_each_id = {}
+        self.consolidate_index_for_each_id_valence = {}
         self.bv_container = {}
         self.dist_container = {}
+        self.valence_panelty_container = {}
+        self.init_super_domain()
+
+    @classmethod
+    def factory_function_hematite_rcut(cls,r0_container,domain, lattice_abc, domain_index,domain_type, sorbate_list, HO_list, Os_list):
+        if domain_type not in [2,3]:
+            key_use = 'FL'
+        else:
+            key_use = domain_type
+        rem_atom_ids = {3:['Fe1_2_0_D'+str(int(domain_index+1))+'A','Fe1_3_0_D'+str(int(domain_index+1))+'A'],
+                        2:['Fe1_8_0_D'+str(int(domain_index+1))+'A','Fe1_9_0_D'+str(int(domain_index+1))+'A'],
+                        'FL':[]}[key_use]
+        if len(sorbate_list)!=0:
+            rem_atom_ids = rem_atom_ids + sorbate_list[0:int(len(sorbate_list)/2)]
+        if len(HO_list)!=0:
+            rem_atom_ids = rem_atom_ids + HO_list[0:int(len(HO_list)/2)]
+        if len(Os_list)!=0:
+            rem_atom_ids = rem_atom_ids + Os_list[0:int(len(Os_list)/2)]
+        return cls(r0_container, domain, lattice_abc, waiver_ids = rem_atom_ids)
 
     def init_super_domain(self):
         self.id_super = []
@@ -262,20 +285,11 @@ class bond_valence_constraint(object):
                         index_ = int((each-1)/2)#eg, each=1,3,5 (odd number)
                         paired_id = self.id_super[dist_index_[each-1]]
                     if paired_id not in self.waiver_ids:
+                        self.consolidate_index_for_each_id_valence[id] = self.valence_lib[self.domain.el[ii]]
                         if id not in self.consolidate_index_for_each_id:
                             self.consolidate_index_for_each_id[id] = [index_]
                         else:
                             self.consolidate_index_for_each_id[id].append(index_)
-        """
-        for i in range(len(self.dist_index)):
-            each_index_pair = self.dist_index[i]
-            id1, id2 = [self.id_super[each] for each in each_index_pair]
-            if (id1==id) or (id2==id):
-                if id not in self.consolidate_index_for_each_id:
-                    self.consolidate_index_for_each_id[id] = [i]
-                else:
-                    self.consolidate_index_for_each_id[id].append(i)
-        """
 
     def update_super_domain(self):
         dx = np.tile(self.domain.dx1+self.domain.dx2+self.domain.dx3+self.domain.dx4,9)[:,np.newaxis]*self.lattice_abc[0]
@@ -287,12 +301,17 @@ class bond_valence_constraint(object):
         self.update_super_domain()
         dist_container = pdist(self.xyz_super + self.dxdydz_super,'euclidean')
         bv_list = np.exp((self.R0_super-dist_container)/0.37)
-        bv_check = np.array(list(map(int,bv_list>0.1)))
-        bv_list = bv_list*bv_check
-        for each in self.consolidate_index_for_each_id:
+        #cutoff negligible constributions from atoms far away
+        #considering the H-bond contribute around 0.2 v.u.
+        bv_list[bv_list<0.1] = 0
+        keys = list(self.consolidate_index_for_each_id.keys())
+        for i in range(len(keys)):
+            each = keys[i]
             self.bv_container[each] = bv_list[self.consolidate_index_for_each_id[each]].sum()
-            self.dist_container[each] = dist_container[self.consolidate_index_for_each_id[each]]
-
+            self.valence_panelty_container[each] = self.panelty_factor*int((self.bv_container[each]-self.consolidate_index_for_each_id_valence[each])>0.1)
+            # self.dist_container[each] = dist_container[self.consolidate_index_for_each_id[each]]
+        self.panelty_factor_total = sum(list(self.valence_panelty_container.values()))
+        return self.panelty_factor_total
 
 class XRD_Peak_Fitting(object):
     def __init__(self, img, cen, kwarg, model = model):

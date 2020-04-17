@@ -42,6 +42,31 @@ gp_Fe4Fe6_Fe10Fe12_D1.setoc	1.0000	True	0.6000	1.0000	-
 gp_O5O6_O11O12_D1.setoc	1.0000	True	0.6000	1.0000	-
 gp_O7O8_O1O2_D1.setoc	1.0000	True	0.6000	1.0000	-
 	0	False	0	0	-
+####sorbate####
+#angles
+rgh_domain1.setPhi_BD_0	0.0000	True	-50.0000	50.0000	-
+rgh_domain1.setTop_angle_BD_0	60.0000	True	50.0000	90.0000	-
+rgh_domain1.setOffset_BD_0	0.0000	True	-0.1000	0.1000	-
+rgh_domain1.setR_BD_0	2.2500	True	2.2500	2.3500	-
+rgh_domain1.setOffset2_BD_0	0.0000	True	-0.1000	0.1000	-
+rgh_domain1.setAngle_offset_BD_0	0.0000	True	0.0000	360.0000	-
+	0	False	0	0	-
+#dxdydz
+gp_Pb_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
+	0	False	0	0	-
+gp_HO1_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
+gp_HO1_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
+gp_HO1_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
+	0	False	0	0	-
+#u
+gp_Pb_set1_D1.setu	0.2000	True	0.2000	1.0000	-
+gp_HO_set1_D1.setu	0.2000	True	0.2000	10.0000	-
+	0	False	0	0	-
+#oc
+gp_sorbates_set1_D1.setoc	0.3000	True	0.0000	0.5000	-
+	0	False	0	0	-
 ####water####
 #rotation angle and vertical shift
 rgh_domain1.setAlpha_W_1	90.0000	True	20.0000	160.0000	-
@@ -90,12 +115,21 @@ gp_Fe10Fe12_Fe4Fe6_D2.setoc	1.0000	True	0.6000	1.0000	-
 	0	False	0	0	-
 ####sorbate####
 #angles
-rgh_domain2.setTop_angle_TD_0	90.0000	True	50.0000	110.0000	-
+rgh_domain2.setPhi_BD_0	0.0000	True	-50.0000	50.0000	-
+rgh_domain2.setTop_angle_BD_0	60.0000	True	50.0000	90.0000	-
+rgh_domain2.setOffset_BD_0	0.0000	True	-0.1000	0.1000	-
+rgh_domain2.setR_BD_0	2.2500	True	2.2500	2.3500	-
+rgh_domain2.setOffset2_BD_0	0.0000	True	-0.1000	0.1000	-
+rgh_domain2.setAngle_offset_BD_0	0.0000	True	0.0000	360.0000	-
 	0	False	0	0	-
 #dxdydz
 gp_Pb_set1_D2.setdx	0.0000	False	-0.5000	0.5000	-
 gp_Pb_set1_D2.setdy	0.0000	False	-0.5000	0.5000	-
 gp_Pb_set1_D2.setdz	0.0000	False	-0.5000	0.5000	-
+	0	False	0	0	-
+gp_HO1_set1_D2.setdx	0.0000	False	-0.5000	0.5000	-
+gp_HO1_set1_D2.setdy	0.0000	False	-0.5000	0.5000	-
+gp_HO1_set1_D2.setdz	0.0000	False	-0.5000	0.5000	-
 	0	False	0	0	-
 #u
 gp_Pb_set1_D2.setu	0.2000	True	0.2000	1.0000	-
@@ -149,22 +183,6 @@ gp_O1O2_O7O8_D3.setoc	1.0000	True	0.6000	1.0000	-
 gp_Fe2Fe3_Fe8Fe9_D3.setoc	1.0000	True	0.6000	1.0000	-
 gp_O3O4_O9O10_D3.setoc	1.0000	True	0.6000	1.0000	-
 gp_Fe4Fe6_Fe10Fe12_D3.setoc	1.0000	True	0.6000	1.0000	-
-	0	False	0	0	-
-####sorbate####
-#angles
-rgh_domain3.setTop_angle_TD_0	90.0000	True	50.0000	110.0000	-
-	0	False	0	0	-
-#dxdydz
-gp_Pb_set1_D3.setdx	0.0000	False	-0.5000	0.5000	-
-gp_Pb_set1_D3.setdy	0.0000	False	-0.5000	0.5000	-
-gp_Pb_set1_D3.setdz	0.0000	False	-0.5000	0.5000	-
-	0	False	0	0	-
-#u
-gp_Pb_set1_D3.setu	0.2000	True	0.2000	1.0000	-
-gp_HO_set1_D3.setu	0.2000	True	0.2000	10.0000	-
-	0	False	0	0	-
-#oc
-gp_sorbates_set1_D3.setoc	0.3000	True	0.0000	0.5000	-
 	0	False	0	0	-
 ####water####
 #rotation angle and vertical shift
