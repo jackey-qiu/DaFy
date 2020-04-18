@@ -45,30 +45,23 @@ gp_O7O8_O1O2_D1.setoc	1.0000	True	0.6000	1.0000	-
 ####sorbate####
 #angles
 rgh_domain1.setPhi_BD_0	0.0000	True	-50.0000	50.0000	-
+rgh_domain1.setTop_angle_BD_0	60.0000	True	50.0000	90.0000	-
+rgh_domain1.setOffset_BD_0	0.0000	True	-0.1000	0.1000	-
+rgh_domain1.setR_BD_0	2.2500	True	2.2500	2.3500	-
+rgh_domain1.setOffset2_BD_0	0.0000	True	-0.1000	0.1000	-
+rgh_domain1.setAngle_offset_BD_0	0.0000	True	0.0000	360.0000	-
 	0	False	0	0	-
 #dxdydz
-gp_Zn_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_Zn_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_Zn_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
+gp_Pb_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
 	0	False	0	0	-
 gp_HO1_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
 gp_HO1_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
 gp_HO1_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
 	0	False	0	0	-
-gp_HO2_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_HO2_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_HO2_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
-	0	False	0	0	-
-gp_HO3_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_HO3_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_HO3_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
-	0	False	0	0	-
-gp_HO4_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_HO4_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_HO4_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
-	0	False	0	0	-
 #u
-gp_Zn_set1_D1.setu	0.2000	True	0.2000	1.0000	-
+gp_Pb_set1_D1.setu	0.2000	True	0.2000	1.0000	-
 gp_HO_set1_D1.setu	0.2000	True	0.2000	10.0000	-
 	0	False	0	0	-
 #oc

@@ -462,7 +462,6 @@ class MyMainWindow(QMainWindow):
         if self.model.compiled:
             self.update_data_check_attr()
             self.update_plot_data_view_upon_simulation()
-            
             self.update_electron_density_profile()
         else:
             offset = self.max_num_plots_per_screen*self.current_index_plot_screen
@@ -1211,8 +1210,8 @@ class MyMainWindow(QMainWindow):
             domain_tag = size_domain -1
         else:
             pass
-        self.widget_edp.items = []
-        self.widget_msv_top.items = []
+        # self.widget_edp.items = []
+        # self.widget_msv_top.items = []
         self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
         self.widget_msv_top.abc = self.widget_edp.abc
         xyz = self.model.script_module.sample.extract_xyz(domain_tag)

@@ -256,9 +256,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
                             bond_index.append(each)
                     except:
                         pass
+            self.bond_index = bond_index
             
-            if bond_index!=None:
-                for each_bond_index in bond_index:
+            if self.bond_index!=None:
+                for each_bond_index in self.bond_index:
                     v1 = np.array(xyz[each_bond_index[0]][1:])
                     v2 = np.array(xyz[each_bond_index[1]][1:])
                     color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
@@ -274,8 +275,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 self.items[ii+self.grid_num].translate(x,y,z)
                 self.items[ii+self.grid_num].scale(0.5, 0.5, 0.5)
                 ii += 1
-            if bond_index!=None:
-                for each_bond_index in bond_index:
+            if self.bond_index!=None:
+                for each_bond_index in self.bond_index:
                     self.items[ii+self.grid_num].resetTransform()
                     self.items[ii+self.grid_num+1].resetTransform()
                     v1 = np.array(xyz[each_bond_index[0]][1:])
@@ -294,9 +295,9 @@ class GLViewWidget_cum(gl.GLViewWidget):
             self.items[i+self.grid_num].resetTransform()
             self.items[i+self.grid_num].translate(x,y,z)
             self.items[i+self.grid_num].scale(0.5, 0.5, 0.5)
-        if bond_index!=None:
+        if self.bond_index!=None:
             ii=1
-            for each_bond_index in bond_index:
+            for each_bond_index in self.bond_index:
                 self.items[ii+i+self.grid_num].resetTransform()
                 self.items[ii+i+self.grid_num+1].resetTransform()
                 v1 = np.array(xyz[each_bond_index[0]][1:])
