@@ -12,7 +12,6 @@ from copy import deepcopy
 import models.setup_domain_hematite_rcut as setup_domain_hematite_rcut
 from accessory_functions.data_formating.data_formating import format_hkl
 from UtilityFunctions import config_file_parser_bv, update_O_NUMBER
-from FitEnginePool import bond_valence_constraint
 
 ##matching index##
 """
@@ -292,16 +291,35 @@ for i in range(DOMAIN_NUMBER):
 ######################find the coordinating atoms for each constituent atom#####################
 if USE_BV:
     for i in range(DOMAIN_NUMBER):
-        domain_type = [half_layer_pick[i],full_layer_pick[i]][int(DOMAIN[i]==2)]
-        vars()['bv_constraint_domain{}'.format(i+1)] = \
-            bond_valence_constraint.factory_function_hematite_rcut(r0_container = R0_BV,\
-                                                                domain=vars()['domain_class_{}'.format(i+1)].domainA, \
-                                                                lattice_abc = np.array([unitcell.a, unitcell.b, unitcell.c]), \
-                                                                domain_index = i,\
-                                                                domain_type= domain_type, \
-                                                                sorbate_list=vars()['SORBATE_list_domain{}a'.format(i+1)], \
-                                                                HO_list=vars()['HO_list_domain{}a'.format(i+1)], \
-                                                                Os_list=vars()['Os_list_domain{}a'.format(i+1)])
+        lib_sorbate={}
+        if SORBATE_NUMBER[i]!=0:
+            lib_sorbate=domain_creator.create_sorbate_match_lib4_test(metal=SORBATE_LIST[i],\
+                                                                      HO_list=vars()['HO_list_domain'+str(int(i+1))+'a'],\
+                                                                      anchors=SORBATE_ATTACH_ATOM[i],\
+                                                                      anchor_offsets=SORBATE_ATTACH_ATOM_OFFSET[i],\
+                                                                      domain_tag=i+1)
+        if DOMAIN[i]==1:
+            rem_atom_ids = {3:['Fe1_2_0_D'+str(int(i+1))+'A','Fe1_3_0_D'+str(int(i+1))+'A'],
+                            2:['Fe1_8_0_D'+str(int(i+1))+'A','Fe1_9_0_D'+str(int(i+1))+'A']}[half_layer_pick[i]]
+
+            vars()['match_lib_'+str(int(i+1))+'A']=domain_creator.create_match_lib_before_fitting\
+                           (\
+                             search_range=2.3,\
+                             atm_list=vars()['atm_list_'+str(int(i+1))+'A'],\
+                             domain_class=vars()['domain_class_'+str(int(i+1))],\
+                             domain=vars()['domain_class_'+str(int(i+1))].build_super_cell(ref_domain=vars()['domain_class_'+str(int(i+1))].create_equivalent_domains_2()[0],\
+                                                                                           rem_atom_ids=rem_atom_ids)\
+                           )
+        elif DOMAIN[i]==2:
+            vars()['match_lib_'+str(int(i+1))+'A']=domain_creator.create_match_lib_before_fitting\
+                            (\
+                             search_range = 2.3,\
+                             atm_list=vars()['atm_list_'+str(int(i+1))+'A'],\
+                             domain_class=vars()['domain_class_'+str(int(i+1))],\
+                             domain=vars()['domain_class_'+str(int(i+1))].build_super_cell(ref_domain=vars()['domain_class_'+str(int(i+1))].create_equivalent_domains_2()[0],\
+                                                                                           rem_atom_ids=None)\
+                            )
+        vars()['match_lib_'+str(int(i+1))+'A']=domain_creator.merge_two_libs(vars()['match_lib_'+str(int(i+1))+'A'],lib_sorbate)
 
 #set up multiple domains
 #note for each domain there are two sub domains which symmetrically related to each other, so have equivalent wt
@@ -348,7 +366,15 @@ def Sim(data):
         
         #calculate bv panelty factor
         if USE_BV and i in DOMAINS_BV:
-            bv += VARS['bv_constraint_domain{}'.format(i+1)].cal_distance()
+            bv_temp,bv_container_temp=setup_domain_hematite_rcut.calculate_BV_sum_in_SIM(i,VARS)
+            bv=bv+bv_temp
+            if debug_bv:
+                for key in bv_container_temp.keys():bv_container[key]=bv_container_temp[key]
+    if debug_bv:
+        print("Print out the species, which are not under bond valence saturation")
+        for i in bv_container.keys():
+            if bv_container[i]!=0:
+                print(i,"BV after considering penalty",bv_container[i])
 
     i=0
     for data_set in data:

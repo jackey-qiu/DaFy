@@ -3,6 +3,8 @@ import pyqtgraph.opengl as gl
 import numpy as np
 from pyqtgraph.Qt import QtGui
 import copy
+from scipy.spatial.distance import pdist
+import itertools
 
 #color_lib = {'C':(1,0,0,1),'O':(0,1,0,1),'Cu':(1,0,1,1)}
 # color_lib = {'C':0xFFFFFF,'O':(0,1,0,1),'Cu':(1,0,1,1)}
@@ -115,7 +117,35 @@ color_lib = {
     "ES": "B31FD4",
     "FM": "B31FBA",
 }
-
+As_O=1.68
+Cr_O=1.64
+Cd_O=2.31
+Cu_O=2.09
+Zn_O=2.11
+Fe_O=2.02
+Pb_O=2.19
+Sb_O=2.04
+P_O=1.534
+covalent_bond_length = {
+    ('Cu','O'):2.2,
+    ('O','Cu'):2.2,
+    ('As','O'):1.9,
+    ('O','As'):1.9,
+    ('Fe','O'):2.5,
+    ('O','Fe'):2.5,
+    ('Pb','O'):2.3,
+    ('O','Pb'):2.3,
+    ('Sb','O'):2.2,
+    ('O','Sb'):2.2,
+    ('C','O'):1.4,
+    ('O','C'):1.4,
+    ('Cr','O'):1.8,
+    ('O','Cr'):1.8,
+    ('Zn','O'):2.3,
+    ('O','Zn'):2.3,
+    ('Cd','O'):2.5,
+    ('O','Cd'):2.5
+}
 class GLViewWidget_cum(gl.GLViewWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
@@ -123,6 +153,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
         #if need a parallel view, set dis=2000, fov=1
         self.opts['distance'] = 25
         self.opts['fov'] = 60
+        self.grid_num = 15
+        self.abc = np.array([5.038,5.434,7.3707])
 
     def draw_chemical_bond(self,v1, v2, color = (1,0,0,0.8),mesh_item = None):
         dist = np.linalg.norm(np.array(v1)-np.array(v2))
@@ -144,41 +176,87 @@ class GLViewWidget_cum(gl.GLViewWidget):
         item2 = self.draw_chemical_bond(v12,v2,colors[1],mesh_items[1]) 
         return item1, item2
 
-    def show_structure(self, xyz, bond_index= None, a = 3.615, grid_num = 15):
+    def make_super_cell(self,super_cell_size = [3,3,1]):
+        a,b,c = self.abc
+        x,y,z = np.array(super_cell_size) + 1
+        items = []
+        for i in range(z):
+            new_grid = gl.GLGridItem()
+            new_grid.scale(a,b,0)
+            new_grid.setSize(x-1,y-1,0)
+            if (x-1)%2!=0:
+                new_grid.translate(0.5*a,0,0)
+            if (y-1)%2!=0:
+                new_grid.translate(0,0.5*b,0)
+            new_grid.translate(0,0,i*c)
+            items.append(new_grid)
+        for i in range(x):
+            new_grid = gl.GLGridItem()
+            new_grid.scale(c,b,0)
+            new_grid.rotate(90, 0, 1, 0)
+            new_grid.setSize(z-1,y-1,0)
+            new_grid.translate(0,0,(z-1)/2*c)
+            if (x-1)%2!=0:
+                new_grid.translate(0.5*a+i*a-(x-1)/2*a,0,0)
+            else:
+                new_grid.translate(i*a-(x-1)/2*a,0,0)
+            if (y-1)%2!=0:
+                new_grid.translate(0,0.5*b,0)
+            items.append(new_grid)
+
+        for i in range(y):
+            new_grid = gl.GLGridItem()
+            new_grid.scale(a,c,0)
+            new_grid.rotate(90, 1, 0, 0)
+            new_grid.setSize(x-1,z-1,0)
+            new_grid.translate(0,0,(z-1)/2*c)
+            if (y-1)%2!=0:
+                new_grid.translate(0,0.5*b+i*b-(y-1)/2*b,0)
+            else:
+                new_grid.translate(0,i*b-(y-1)/2*b,0)
+            if (x-1)%2!=0:
+                new_grid.translate(0.5*a,0,0)
+            items.append(new_grid)
+        self.grid_num = len(items)
+
+        return items
+
+    def show_structure(self, xyz, bond_index= None):
         # self.setCameraPosition(distance=55, azimuth=-90)
         # self.setCameraPosition(azimuth=0)
         # self.setProjection()
+        a,b,c = self.abc
         ii=0
+        xyz_values = []
+        el_list = []
         if len(self.items)==0:
-            for i in range(5):
-                new_xgrid, new_ygrid, new_zgrid = gl.GLGridItem(),gl.GLGridItem(),gl.GLGridItem()
-                new_xgrid.setSize(4,4,4)
-                new_ygrid.setSize(4,4,4)
-                new_zgrid.setSize(4,4,4)
-
-                # Rotate x and y grids to face the correct direction
-                new_xgrid.rotate(90, 0, 1, 0)
-                new_ygrid.rotate(90, 1, 0, 0)
-    
-                # Scale grids to the appropriate dimensions
-                new_xgrid.scale(a, a, a)
-                new_ygrid.scale(a, a, a)
-                new_zgrid.scale(a, a, a)
-                new_xgrid.translate((-2+i)*a,0,0)
-                new_ygrid.translate(0,(-2+i)*a,0)
-                new_zgrid.translate(0,0,(-2+i)*a)
-                self.addItem(new_xgrid)
-                self.addItem(new_ygrid)
-                self.addItem(new_zgrid)
-
+            for each in self.make_super_cell():
+                self.addItem(each)
             for each in xyz:
                 e, x, y, z = each
                 md = gl.MeshData.sphere(rows=10, cols=20)
                 m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color_to_rgb(color_lib[e.upper()]), shader='shaded', glOptions='opaque')
                 # print(dir(m1.metaObject()))
                 m1.translate(x, y, z)
-                m1.scale(0.5, 0.5, 0.5)
+                m1.scale(0.6, 0.6, 0.6)
                 self.addItem(m1)
+                xyz_values.append([x,y,z])
+                el_list.append(e)
+            dist_container = pdist(np.array(xyz_values),'euclidean')
+            index_all = list(itertools.combinations(range(len(xyz_values)),2))
+            index_dist_all = np.where(dist_container<3)[0]
+            bond_index_all = [index_all[each] for each in np.where(dist_container<3)[0]]
+            bond_index = []
+            for i in range(len(bond_index_all)):
+                each = bond_index_all[i]
+                if el_list[each[0]]!=el_list[each[1]]:
+                    try:
+                        bond_length = covalent_bond_length[(el_list[each[0]],el_list[each[1]])]
+                        if dist_container[index_dist_all[i]]<bond_length:
+                            bond_index.append(each)
+                    except:
+                        pass
+            
             if bond_index!=None:
                 for each_bond_index in bond_index:
                     v1 = np.array(xyz[each_bond_index[0]][1:])
@@ -192,79 +270,40 @@ class GLViewWidget_cum(gl.GLViewWidget):
             for each in xyz:
                 _,x,y,z = each
                 #first item is grid net
-                self.items[ii+grid_num].resetTransform()
-                self.items[ii+grid_num].translate(x,y,z)
-                self.items[ii+grid_num].scale(0.5, 0.5, 0.5)
+                self.items[ii+self.grid_num].resetTransform()
+                self.items[ii+self.grid_num].translate(x,y,z)
+                self.items[ii+self.grid_num].scale(0.5, 0.5, 0.5)
                 ii += 1
             if bond_index!=None:
                 for each_bond_index in bond_index:
-                    self.items[ii+grid_num].resetTransform()
-                    self.items[ii+grid_num+1].resetTransform()
+                    self.items[ii+self.grid_num].resetTransform()
+                    self.items[ii+self.grid_num+1].resetTransform()
                     v1 = np.array(xyz[each_bond_index[0]][1:])
                     v2 = np.array(xyz[each_bond_index[1]][1:])
                     color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
                     color2= color_to_rgb(color_lib[xyz[each_bond_index[1]][0].upper()])
-                    items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+grid_num],self.items[ii+grid_num+1]])
-                    self.items[ii+grid_num], self.items[ii+grid_num+1]= items
+                    items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+self.grid_num],self.items[ii+self.grid_num+1]])
+                    self.items[ii+self.grid_num], self.items[ii+self.grid_num+1]= items
                     ii +=2
         self.setProjection()
 
-    def update_structure(self, xyz, bond_index= None, grid_number=15):
+    def update_structure(self, xyz, bond_index= None):
         for i in range(len(xyz)):
             _,x,y,z = xyz[i]
             #first item is grid net
-            self.items[i+grid_number].resetTransform()
-            self.items[i+grid_number].translate(x,y,z)
-            self.items[i+grid_number].scale(0.5, 0.5, 0.5)
+            self.items[i+self.grid_num].resetTransform()
+            self.items[i+self.grid_num].translate(x,y,z)
+            self.items[i+self.grid_num].scale(0.5, 0.5, 0.5)
         if bond_index!=None:
             ii=1
             for each_bond_index in bond_index:
-                self.items[ii+i+grid_number].resetTransform()
-                self.items[ii+i+grid_number+1].resetTransform()
+                self.items[ii+i+self.grid_num].resetTransform()
+                self.items[ii+i+self.grid_num+1].resetTransform()
                 v1 = np.array(xyz[each_bond_index[0]][1:])
                 v2 = np.array(xyz[each_bond_index[1]][1:])
                 color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
                 color2= color_to_rgb(color_lib[xyz[each_bond_index[1]][0].upper()])
-                items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+i+grid_number],self.items[ii+i+grid_number+1]])
-                self.items[ii+i+grid_number],self.items[ii+i+grid_number+1] = items
+                items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1]])
+                self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1] = items
                 # self.items[ii+i+grid_number].scale(0.3,0.3,0.3)
                 ii +=2
-
-    def setup_view(self):
-        self.setCameraPosition(distance=15, azimuth=-90)
-        g = gl.GLGridItem()
-        g.scale(2,2,1)
-        self.addItem(g)
-
-        md = gl.MeshData.sphere(rows=10, cols=20)
-        x = np.linspace(-8, 8, 6)
-
-        m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=(1, 0, 0), shader='balloon', glOptions='additive')
-        m1.translate(x[0], 0, 0)
-        m1.scale(1, 1, 2)
-        self.addItem(m1)
-
-        m2 = gl.GLMeshItem(meshdata=md, smooth=True, shader='normalColor', glOptions='opaque')
-        m2.translate(x[1], 0, 0)
-        m2.scale(1, 1, 2)
-        self.addItem(m2)
-
-        m3 = gl.GLMeshItem(meshdata=md, smooth=True, shader='viewNormalColor', glOptions='opaque')
-        m3.translate(x[2], 0, 0)
-        m3.scale(1, 1, 2)
-        self.addItem(m3)
-
-        m4 = gl.GLMeshItem(meshdata=md, smooth=True, shader='shaded', glOptions='opaque')
-        m4.translate(x[3], 0, 0)
-        m4.scale(1, 1, 2)
-        self.addItem(m4)
-
-        m5 = gl.GLMeshItem(meshdata=md, smooth=True, color=(1, 0, 0, 1), shader='edgeHilight', glOptions='opaque')
-        m5.translate(x[4], 0, 0)
-        m5.scale(1, 1, 2)
-        self.addItem(m5)
-
-        m6 = gl.GLMeshItem(meshdata=md, smooth=True, color=(1, 0, 0, 1), shader='heightColor', glOptions='opaque')
-        m6.translate(x[5], 0, 0)
-        m6.scale(1, 1, 2)
-        self.addItem(m6)

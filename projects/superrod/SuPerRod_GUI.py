@@ -868,10 +868,8 @@ class MyMainWindow(QMainWindow):
                     pass
             else:
                 self.init_structure_view()
-            # print("sensor9")
             self.statusbar.clearMessage()
             self.update_combo_box_list_par_set()
-            # print("sensor10")
             self.statusbar.showMessage("Model is simulated successfully!")
         except model.ModelError as e:
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
@@ -1213,10 +1211,19 @@ class MyMainWindow(QMainWindow):
             domain_tag = size_domain -1
         else:
             pass
+        self.widget_edp.items = []
+        self.widget_msv_top.items = []
+        self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
+        self.widget_msv_top.abc = self.widget_edp.abc
         xyz = self.model.script_module.sample.extract_xyz(domain_tag)
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
+
+        xyz,bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
+        self.widget_msv_top.show_structure(xyz,bond_index)
+        self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
+        self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
         try:
             xyz,bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
             self.widget_msv_top.show_structure(xyz,bond_index)

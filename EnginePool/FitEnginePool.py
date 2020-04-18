@@ -224,6 +224,14 @@ class bond_valence_constraint(object):
             rem_atom_ids = rem_atom_ids + HO_list[0:int(len(HO_list)/2)]
         if len(Os_list)!=0:
             rem_atom_ids = rem_atom_ids + Os_list[0:int(len(Os_list)/2)]
+        #now let's remove the second slab, note the sequence of the layer: slab1 -- > slab 2 -- > sorbates (including water)
+        num_sorbates = len(sorbate_list) + len(HO_list) + len(Os_list)
+        if num_sorbates == 0:
+            rem_atom_ids = rem_atom_ids + list(domain.id)[-28:-1] + [domain.id[-1]]
+        else:
+            rem_atom_ids = rem_atom_ids + list(domain.id)[-(28+num_sorbates):-num_sorbates]
+        #setup this attribute for structue view
+        domain.rem_atom_ids = rem_atom_ids
         return cls(r0_container, domain, lattice_abc, waiver_ids = rem_atom_ids)
 
     def init_super_domain(self):

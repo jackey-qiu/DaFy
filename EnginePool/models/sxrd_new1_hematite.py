@@ -255,14 +255,41 @@ class Sample:
 
     def extract_xyz(self, which_domain = 0):
         xyz_list = []
+        # z_min = 100000
         for i in range(len(self.domain['domain{}'.format(which_domain+1)].domainA.id)):
-            el = self.domain['domain{}'.format(which_domain+1)].domainA.el[i]
-            x_, y_, z_ = self._extract_coord(self.domain['domain{}'.format(which_domain+1)].domainA, self.domain['domain{}'.format(which_domain+1)].domainA.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
-            translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
-            for each in translation_offsets:
-                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                xyz_list.append((el, x, y, z))
+            #note the rem_atom_ids is set up in the bond valence setup procedure
+            if self.domain['domain{}'.format(which_domain+1)].domainA.id[i] not in self.domain['domain{}'.format(which_domain+1)].domainA.rem_atom_ids:
+                el = self.domain['domain{}'.format(which_domain+1)].domainA.el[i]
+                x_, y_, z_ = self._extract_coord(self.domain['domain{}'.format(which_domain+1)].domainA, self.domain['domain{}'.format(which_domain+1)].domainA.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                # if z_<z_min:
+                    # z_min = z_
+                translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                for each in translation_offsets:
+                    x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                    xyz_list.append([el, x, y, z])
+        for i in range(len(xyz_list)):
+            xyz_list[i][-1] = xyz_list[i][-1]-self.unit_cell.c
+            
         return xyz_list
+
+    def extract_xyz_top(self, which_domain = 0):
+        xyz_list = []
+        # z_min = 100000
+        for i in range(len(self.domain['domain{}'.format(which_domain+1)].domainA.id)):
+            #note the rem_atom_ids is set up in the bond valence setup procedure
+            if self.domain['domain{}'.format(which_domain+1)].domainA.id[i] not in self.domain['domain{}'.format(which_domain+1)].domainA.rem_atom_ids:
+                el = self.domain['domain{}'.format(which_domain+1)].domainA.el[i]
+                x_, y_, z_ = self._extract_coord(self.domain['domain{}'.format(which_domain+1)].domainA, self.domain['domain{}'.format(which_domain+1)].domainA.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                # if z_<z_min:
+                    # z_min = z_
+                translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                for each in translation_offsets:
+                    x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                    xyz_list.append([el, x, y, z])
+        for i in range(len(xyz_list)):
+            xyz_list[i][-1] = xyz_list[i][-1]-self.unit_cell.c
+            
+        return xyz_list,None
 
     def calc_f(self, h, k, l):
         '''Calculate the structure factors for the sample
