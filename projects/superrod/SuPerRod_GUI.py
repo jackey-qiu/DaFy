@@ -1219,13 +1219,13 @@ class MyMainWindow(QMainWindow):
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
 
-        xyz,bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
-        self.widget_msv_top.show_structure(xyz,bond_index)
+        xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+        self.widget_msv_top.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
         try:
-            xyz,bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
-            self.widget_msv_top.show_structure(xyz,bond_index)
+            xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+            self.widget_msv_top.show_structure(xyz)
             self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
             self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
         except:
@@ -1252,8 +1252,8 @@ class MyMainWindow(QMainWindow):
             xyz = self.model.script_module.sample.extract_xyz(domain_tag)
             self.widget_edp.update_structure(xyz)
             try:
-                xyz, bond_index = self.model.script_module.sample.extract_xyz_top(domain_tag)
-                self.widget_msv_top.update_structure(xyz, bond_index)
+                xyz, _ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+                self.widget_msv_top.update_structure(xyz)
             except:
                 pass
         except Exception as e:

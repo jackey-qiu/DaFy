@@ -221,7 +221,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
         return items
 
-    def show_structure(self, xyz, bond_index= None):
+    def show_structure(self, xyz):
         # self.setCameraPosition(distance=55, azimuth=-90)
         # self.setCameraPosition(azimuth=0)
         # self.setProjection()
@@ -288,7 +288,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     ii +=2
         self.setProjection()
 
-    def update_structure(self, xyz, bond_index= None):
+    def update_structure(self, xyz):
         for i in range(len(xyz)):
             _,x,y,z = xyz[i]
             #first item is grid net

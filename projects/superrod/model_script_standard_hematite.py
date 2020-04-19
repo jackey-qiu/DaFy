@@ -385,6 +385,9 @@ def Sim(data):
             fom_scaler.append(1)
 
     #model files output (structure and bestfit results)
+    #The following scripts are commented out since they are not well tested! But these scripts could be useful in the future.
+    #Of cause, you need to debug these old API functions to get them work.
+    """
     if PRINT_MODEL_FILES:
         for i in range(DOMAIN_NUMBER):
             #make sure you have the test.tab file in the specified folder to output file for publication
@@ -404,6 +407,6 @@ def Sim(data):
     if PLOT:
         z_min,z_max=0,40
         setup_domain_hematite_rcut.plot_ctr_raxr_e_profiles(model,inst, bulk, domain, unitcell,COHERENCE,data,beta,VARS,E0,F1F2,RAXR_FIT_MODE,RESONANT_EL_LIST,SCALES,output_file_path,RAXR_EL,exp_const,rgh,re,auc,z_min,z_max,SURFACE_PARMS)
-
+    """
     #you may play with the weighting rule by setting eg 2**bv, 5**bv for the wt factor, that way you are pushing the GenX to find a fit btween a good fit (low wt factor) and a reasonable fit (high wt factor)
     return F,1+WT_BV*bv,fom_scaler
