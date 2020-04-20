@@ -62,6 +62,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_load_config.clicked.connect(self.load_config)
         self.pushButton_save_config.clicked.connect(self.save_config)
         self.pushButton_save_data.clicked.connect(self.save_data_method)
+        self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
         self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
         self.data = None
         self.data_summary = {} 
@@ -82,7 +83,43 @@ class MyMainWindow(QMainWindow):
             # print(self.data_to_save[each])
             self.data_to_save[each].to_csv(os.path.join(self.lineEdit_data_file_path.text(), self.lineEdit_data_file_name.text()+'_{}.csv'.format(each)),header = False, sep =' ',index=False)
 
-
+    def save_xrv_data(self):
+        key_map_lib = {
+                       'peak_intensity':1,
+                       'strain_oop':2,
+                       'strain_ip':3,
+                       'grain_size_ip':4,
+                       'grain_size_oop':5
+                       }
+        scan = self.scans
+        ph = self.phs
+        data_range = self.data_range
+        data = self.data_to_plot
+        for i in range(len(scan)):
+            scan_ = scan[i]
+            ph_ = ph[i]
+            data_range_ = data_range[i]
+            data_ = data[scan_]
+            temp_data = {'potential':[],
+                         'scan_no':[],
+                         'items':[],
+                         'Y':[],
+                         'I':[],
+                         'eI':[],
+                         'e1':[],
+                         'e2':[]}
+            for key in key_map_lib:
+                temp_data['potential'] = temp_data['potential'] + list(data_['potential'][data_range_[0]:])
+                temp_data['eI'] = temp_data['eI'] + [0]*len(data_['potential'][data_range_[0]:])
+                temp_data['Y'] = temp_data['Y'] + [0]*len(data_['potential'][data_range_[0]:])
+                temp_data['e1'] = temp_data['e1'] + [0]*len(data_['potential'][data_range_[0]:])
+                temp_data['e2'] = temp_data['e2'] + [0]*len(data_['potential'][data_range_[0]:])
+                temp_data['items'] = temp_data['items'] + [key_map_lib[key]]*len(data_['potential'][data_range_[0]:])
+                temp_data['scan_no'] = temp_data['scan_no'] + [scan_]*len(data_['potential'][data_range_[0]:])
+                temp_data['I'] = temp_data['I'] + list(data_[key][data_range_[0]:])
+            df = pd.DataFrame(temp_data)
+            df.to_csv(os.path.join(self.lineEdit_data_file_path.text(), self.lineEdit_data_file_name.text()+'_{}.csv'.format(scan_)),\
+                      header = False, sep =' ',columns = list(temp_data.keys()), index=False)
 
     def load_config(self):
         options = QFileDialog.Options()
@@ -118,8 +155,6 @@ class MyMainWindow(QMainWindow):
                 except:
                     f.write(channel+':'+getattr(self,channel).text()+'\n')
             
-
-
     def set_plot_channels(self):
         xrv = self.radioButton_xrv.isChecked()
         time_scan = self.checkBox_time_scan.isChecked()
@@ -191,7 +226,6 @@ class MyMainWindow(QMainWindow):
 
         self.textEdit_summary_data.setText('\n'.join([col_labels,str(self.hk_list),str(self.potentials)]))
 
-        
     #to fold or unfold the config file editor
     def fold_or_unfold(self):
         text = self.PushButton_fold_or_unfold.text()

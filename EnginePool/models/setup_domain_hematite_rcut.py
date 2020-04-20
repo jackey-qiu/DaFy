@@ -1212,10 +1212,10 @@ def setup_sorbate_OS_new(VARS,i,j):
     VARS['OS_Z_REF']
 
     setattr(domain_class,'sorbate_info',{})
-    
-    for key in locals():
+    LOCALS = locals() 
+    for key in LOCALS:
         if key not in ['rgh','domain_class']:
-            domain_class.sorbate_info[key] = locals()[key] 
+            domain_class.sorbate_info[key] = LOCALS[key] 
     
     domain_class.binding_type = 'OS'
     domainA, domainB = domain_class.domainA, domain_class.domainB

@@ -405,7 +405,7 @@ class MyMainWindow(QMainWindow):
                     if num_plots_>10:
                         columns = 4
                     else:
-                        columns = 3
+                        columns = 2
         elif self.num_screens_plot==1:#only one screen
             if total_datasets==self.max_num_plots_per_screen:
                 num_plots_on_current_screen = self.max_num_plots_per_screen
@@ -415,7 +415,7 @@ class MyMainWindow(QMainWindow):
                 if total_datasets>10:
                     columns = 4
                 else:
-                    columns = 3
+                    columns = 2
 
         #current list of ax handle
         self.num_plots_on_current_screen = num_plots_on_current_screen
@@ -1029,17 +1029,19 @@ class MyMainWindow(QMainWindow):
                     #if name in current_data_set_name:
                     name = name + '_{}'.format(tag)
                     self.model.data.add_new(name = name)
-                    self.model.data.items[-1].x = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['X'].to_numpy()
-                    self.model.data.items[-1].y = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['I'].to_numpy()
-                    self.model.data.items[-1].error = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['eI'].to_numpy()
-                    self.model.data.items[-1].x_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['X'].to_numpy()
-                    self.model.data.items[-1].y_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['I'].to_numpy()
-                    self.model.data.items[-1].error_raw = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['eI'].to_numpy()
-                    self.model.data.items[-1].set_extra_data(name = 'h', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['h'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'k', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['k'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'Y', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['Y'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'LB', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['LB'].to_numpy())
-                    self.model.data.items[-1].set_extra_data(name = 'dL', value = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]['dL'].to_numpy())
+                    sub_data = data_loaded_pd[(data_loaded_pd['h']==h_temp) & (data_loaded_pd['k']==k_temp)& (data_loaded_pd['Y']==Y_temp)]
+                    sub_data.sort_values(by='X',inplace =True)
+                    self.model.data.items[-1].x = sub_data['X'].to_numpy()
+                    self.model.data.items[-1].y = sub_data['I'].to_numpy()
+                    self.model.data.items[-1].error = sub_data['eI'].to_numpy()
+                    self.model.data.items[-1].x_raw = sub_data['X'].to_numpy()
+                    self.model.data.items[-1].y_raw = sub_data['I'].to_numpy()
+                    self.model.data.items[-1].error_raw = sub_data['eI'].to_numpy()
+                    self.model.data.items[-1].set_extra_data(name = 'h', value = sub_data['h'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'k', value = sub_data['k'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'Y', value = sub_data['Y'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'LB', value = sub_data['LB'].to_numpy())
+                    self.model.data.items[-1].set_extra_data(name = 'dL', value = sub_data['dL'].to_numpy())
                     self.model.data.items[-1].mask = np.array([True]*len(self.model.data.items[-1].x))
         #now remove the empty datasets
         empty_data_index = []
