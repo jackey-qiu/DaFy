@@ -280,6 +280,7 @@ def set_max_to_0(data_list,slice_index,ref_at_0 = 1):
     else:
         return np.array(data_list)[slice_index[0]:slice_index[1]]
 
+#data format based on the output of IVIUM potentiostat
 def extract_ids_file(file_path,which_cycle=3):
     data = []
     data_lines =[]
@@ -299,7 +300,8 @@ def extract_ids_file(file_path,which_cycle=3):
                     pass
             else:
                 pass
-    return np.array(data)[:,0], np.array(data)[:,1]
+    #return (pot: V, current: mA)
+    return np.array(data)[:,0], np.array(data)[:,1]*1000
 
 #data format based on Fouad's potentiostat
 def extract_cv_data(file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
@@ -335,20 +337,71 @@ file_names_ph13_2=['053_S228_CV','054_S229_CV']
 file_names_ph13_3=['060_S236_CV','061_S237_CV']                                                                               
 file_names_ph13_4=['065_S244_CV','066_S245_CV']  
 file_names_ph13_all=['039_S201_CV','053_S228_CV','060_S236_CV','065_S244_CV']
-file_names_different_phs=['047_S220_CV','053_S228_CV','056_S230_CV','060_S236_CV','063_S242_CV','065_S244_CV'] 
+file_names_different_phs=['048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','065_S244_CV'] 
 
-def plot_cvs_together(file_head, file_names, phs, labels,func=extract_cv_data, which_cycle=1):
+def plot_cvs_together(file_head, file_names, phs, labels,func=extract_cv_data, which_cycle=1, which_plot = 'all',cv_scale_factor = 25,cv_spike_cut = 0.01):
     fig = plt.figure(figsize=(6,6))
     ax = fig.add_subplot(111)
     ax.set_xlabel(r'E / V$_{RHE}$')
     ax.set_ylabel(r'j / mAcm$^{-2}$')
-    for i in range(len(file_names)):
+    if which_plot=='all':
+        plot_index_list = range(len(file_names))
+    else:
+        plot_index_list = [which_plot]
+    for i in plot_index_list:
+
         file = os.path.join(file_head, file_names[i])
         pot,current = func(file, which_cycle)
-        pot = RHE(pot,pH=phs[i])
-        ax.plot(pot,current*8,label =labels[i])
+        pot_filtered, current_filtered = pot, current
+        for ii in range(4):
+            filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
+            
+            filter_index = filter_index+1#index offset by 1
+            pot_filtered = pot_filtered[(filter_index,)]
+            current_filtered = current_filtered[(filter_index,)]
+        pot_filtered = RHE(pot_filtered,pH=phs[i])
+        ax.plot(pot_filtered,current_filtered*8*cv_scale_factor,label =labels[i])
+        ax.plot(RHE(pot,pH=phs[i]),current*8,label='')
+        ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
     plt.legend()
     plt.show()
+
+
+plot_lib = {
+            221:['048_S221_CV',1,0.002,30,'g',10],#data from I20180835, Co3O4
+            229:['054_S229_CV',2,0.002,30,'r',13],#data from I20180835, Co3O4
+            231:['057_S231_CV',2,0.002,30,'b',8],#data from I20180835, Co3O4
+            236:['060_S236_CV',2,0.002,30,'r',13],#data from I20180835, Co3O4
+            243:['064_S243_CV',2,0.002,30,'m',7],#data from I20180835, Co3O4
+            244:['065_S244_CV',2,0.002,30,'r',13],#data from I20180835, Co3O4
+            805:['023.ids',2,0.2,100,'r',13],#data from I20180114, CoOOH
+            807:['025.ids',2,0.2,100,'b',8]#data from I20180114, CoOOH
+           }
+
+def data_viewer_plot_cv(ax,scan_no,marker_pos,plot_lib=plot_lib):
+    file_name,which_cycle,cv_spike_cut,cv_scale_factor,color,ph = plot_lib[scan_no]
+    if scan_no not in [805,807]:
+        file = os.path.join('/Users/cqiu/data/I20180835_Jul_2019_CVs', file_name)
+        pot,current = extract_cv_data(file, which_cycle)
+    else:
+        file = os.path.join('/Users/cqiu/data/I20180114_CVs', file_name)
+        pot,current = extract_ids_file(file, which_cycle)
+
+    pot_filtered, current_filtered = pot, current
+    for ii in range(4):
+        filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
+        filter_index = filter_index+1#index offset by 1
+        pot_filtered = pot_filtered[(filter_index,)]
+        current_filtered = current_filtered[(filter_index,)]
+    pot_filtered = RHE(pot_filtered,pH=ph)
+    ax.plot(pot_filtered,current_filtered*8*cv_scale_factor,label='',color = color)
+    ax.plot(RHE(pot,pH=ph),current*8,label='',color = color)
+    ax.text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
+    for each in marker_pos:
+        ax.plot([each,each],[-100,100],':k')
+    #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
+    return min(current_filtered*8*cv_scale_factor),max(current*8)
+
 
 def ir_drop_analysis(pot, current,pot_first, half = 1):
     #half:1 or 2 (which half of the CV profile)

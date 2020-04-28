@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1440</width>
-    <height>830</height>
+    <height>1133</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -782,7 +782,7 @@
   <action name="actionOpenConfig">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/blue-folder--arrow.png</normalon>
+     <normalon>../../../../../icons/blue-folder--arrow.png</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -792,7 +792,7 @@
   <action name="actionSaveConfig">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/application-dock-270.png</normalon>
+     <normalon>../../../../../icons/application-dock-270.png</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -802,8 +802,8 @@
   <action name="actionRun">
    <property name="icon">
     <iconset>
-     <normaloff>../../../icons/clapperboard--arrow.png</normaloff>
-     <normalon>../../../icons/battery-charge.png</normalon>../../../icons/clapperboard--arrow.png</iconset>
+     <normaloff>../../../../../icons/clapperboard--arrow.png</normaloff>
+     <normalon>../../../../../icons/battery-charge.png</normalon>../../../../../icons/clapperboard--arrow.png</iconset>
    </property>
    <property name="text">
     <string>Run</string>
@@ -812,7 +812,7 @@
   <action name="actionSaveData">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/disc--plus.png</normalon>
+     <normalon>../../../../../icons/disc--plus.png</normalon>
     </iconset>
    </property>
    <property name="text">
@@ -822,7 +822,7 @@
   <action name="actionStop">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/clapperboard--minus.png</normalon>
+     <normalon>../../../../../icons/clapperboard--minus.png</normalon>
     </iconset>
    </property>
    <property name="text">

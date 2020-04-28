@@ -2,20 +2,23 @@ try:
     import ConfigParser
 except:
     import configparser as ConfigParser
-import sys
+import sys,os
 sys.path.append('../../..')
 sys.path.append('..')
-import XRD_tools.reciprocal_space_v5 as rsp
+import reciprocal_space_v5 as rsp
 import numpy as np
-
+try:
+    from . import locate_path
+except:
+    import locate_path
+script_path = locate_path.module_path_locator()
 
 config = ConfigParser.RawConfigParser()
 config.optionxform = str # make entries in config file case sensitive
 
-config.read('settings/Co_Oxides_Au111.cfg')
+config.read(os.path.join(script_path,'settings/Co_Oxides_Au111.cfg'))
 #config.read('settings/Co_Oxides_Au001.cfg')
 #config.read('settings/Ni_Oxides_Au111.cfg')
-sys.path.append('..')
 #config.read('settings/Fe_Oxides_Au111.cfg')
 
 common_offset_angle = float(config.get('Plot', 'common_offset_angle'))
@@ -73,7 +76,7 @@ for base_structure in base_structures_:
     toks = base_structure[1].split(',')
     if(len(toks) == 2):
         id = toks[0]
-        base_structures[id] = Base_Structure.from_cif(id, toks[1])
+        base_structures[id] = Base_Structure.from_cif(id, os.path.join(script_path,toks[1]))
     else:
         id = toks[0]
         a = float(toks[1])
@@ -155,7 +158,7 @@ if(mag_q_lims[0] == None or mag_q_lims[1] == None):
 # start visualisation  
 from mayavi import mlab
 from tvtk.tools import visual
-import XRD_tools.reciprocal_space_plot_v4 as rsplt
+import reciprocal_space_plot_v4 as rsplt
 
 try:
     engine = mayavi.engine

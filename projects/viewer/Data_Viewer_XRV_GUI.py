@@ -1,4 +1,4 @@
-import sys,os
+import sys,os,qdarkstyle
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
@@ -29,12 +29,13 @@ from scipy import signal
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_new.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer__xrv_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
-        self.setWindowTitle('XRV and CTR data Viewer')
-        self.set_plot_channels()
+        self.setWindowTitle('XRV data Viewer')
         self.data_to_save = {}
+        self.image_range_info = {}
+        self.lineEdit_data_file_name.setText(os.path.join(DaFy_path,'dump_files','temp_xrv.csv'))
         #pot_offset is the difference between the spock value and those recorded by potentiostat
         #you need some calibration step to figure out this value not necessarily always 0.055 V
         #the correction will be real_pot = spock_value + pot_offset
@@ -55,26 +56,35 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         self.open.clicked.connect(self.load_file)
-        self.plot.clicked.connect(self.plot_figure)
-        # self.apply.clicked.connect(self.replot_figure)
-        self.PushButton_append_scans.clicked.connect(self.append_scans)
-        self.pushButton_filePath.clicked.connect(self.locate_data_folder)
-        self.PushButton_fold_or_unfold.clicked.connect(self.fold_or_unfold)
+        self.actionPlotData.triggered.connect(self.plot_figure_xrv)
+        self.actionPlotRate.triggered.connect(self.plot_data_summary_xrv)
+        self.actionSaveData.triggered.connect(self.save_xrv_data)
+        self.PushButton_append_scans.clicked.connect(self.append_scans_xrv)
         self.checkBox_time_scan.clicked.connect(self.set_plot_channels)
-        self.radioButton_ctr.clicked.connect(self.set_plot_channels)
-        self.radioButton_xrv.clicked.connect(self.set_plot_channels)
-        self.checkBox_mask.clicked.connect(self.append_scans)
+        self.checkBox_mask.clicked.connect(self.append_scans_xrv)
         self.pushButton_load_config.clicked.connect(self.load_config)
         self.pushButton_save_config.clicked.connect(self.save_config)
-        self.pushButton_save_data.clicked.connect(self.save_data_method)
-        self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
-        self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
+        self.pushButton_update.clicked.connect(self.update_plot_range)
+        self.pushButton_update.clicked.connect(self.append_scans_xrv)
+        self.pushButton_update.clicked.connect(self.plot_figure_xrv)
+        #self.pushButton_save_data.clicked.connect(self.save_data_method)
+        #self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
+        #self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
         self.data = None
         self.data_summary = {} 
         self.data_range = None
         self.pot_range = None
         self.potential = []
        
+    def update_plot_range(self):
+        scan = int(self.comboBox_scans.currentText())
+        l,r = int(self.lineEdit_img_range_left.text()),int(self.lineEdit_img_range_right.text())
+        self.image_range_info[scan] = [l,r]
+        all_info=[]
+        for each in self.image_range_info:
+            all_info.append('{}:{}'.format(each,self.image_range_info[each]))
+        self.plainTextEdit_img_range.setPlainText('\n'.join(all_info))
+
     def locate_data_folder(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -125,7 +135,7 @@ class MyMainWindow(QMainWindow):
                 temp_data['scan_no'] = temp_data['scan_no'] + [scan_]*len(data_['potential'][data_range_[0]:])
                 temp_data['I'] = temp_data['I'] + list(data_[key][data_range_[0]:])
             df = pd.DataFrame(temp_data)
-            df.to_csv(os.path.join(self.lineEdit_data_file_path.text(), self.lineEdit_data_file_name.text()+'_{}.csv'.format(scan_)),\
+            df.to_csv(self.lineEdit_data_file_path.text().replace('.csv','_{}.csv'.format(scan_)),\
                       header = False, sep =' ',columns = list(temp_data.keys()), index=False)
 
     def load_config(self):
@@ -163,22 +173,13 @@ class MyMainWindow(QMainWindow):
                     f.write(channel+':'+getattr(self,channel).text()+'\n')
             
     def set_plot_channels(self):
-        xrv = self.radioButton_xrv.isChecked()
         time_scan = self.checkBox_time_scan.isChecked()
-        if xrv:
-            if time_scan:
-                self.lineEdit_x.setText('image_no')
-                self.lineEdit_y.setText('current,strain_ip,strain_oop,grain_size_ip,grain_size_oop')
-            else:
-                self.lineEdit_x.setText('potential')
-                self.lineEdit_y.setText('current,strain_ip,strain_oop,grain_size_ip,grain_size_oop') 
+        if time_scan:
+            self.lineEdit_x.setText('image_no')
+            self.lineEdit_y.setText('current,strain_ip,strain_oop,grain_size_ip,grain_size_oop')
         else:
-            if time_scan:
-                self.lineEdit_x.setText('image_no')
-                self.lineEdit_y.setText('peak_intensity,potential')
-            else:
-                self.lineEdit_x.setText('L')
-                self.lineEdit_y.setText('peak_intensity') 
+            self.lineEdit_x.setText('potential')
+            self.lineEdit_y.setText('current,strain_ip,strain_oop,grain_size_ip,grain_size_oop') 
 
     def _load_file(self):
         fileName = self.lineEdit_data_file.text()
@@ -198,29 +199,6 @@ class MyMainWindow(QMainWindow):
         self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
 
     def load_file(self):
-        if self.radioButton_ctr_model.isChecked():
-            self.load_file_ctr_model()
-        else:
-            options = QFileDialog.Options()
-            options |= QFileDialog.DontUseNativeDialog
-            fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Data Files (*.xlsx);;All Files (*.csv)", options=options)
-            if fileName:
-                self.lineEdit_data_file.setText(fileName)
-                self.data = pd.read_excel(fileName)
-            col_labels = 'col_labels\n'+str(list(self.data.columns))+'\n'
-            scans = list(set(list(self.data['scan_no'])))
-            self.scans_all = scans
-            scans.sort()
-            scan_numbers = 'scan_nos\n'+str(scans)+'\n'
-            # print(list(self.data[self.data['scan_no']==scans[0]]['phs'])[0])
-            if self.radioButton_xrv.isChecked():
-                self.phs_all = [list(self.data[self.data['scan_no']==scan]['phs'])[0] for scan in scans]
-                phs = 'pHs\n'+str(self.phs_all)+'\n'
-            else:
-                phs = ''
-            self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
-
-    def load_file_ctr_model(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Data Files (*.xlsx);;All Files (*.csv)", options=options)
@@ -228,31 +206,21 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_data_file.setText(fileName)
             self.data = pd.read_excel(fileName)
         col_labels = 'col_labels\n'+str(list(self.data.columns))+'\n'
-        self.potentials = list(set(list(self.data['potential'])))
-        self.hk_list = list(set(list(zip(list(self.data['H']),list(self.data['K'])))))
-
-        self.textEdit_summary_data.setText('\n'.join([col_labels,str(self.hk_list),str(self.potentials)]))
-
-    #to fold or unfold the config file editor
-    def fold_or_unfold(self):
-        text = self.PushButton_fold_or_unfold.text()
-        if text == "<":
-            self.frame.setVisible(False)
-            self.PushButton_fold_or_unfold.setText(">")
-        elif text == ">":
-            self.frame.setVisible(True)
-            self.PushButton_fold_or_unfold.setText("<")
-
-    def plot_figure(self):
-        if self.radioButton_xrv.isChecked():
-            self.plot_figure_xrv()
-        elif self.radioButton_ctr.isChecked():
-            self.plot_figure_ctr()
-        elif self.radioButton_ctr_model.isChecked():
-            self.plot_figure_ctr_model()
+        scans = list(set(list(self.data['scan_no'])))
+        self.scans_all = scans
+        self.comboBox_scans.clear()
+        self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
+        scans.sort()
+        scan_numbers = 'scan_nos\n'+str(scans)+'\n'
+        # print(list(self.data[self.data['scan_no']==scans[0]]['phs'])[0])
+        self.phs_all = [list(self.data[self.data['scan_no']==scan]['phs'])[0] for scan in scans]
+        phs = 'pHs\n'+str(self.phs_all)+'\n'
+        self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
+        self.image_range_info = {}
+        self.plainTextEdit_img_range.setPlainText("")
 
     def plot_data_summary_xrv_from_external_file(self):
-        if self.radioButton_xrv.isChecked() and self.data_summary!={}:
+        if self.data_summary!={}:
             self.mplwidget2.fig.clear()
             y_label_map = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
@@ -265,7 +233,10 @@ class MyMainWindow(QMainWindow):
             if len(colors_bar) == 1:
                 colors_bar = colors_bar*len(self.scans)
             else:
-                assert len(colors_bar) == len(self.scans)
+                if len(colors_bar) > len(self.scans):
+                    colors_bar = colors_bar[0:len(self.scans)]
+                elif len(colors_bar) < len(self.scans):
+                    colors_bar = colors_bar + [colors_bar[-1]]*(len(self.scans)-len(colors_bar))
             plot_y_labels = [each for each in list(self.data_summary[self.scans[0]].keys()) if each in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']]
             #TODO this has to be changed to set the y_max automatically in different cases.
             lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.4,'grain_size_ip':-1.2,'grain_size_oop':-1.4}
@@ -313,12 +284,12 @@ class MyMainWindow(QMainWindow):
 
     def plot_data_summary_xrv(self,use_external = True):
         print("starting from here!")
-        if 1:
+        if use_external:
             self.make_data_summary_from_external_file()
             self.plot_data_summary_xrv_from_external_file()
             print("new_data summary is built!")
             return 
-        if self.radioButton_xrv.isChecked() and self.data_summary!={} and (not use_external):
+        if self.data_summary!={}:
             self.mplwidget2.fig.clear()
             y_label_map = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
@@ -328,10 +299,13 @@ class MyMainWindow(QMainWindow):
                         'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
                         'peak_intensity':r'Intensity / a.u.'}
             colors_bar = self.lineEdit_colors_bar.text().rsplit(',')
-            if len(colors_bar) == 1:
-                colors_bar = colors_bar*len(self.scans)
+            if len(colors_bar) == len(self.scans):
+                pass
             else:
-                assert len(colors_bar) == len(self.scans)
+                if len(colors_bar) > len(self.scans):
+                    colors_bar = colors_bar[0:len(self.scans)]
+                elif len(colors_bar) < len(self.scans):
+                    colors_bar = colors_bar + [colors_bar[-1]]*(len(self.scans)-len(colors_bar))
             plot_y_labels = [each for each in list(self.data_summary[self.scans[0]].keys()) if each in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']]
             #TODO this has to be changed to set the y_max automatically in different cases.
             lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.4,'grain_size_ip':-1.2,'grain_size_oop':-1.4}
@@ -541,154 +515,9 @@ class MyMainWindow(QMainWindow):
         self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
         self.mplwidget.canvas.draw()
 
-    def plot_figure_ctr_model(self):
-        self.mplwidget.fig.clear()
-        col_num=2#two columns only
-        if len(self.hk_list) in [1,2]:
-            col_num = 1
-        else:
-            pass
-
-        plot_dim = [int(len(self.hk_list)/col_num)+int(len(self.hk_list)%col_num != 0), col_num]
-        for i in range(len(self.hk_list)):
-            setattr(self,'plot_axis_plot_set{}'.format(i+1),self.mplwidget.canvas.figure.add_subplot(plot_dim[0], plot_dim[1],i+1))
-            current_hk = self.hk_list[i]
-            current_maximum = 0
-            offset_list = self.lineEdit_ctr_offset.text().rstrip().rsplit('+')[i]
-            for each_potential in self.potentials:
-                #current_offset = float(offset_list.rstrip().rsplit(',')[self.potentials.index(each_potential)])
-                offset = np.multiply.accumulate([float(each) for each in offset_list.rstrip().rsplit(',')])[self.potentials.index(each_potential)]
-                index_ = (self.data['potential']==each_potential)&(self.data['H']==current_hk[0])&(self.data['K']==current_hk[1])
-                if len(index_)==0:
-                    index_ = (self.data['potential']==each_potential)&(self.data['H']==current_hk[1])&(self.data['K']==current_hk[0])
-                x = self.data[index_]['L']
-                y_data=self.data[index_]['I']
-                y_model = self.data[index_]['I_model']
-                y_ideal = np.array(self.data[index_]['I_bulk'])
-                
-                if each_potential == self.potentials[0]:
-                    # current_minimum = np.min(y_ideal)
-                    current_maximum = np.max(y_ideal)
-                    # getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(x,y_ideal,color ='k',linestyle ='--', label = 'Unrelaxed structure')
-                else:
-                    pass
-                error = self.data[index_]['error']
-                use = list(self.data[index_]['use'])[0]
-                fmt = self.lineEdit_fmt.text().rstrip().rsplit(',')[self.potentials.index(each_potential)]
-                
-                #np.min(y_ideal)
-                # scale_factor = offset*current_minimum/np.min(y_data)
-                scale_factor = offset*current_maximum/np.max(y_ideal)
-                #if each_potential == self.potentials[0]:
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(x,y_ideal*scale_factor,color ='0.5',linestyle ='-', label = [None,'Unrelaxed structure'][int(each_potential == self.potentials[0])])
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).scatter(x,y_data*scale_factor,s = 8, marker = 'o',c=fmt[-1], label = ['Data'+str(each_potential)+'V w.r.t Ag/AgCl',None][int(use)])
-                if use:
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(x,y_model*scale_factor,fmt, label = 'Fit '+str(each_potential)+'V w.r.t Ag/AgCl')
-                if i in [0,2]:
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('F',fontsize=15)
-                if i in [2,3]:
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel('L(r.l.u)',fontsize=15)
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_title('{}{}L'.format(*current_hk))
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_yscale('log')
-                if i in [0,2]:#manually set this accordingly
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).autoscale()
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).tick_params(axis='both',which='major',labelsize = 14)
-        plt.tight_layout()
-
-
-
-    def plot_figure_ctr(self):
-        self.mplwidget.fig.clear()
-        col_num=2#two columns only
-        if len(self.scan_numbers_all.text().rsplit('+')) in [1,2]:
-            col_num = 1
-        else:
-            pass
-
-        plot_dim = [int(len(self.scan_numbers_all.text().rsplit('+'))/col_num)+int(len(self.scan_numbers_all.text().rsplit('+'))%col_num != 0), col_num]
-        for i in range(len(self.scan_numbers_all.text().rsplit('+'))):
-            setattr(self,'plot_axis_plot_set{}'.format(i+1),self.mplwidget.canvas.figure.add_subplot(plot_dim[0], plot_dim[1],i+1))
-            each = self.scan_numbers_all.text().rsplit('+')[i]
-            each = each[1:-1]#remove []
-            scan_list_temp = each.rsplit(';')
-            for each_set in scan_list_temp:
-                j = scan_list_temp.index(each_set)
-                sub_scan_list = each_set.rsplit(',')
-                scans_temp= [int(i) for i in sub_scan_list]
-                for scan in scans_temp:
-                    fmt = self.lineEdit_fmt.text().rsplit('+')[i].rsplit(';')[j]
-                    if scan == scans_temp[0]:
-                        label = self.lineEdit_labels.text().rsplit('+')[i].rsplit(';')[j]
-                    else:
-                        label = None
-                    #append data to save
-                    map_BL = {'00':0,'20':0,'11':1,'13':1,'31':1}
-                    try:
-                        BL=map_BL['{}{}'.format(int(round(self.data_to_plot[scan]['H'][0],0)),int(round(self.data_to_plot[scan]['K'][0],0)))]
-                    except:
-                        BL = 0
-                    temp_key = self.lineEdit_labels.text().rsplit('+')[i].rsplit(';')[j]
-                    if '[' in temp_key:
-                        temp_key = temp_key[1:]
-                    if ']' in temp_key:
-                        temp_key = temp_key[0:len(temp_key)-1]
-                    if temp_key not in self.data_to_save.keys():
-                        self.data_to_save[temp_key] = pd.DataFrame(np.zeros([1,8])[0:0],columns=["L","H","K","na","I","I_err","BL","dL"])
-                    else:
-                        pass
-                    len_data = len(self.data_to_plot[scan]['L'])
-                    #Lorentz factor calculation, refer to Vlieg 1997, J.Appl.Cryst. Equation 16
-                    lorentz_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['delta']))*np.cos(np.deg2rad(self.data_to_plot[scan]['omega_t']))*np.cos(np.deg2rad(self.data_to_plot[scan]['gamma']))
-                    #footprint area correction factor (take effect only for specular rod)
-                    area_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['omega_t']))
-                    self.data_to_save[temp_key] = self.data_to_save[temp_key].append(pd.DataFrame({"L":self.data_to_plot[scan]['L'],"H":self.data_to_plot[scan]['H'],\
-                                                                                     "K":self.data_to_plot[scan]['K'],"na":[0]*len_data,"I":self.data_to_plot[scan]['peak_intensity']*lorentz_ft*area_ft,\
-                                                                                     "I_err":self.data_to_plot[scan]['peak_intensity_error']*lorentz_ft*area_ft,"BL":[BL]*len_data ,"dL":[2]*len_data}))
-                    #remove [ or ] in the fmt and label
-                    if ('[' in fmt) and (']' in fmt):
-                        fmt = fmt[1:-1]
-                    elif '[' in fmt:
-                        fmt = fmt[1:]
-                    elif ']' in fmt:
-                        fmt = fmt[0:-1]
-                    else:
-                        pass
-                    if label != None:
-                        if ('[' in label) and (']' in label):
-                            label = label[1:-1]
-                        elif '[' in label:
-                            label = label[1:]
-                        elif ']' in label:
-                            label = label[0:-1]
-                        else:
-                            pass
-                    if self.checkBox_time_scan.isChecked():
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[0]]*lorentz_ft*area_ft,fmt,label =label)
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel(self.plot_label_x)
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('Intensity')
-                        pot_ax = getattr(self,'plot_axis_plot_set{}'.format(i+1)).twinx()
-                        pot_ax.plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[1]]*lorentz_ft*area_ft,'b-',label = None)
-                        pot_ax.set_ylabel(self.plot_labels_y[1],color = 'b')
-                        pot_ax.tick_params(axis = 'y', labelcolor = 'b')
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
-                    else:
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[0]]*lorentz_ft*area_ft,fmt,label =label)
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('Intensity')
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel('L')
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_title('{}{}L'.format(int(round(list(self.data[self.data['scan_no']==scan]['H'])[0],0)),int(round(list(self.data[self.data['scan_no']==scan]['K'])[0],0))))
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_yscale('log')
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
-        self.mplwidget.fig.tight_layout()
-        self.mplwidget.canvas.draw()
-
     def prepare_data_to_plot_xrv(self,plot_label_list, scan_number):
-        scans_ = [int(each) for each in self.lineEdit_scan_numbers.text().rsplit(',')]
-        img_ranges_ = [[int(each_) for each_ in each.rsplit('-')] for each in self.lineEdit_point_ranges.text().rsplit(',')]
-        
-        if scan_number in scans_:
-            which = scans_.index(scan_number)
-            l , r = img_ranges_[which]
+        if scan_number in self.image_range_info:
+            l , r = self.image_range_info[scan_number]
         else:
             l, r = 0, 100000000
         if hasattr(self,'data_to_plot'):
@@ -720,58 +549,14 @@ class MyMainWindow(QMainWindow):
                 else:
                     self.data_to_plot[scan_number][each] = list(self.data[condition][each])[l:r]
 
-    def prepare_data_to_plot_ctr(self,plot_label_list, scan_number):
-        scans_ = [int(each) for each in self.lineEdit_scan_numbers.text().rsplit(',')]
-        img_ranges_ = [[int(each_) for each_ in each.rsplit('-')] for each in self.lineEdit_point_ranges.text().rsplit(',')]
-        
-        if scan_number in scans_:
-            which = scans_.index(scan_number)
-            l , r = img_ranges_[which]
-        else:
-            l, r = 0, 100000000
-        if hasattr(self,'data_to_plot'):
-            self.data_to_plot[scan_number] = {}
-        else:
-            self.data_to_plot = {}
-            self.data_to_plot[scan_number] = {}
-        if self.checkBox_mask.isChecked():
-            condition = (self.data['mask_ctr'] == True)&(self.data['scan_no'] == scan_number)
-        else:
-            condition = self.data['scan_no'] == scan_number
-        if 'gamma' not in plot_label_list:
-            plot_label_list.append('gamma')
-        
-        if 'delta' not in plot_label_list:
-            plot_label_list.append('delta')
-
-        if 'omega_t' not in plot_label_list:
-            plot_label_list.append('omega_t')
-
-        for each in plot_label_list:
-            if each=='current':#RHE potential
-                self.data_to_plot[scan_number][each] = -np.array(self.data[condition][each])[l:r]
-                #self.data_to_plot[scan_number][each] = 0.205+np.array(self.data[condition][each])[l:r]+0.059*np.array(self.data[self.data['scan_no'] == scan_number]['phs'])[0]               
-            else:
-                self.data_to_plot[scan_number][each] = np.array(self.data[condition][each])[l:r]
-
-    def append_scans(self):
-        if self.radioButton_xrv.isChecked():
-            self.append_scans_xrv()
-        else:
-            self.append_scans_ctr()
-
     def append_scans_xrv(self):
         text = self.scan_numbers_append.text()
-        text_original = self.scan_numbers_all.text()
-        if text_original!='':
-            text_new = ','.join([text_original, text])
+        if text!='':
+            scans = list(set([int(each) for each in text.rstrip().rsplit(',')]))
         else:
-            text_new = text
-        scans = list(set([int(each) for each in text_new.rstrip().rsplit(',')]))
+            return
         scans.sort()
-        self.scan_numbers_all.setText(','.join([str(scan) for scan in scans]))
         assert (self.lineEdit_x.text()!='' and self.lineEdit_y.text()!=''), 'No channels for plotting have been selected!'
-        assert self.scan_numbers_all.text()!='', 'No scans have been selected!'
         plot_labels = self.lineEdit_x.text() + ',' + self.lineEdit_y.text()
         plot_labels = plot_labels.rstrip().rsplit(',')
         for scan in scans:
@@ -782,40 +567,8 @@ class MyMainWindow(QMainWindow):
         self.plot_label_x = self.lineEdit_x.text()
         self.plot_labels_y = self.lineEdit_y.text().rstrip().rsplit(',')
 
-    #the text looks like: [1,2,3;4,5,6]+[7,8,9;10,11,12]+...
-    def append_scans_ctr(self):
-        text = self.scan_numbers_append.text()
-        text_original = self.scan_numbers_all.text()
-        if (text_original!='') and (text not in text_original):
-            text_new = '+'.join([text_original, text])
-        else:
-            text_new = text
-        scans = []
-        for each in text_new.rstrip().rsplit('+'):
-            each = each[1:-1]#remove []
-            scan_list_temp = each.rsplit(';')
-            for each_set in scan_list_temp:
-                sub_scan_list = each_set.rsplit(',')
-                scans+= [int(i) for i in sub_scan_list]
-
-        # scans = list(set([int(each) for each in text_new.rstrip().rsplit('+')]))
-        #scans.sort()
-        self.scan_numbers_all.setText(text_new)
-        assert (self.lineEdit_x.text()!='' and self.lineEdit_y.text()!=''), 'No channels for plotting have been selected!'
-        assert self.scan_numbers_all.text()!='', 'No scans have been selected!'
-        plot_labels = self.lineEdit_x.text() + ',' + self.lineEdit_y.text()
-        plot_labels = plot_labels.rstrip().rsplit(',')
-        for scan in scans:
-            self.prepare_data_to_plot_ctr(plot_labels,scan)
-            print('Prepare data for scan {} now!'.format(scan))
-        self.scans = scans
-        #self.phs = [self.phs_all[self.scans_all.index(each)] for each in scans]
-        self.plot_label_x = self.lineEdit_x.text()
-        self.plot_labels_y = self.lineEdit_y.text().rstrip().rsplit(',')
-
-
 if __name__ == "__main__":
-    QApplication.setStyle("windows")
+    QApplication.setStyle("fusion")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
     myWin.show()
