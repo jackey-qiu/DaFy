@@ -55,18 +55,18 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.size'] = 4
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
-        self.open.clicked.connect(self.load_file)
+        self.actionLoadData.triggered.connect(self.load_file)
         self.actionPlotData.triggered.connect(self.plot_figure_xrv)
         self.actionPlotRate.triggered.connect(self.plot_data_summary_xrv)
         self.actionSaveData.triggered.connect(self.save_xrv_data)
+        self.actionShowHide.triggered.connect(self.show_or_hide)
         self.PushButton_append_scans.clicked.connect(self.append_scans_xrv)
         self.checkBox_time_scan.clicked.connect(self.set_plot_channels)
         self.checkBox_mask.clicked.connect(self.append_scans_xrv)
-        self.pushButton_load_config.clicked.connect(self.load_config)
-        self.pushButton_save_config.clicked.connect(self.save_config)
+        self.actionLoadConfig.triggered.connect(self.load_config)
+        self.actionSaveConfig.triggered.connect(self.save_config)
         self.pushButton_update.clicked.connect(self.update_plot_range)
         self.pushButton_update.clicked.connect(self.append_scans_xrv)
-        self.pushButton_update.clicked.connect(self.plot_figure_xrv)
         #self.pushButton_save_data.clicked.connect(self.save_data_method)
         #self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
         #self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
@@ -75,14 +75,23 @@ class MyMainWindow(QMainWindow):
         self.data_range = None
         self.pot_range = None
         self.potential = []
-       
+        self.show_frame = True
+
+    def show_or_hide(self):
+        self.frame.setVisible(not self.show_frame)
+        self.show_frame = not self.show_frame
+
     def update_plot_range(self):
-        scan = int(self.comboBox_scans.currentText())
-        l,r = int(self.lineEdit_img_range_left.text()),int(self.lineEdit_img_range_right.text())
+        try:
+            scan = int(self.comboBox_scans.currentText())
+            l,r = int(self.lineEdit_img_range_left.text()),int(self.lineEdit_img_range_right.text())
+        except:
+            return
         self.image_range_info[scan] = [l,r]
         all_info=[]
         for each in self.image_range_info:
             all_info.append('{}:{}'.format(each,self.image_range_info[each]))
+        print(all_info)
         self.plainTextEdit_img_range.setPlainText('\n'.join(all_info))
 
     def locate_data_folder(self):
@@ -102,7 +111,7 @@ class MyMainWindow(QMainWindow):
     #save a segment of data to be formated for loading in superrod
     def save_xrv_data(self):
         key_map_lib = {
-                       'peak_intensity':1,
+                       #'peak_intensity':1,
                        'strain_oop':2,
                        'strain_ip':3,
                        'grain_size_ip':4,
@@ -121,19 +130,19 @@ class MyMainWindow(QMainWindow):
                          'scan_no':[],
                          'items':[],
                          'Y':[],
-                         'I':[],
-                         'eI':[],
+                         #'I':[],
+                         #'eI':[],
                          'e1':[],
                          'e2':[]}
             for key in key_map_lib:
                 temp_data['potential'] = temp_data['potential'] + list(data_['potential'][data_range_[0]:])
-                temp_data['eI'] = temp_data['eI'] + [0]*len(data_['potential'][data_range_[0]:])
+                #temp_data['eI'] = temp_data['eI'] + [0]*len(data_['potential'][data_range_[0]:])
                 temp_data['Y'] = temp_data['Y'] + [0]*len(data_['potential'][data_range_[0]:])
                 temp_data['e1'] = temp_data['e1'] + [0]*len(data_['potential'][data_range_[0]:])
                 temp_data['e2'] = temp_data['e2'] + [0]*len(data_['potential'][data_range_[0]:])
                 temp_data['items'] = temp_data['items'] + [key_map_lib[key]]*len(data_['potential'][data_range_[0]:])
                 temp_data['scan_no'] = temp_data['scan_no'] + [scan_]*len(data_['potential'][data_range_[0]:])
-                temp_data['I'] = temp_data['I'] + list(data_[key][data_range_[0]:])
+                #temp_data['I'] = temp_data['I'] + list(data_[key][data_range_[0]:])
             df = pd.DataFrame(temp_data)
             df.to_csv(self.lineEdit_data_file_path.text().replace('.csv','_{}.csv'.format(scan_)),\
                       header = False, sep =' ',columns = list(temp_data.keys()), index=False)
@@ -155,22 +164,34 @@ class MyMainWindow(QMainWindow):
                 elif value=='False':
                     getattr(self,channel).setChecked(False)
                 else:
-                    getattr(self,channel).setText(value)
+                    try:
+                        getattr(self,channel).setText(value)
+                    except:
+                        getattr(self,channel).setPlainText(value.replace(";","\n"))
+                        if value=="":
+                            pass
+                        else:
+                            self.image_range_info = {}
+                            items = value.rsplit(';')
+                            for each_item in items:
+                                a,b = each_item.rstrip().rsplit(":")
+                                self.image_range_info[int(a)] = eval(b)
         self._load_file()
-        self.append_scans()
+        self.append_scans_xrv()
 
     def save_config(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","config file (*.ini);Text Files (*.txt);all files(*.*)", options=options)
         with open(fileName,'w') as f:
-            channels = ['lineEdit_data_file','radioButton_ctr','radioButton_xrv','checkBox_time_scan','checkBox_mask','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt','lineEdit_labels',\
+            channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
                         'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar']
             for channel in channels:
                 try:
                     f.write(channel+':'+str(getattr(self,channel).isChecked())+'\n')
                 except:
                     f.write(channel+':'+getattr(self,channel).text()+'\n')
+            f.write("plainTextEdit_img_range:"+self.plainTextEdit_img_range.toPlainText().replace("\n",";")+'\n')
             
     def set_plot_channels(self):
         time_scan = self.checkBox_time_scan.isChecked()
@@ -191,11 +212,8 @@ class MyMainWindow(QMainWindow):
         scans.sort()
         scan_numbers = 'scan_nos\n'+str(scans)+'\n'
         # print(list(self.data[self.data['scan_no']==scans[0]]['phs'])[0])
-        if self.radioButton_xrv.isChecked():
-            self.phs_all = [list(self.data[self.data['scan_no']==scan]['phs'])[0] for scan in scans]
-            phs = 'pHs\n'+str(self.phs_all)+'\n'
-        else:
-            phs = ''
+        self.phs_all = [list(self.data[self.data['scan_no']==scan]['phs'])[0] for scan in scans]
+        phs = 'pHs\n'+str(self.phs_all)+'\n'
         self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
 
     def load_file(self):
@@ -210,14 +228,14 @@ class MyMainWindow(QMainWindow):
         self.scans_all = scans
         self.comboBox_scans.clear()
         self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
+        self.image_range_info = {}
+        self.plainTextEdit_img_range.setPlainText("")
         scans.sort()
         scan_numbers = 'scan_nos\n'+str(scans)+'\n'
         # print(list(self.data[self.data['scan_no']==scans[0]]['phs'])[0])
         self.phs_all = [list(self.data[self.data['scan_no']==scan]['phs'])[0] for scan in scans]
         phs = 'pHs\n'+str(self.phs_all)+'\n'
         self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
-        self.image_range_info = {}
-        self.plainTextEdit_img_range.setPlainText("")
 
     def plot_data_summary_xrv_from_external_file(self):
         if self.data_summary!={}:
@@ -338,16 +356,15 @@ class MyMainWindow(QMainWindow):
         else:
             pass
 
-    def return_seperator_values(self,file = '/Users/cqiu/app/DaFy/dump_files/superrod_fit_results.csv'):
+    def return_seperator_values(self,scan,file = '/Users/cqiu/app/DaFy/dump_files/superrod_fit_results.csv'):
         data = pd.read_csv(file,sep='\t')
         summary = {}
-        for each in self.scans:
-            summary[each] = {}
-            for_current =[]
-            for item in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']:
-                summary[each][item] = [data['scan{}'.format(each)]['{}_p1'.format(item)]+self.potential_offset]
-                for_current.append(summary[each][item])
-            summary[each]['current'] = for_current
+        summary[scan] = {}
+        for_current =[]
+        for item in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']:
+            summary[scan][item] = [data['scan{}'.format(scan)]['{}_p1'.format(item)]+self.potential_offset]
+            for_current.append(summary[scan][item])
+        summary[scan]['current'] = for_current
         return summary
 
     def return_slope_values(self,file = '/Users/cqiu/app/DaFy/dump_files/superrod_fit_results.csv'):
@@ -383,8 +400,10 @@ class MyMainWindow(QMainWindow):
         self.data_range = data_range
 
         pot_range = self.lineEdit_potential_range.text().rsplit(',')
-        pot_range = [list(map(float,each.rsplit('-'))) for each in pot_range]
-        self.pot_range = pot_range
+        if pot_range == ['']:
+            self.pot_range = []
+        else:
+            self.pot_range = [list(map(float,each.rsplit('-'))) for each in pot_range]
 
         for scan in self.scans:
             self.data_summary[scan] = {}
@@ -396,7 +415,7 @@ class MyMainWindow(QMainWindow):
                 self.data_summary[scan][each] = []
                 i = plot_labels_y.index(each)
                 try:
-                    fmt = self.lineEdit_fmt.text().rsplit(',')[self.scans.index(scan)]
+                    fmt = self.lineEdit_fmt.text().rsplit(',')[self.scans.index(scan)].rsplit(";")
                 except:
                     fmt = 'b-'
                 y = self.data_to_plot[scan][plot_labels_y[i]]
@@ -423,6 +442,10 @@ class MyMainWindow(QMainWindow):
                 # print(scan, each, 'standard deviation = ',std_val)
                 
                 #plot the results
+                if len(fmt)==2:
+                    fmt = fmt[int('size' in each)]
+                else:
+                    fmt = fmt[0]
                 if self.plot_label_x == 'image_no':
                     if each != 'current':
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y,fmt,markersize = 3)
@@ -433,7 +456,7 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([np.arange(len(y))[iii] for iii in marker_index_container],[y[iii] for iii in marker_index_container],'k*')
                 else:
                     try:
-                        seperators = self.return_seperator_values()
+                        seperators = self.return_seperator_values(scan)
                     except:
                         seperators = []
                     if each!='current':
@@ -443,7 +466,7 @@ class MyMainWindow(QMainWindow):
                         #y2 = a2*(p2-p1)+y1
                         #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
                         # getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y_smooth_temp,'-')
-                        #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
                         # for pot in np.arange(1.0,1.8,0.1):
                         if len(seperators)!=0:
                             try:
@@ -452,17 +475,16 @@ class MyMainWindow(QMainWindow):
                             except:
                                 pass
                     else:
-                        # lim_y = data_viewer_plot_cv(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
                         try:
-                            lim_y = data_viewer_plot_cv(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,np.arange(1.0,1.8,0.1))
+                            lim_y = data_viewer_plot_cv(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt+'-',markersize = 3)
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                         except:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y,fmt,markersize = 3)
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii] for iii in marker_index_container],'k*')
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                 if i==0:
                     # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=13)
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)],scan),fontsize=13)
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
                 if each=='current':
                     try:
                         temp_min,temp_max = lim_y
@@ -500,15 +522,14 @@ class MyMainWindow(QMainWindow):
             for each in self.plot_labels_y:
                 i = self.plot_labels_y.index(each)
                 if 'current' not in self.plot_labels_y:
-                    break
-                else:
                     pass
-                j = self.plot_labels_y.index('current')
-                if each != 'current':#synchronize the x_lim of all non-current to that for CV
-                    x_lim = getattr(self,'plot_axis_scan{}'.format(scan))[j].get_xlim()
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
                 else:
-                    pass
+                    j = self.plot_labels_y.index('current')
+                    if each != 'current':#synchronize the x_lim of all non-current to that for CV
+                        x_lim = getattr(self,'plot_axis_scan{}'.format(scan))[j].get_xlim()
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
+                    else:
+                        pass
                 getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(y_min_values[i],y_max_values[i])
         self.mplwidget.fig.tight_layout()
         # print(self.data_summary)
@@ -566,10 +587,13 @@ class MyMainWindow(QMainWindow):
         self.phs = [self.phs_all[self.scans_all.index(each)] for each in scans]
         self.plot_label_x = self.lineEdit_x.text()
         self.plot_labels_y = self.lineEdit_y.text().rstrip().rsplit(',')
+        self.comboBox_scans.clear()
+        self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
 
 if __name__ == "__main__":
-    QApplication.setStyle("fusion")
+    QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())
