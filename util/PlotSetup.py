@@ -402,7 +402,6 @@ def data_viewer_plot_cv(ax,scan_no,marker_pos,plot_lib=plot_lib):
     #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
     return min(current_filtered*8*cv_scale_factor),max(current*8)
 
-
 def ir_drop_analysis(pot, current,pot_first, half = 1):
     #half:1 or 2 (which half of the CV profile)
     #pot_first: index of the first potential for linear fit
