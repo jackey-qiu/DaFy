@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1440</width>
-    <height>872</height>
+    <height>830</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -859,7 +859,7 @@ p, li { white-space: pre-wrap; }
           <item>
            <widget class="QTabWidget" name="tabWidget">
             <property name="currentIndex">
-             <number>0</number>
+             <number>1</number>
             </property>
             <widget class="QWidget" name="tab">
              <attribute name="title">
@@ -924,7 +924,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionPlotData">
    <property name="icon">
     <iconset>
-     <normaloff>icons/plot.png</normaloff>icons/plot.png</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/plot.png</normaloff>../../../../../wulingqun/.designer/backup/icons/plot.png</iconset>
    </property>
    <property name="text">
     <string>PlotData</string>
@@ -933,7 +933,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionPlotRate">
    <property name="icon">
     <iconset>
-     <normaloff>icons/bar.jpeg</normaloff>icons/bar.jpeg</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/bar.jpeg</normaloff>../../../../../wulingqun/.designer/backup/icons/bar.jpeg</iconset>
    </property>
    <property name="text">
     <string>PlotRate</string>
@@ -945,7 +945,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionSaveData">
    <property name="icon">
     <iconset>
-     <normaloff>icons/save.png</normaloff>icons/save.png</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/save.png</normaloff>../../../../../wulingqun/.designer/backup/icons/save.png</iconset>
    </property>
    <property name="text">
     <string>SaveData</string>
@@ -954,7 +954,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionLoadConfig">
    <property name="icon">
     <iconset>
-     <normaloff>icons/load_config.png</normaloff>icons/load_config.png</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/load_config.png</normaloff>../../../../../wulingqun/.designer/backup/icons/load_config.png</iconset>
    </property>
    <property name="text">
     <string>LoadConfig</string>
@@ -963,7 +963,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionLoadData">
    <property name="icon">
     <iconset>
-     <normaloff>icons/load_data.png</normaloff>icons/load_data.png</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/load_data.png</normaloff>../../../../../wulingqun/.designer/backup/icons/load_data.png</iconset>
    </property>
    <property name="text">
     <string>LoadData</string>
@@ -972,7 +972,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionSaveConfig">
    <property name="icon">
     <iconset>
-     <normaloff>icons/save_config.png</normaloff>icons/save_config.png</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/save_config.png</normaloff>../../../../../wulingqun/.designer/backup/icons/save_config.png</iconset>
    </property>
    <property name="text">
     <string>SaveConfig</string>
@@ -981,7 +981,7 @@ p, li { white-space: pre-wrap; }
   <action name="actionShowHide">
    <property name="icon">
     <iconset>
-     <normaloff>icons/hide.png</normaloff>icons/hide.png</iconset>
+     <normaloff>../../../../../wulingqun/.designer/backup/icons/hide.png</normaloff>../../../../../wulingqun/.designer/backup/icons/hide.png</iconset>
    </property>
    <property name="text">
     <string>ShowHide</string>

@@ -1,0 +1,3 @@
+#!/usr/bin/bash
+
+python /home/ec/Desktop/MA3589/preparation/software_tools/XRD_Simulator/XRD_simulator.py

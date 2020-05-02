@@ -837,6 +837,7 @@
    <addaction name="actionNew"/>
    <addaction name="actionOpen"/>
    <addaction name="actionSave"/>
+   <addaction name="actionSaveas"/>
    <addaction name="separator"/>
    <addaction name="actionSimulate"/>
    <addaction name="actionRun"/>
@@ -877,7 +878,7 @@
   <action name="actionStop">
    <property name="icon">
     <iconset>
-     <normaloff>icons/stop.png</normaloff>icons/stop.png</iconset>
+     <normaloff>icons/stop5.png</normaloff>icons/stop5.png</iconset>
    </property>
    <property name="text">
     <string>Stop model</string>
@@ -895,19 +896,22 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset>
-     <normaloff>icons/load_3.png</normaloff>icons/load_3.png</iconset>
+     <normaloff>icons/load4.png</normaloff>icons/load4.png</iconset>
    </property>
    <property name="text">
     <string>Open</string>
    </property>
   </action>
-  <action name="actionSave">
+  <action name="actionSaveas">
    <property name="icon">
     <iconset>
-     <normaloff>icons/save.png</normaloff>icons/save.png</iconset>
+     <normaloff>icons/saveas2.png</normaloff>icons/saveas2.png</iconset>
    </property>
    <property name="text">
-    <string>Save</string>
+    <string>Saveas</string>
+   </property>
+   <property name="toolTip">
+    <string>Saveas</string>
    </property>
   </action>
   <action name="actionCalculate">
@@ -919,7 +923,7 @@
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>icons/calculator2.png</normaloff>icons/calculator2.png</iconset>
+     <normaloff>icons/error.png</normaloff>icons/error.png</iconset>
    </property>
    <property name="text">
     <string>calculate error bars</string>
@@ -1047,6 +1051,15 @@
    </property>
    <property name="text">
     <string>stopBatch</string>
+   </property>
+  </action>
+  <action name="actionSave">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/saveas.png</normaloff>icons/saveas.png</iconset>
+   </property>
+   <property name="text">
+    <string>Save</string>
    </property>
   </action>
  </widget>

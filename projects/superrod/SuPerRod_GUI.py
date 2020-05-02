@@ -193,6 +193,7 @@ class MyMainWindow(QMainWindow):
         #tool bar buttons to operate model
         self.actionNew.triggered.connect(self.init_new_model)
         self.actionOpen.triggered.connect(self.open_model)
+        self.actionSaveas.triggered.connect(self.save_model_as)
         self.actionSave.triggered.connect(self.save_model)
         self.actionSimulate.triggered.connect(self.simulate_model)
         self.actionRun.triggered.connect(self.run_model)
@@ -203,7 +204,7 @@ class MyMainWindow(QMainWindow):
 
         #menu items
         self.actionOpen_model.triggered.connect(self.open_model)
-        self.actionSave_model.triggered.connect(self.save_model)
+        self.actionSave_model.triggered.connect(self.save_model_as)
         self.actionSimulate_2.triggered.connect(self.simulate_model)
         self.actionStart_fit.triggered.connect(self.run_model)
         self.actionStop_fit.triggered.connect(self.stop_model)
@@ -275,8 +276,6 @@ class MyMainWindow(QMainWindow):
         #table view for parameters set to selecting row basis
         self.tableWidget_pars.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.tableWidget_data.setSelectionBehavior(QAbstractItemView.SelectRows)
-        self.timer_save_data = QtCore.QTimer(self)
-        self.timer_save_data.timeout.connect(self.save_model)
         self.timer_update_structure = QtCore.QTimer(self)
         self.timer_update_structure.timeout.connect(self.pushButton_update_plot.click)
         self.setup_plot()
@@ -788,8 +787,22 @@ class MyMainWindow(QMainWindow):
             self.statusbar.showMessage("Model is saved, and {} in config saving".format(save_add_))
 
     def save_model(self):
+        """model will be saved automatically during fit, for which you need to set the interval generations for saving automatically"""
+        #the model will be renamed this way
+        path = self.rod_file
+        self.model.script = (self.plainTextEdit_script.toPlainText())
+        self.model.save(path)
+        save_add_ = 'success'
+        try:
+            self.save_addition()
+        except:
+            save_add_ = "failure"
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage("Model is saved, and {} in config saving".format(save_add_))
+
+    def save_model_as(self):
         """save model file, promting a dialog widget to ask the file name to save model"""
-        path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "rod file (*.rod);;zip files (*.rar)")
+        path, _ = QFileDialog.getSaveFileName(self, "Save file as", "", "rod file (*.rod);;zip files (*.rar)")
         if path:
             self.model.script = (self.plainTextEdit_script.toPlainText())
             self.model.save(path)
