@@ -32,6 +32,7 @@ class MyMainWindow(QMainWindow):
         uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer__xrv_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
+        self.addToolBar(self.mplwidget.navi_toolbar)
         self.setWindowTitle('XRV data Viewer')
         self.data_to_save = {}
         self.image_range_info = {}
@@ -40,6 +41,7 @@ class MyMainWindow(QMainWindow):
         #you need some calibration step to figure out this value not necessarily always 0.055 V
         #the correction will be real_pot = spock_value + pot_offset
         self.potential_offset = 0.055
+        plt.style.use('ggplot')
         matplotlib.rc('xtick', labelsize=10)
         matplotlib.rc('ytick', labelsize=10)
         plt.rcParams.update({'axes.labelsize': 10})
@@ -53,10 +55,9 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.major.size'] = 6
         plt.rcParams['ytick.major.width'] = 2
         plt.rcParams['ytick.minor.size'] = 4
-        plt.rcParams['axes.facecolor']='k'
+        plt.rcParams['axes.facecolor']='0.7'
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
-        plt.style.use('seaborn-dark')
         #style.use('ggplot')
         self.actionLoadData.triggered.connect(self.load_file)
         self.actionPlotData.triggered.connect(self.plot_figure_xrv)
@@ -94,7 +95,7 @@ class MyMainWindow(QMainWindow):
             return
         for each in info:
             if not each.startswith('#'):
-                scan, cv, cycle, cutoff,scale,color, ph, func = each.rstrip().rsplit(',')
+                scan, cv, cycle, cutoff,scale,color, ph, func = each.replace(" ","").rstrip().rsplit(',')
                 cv_name = os.path.join(folder,cv)
                 self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(cutoff),eval(scale),color,eval(ph),func]
 

@@ -18,6 +18,7 @@ import numpy as np
 #import data
 import data_superrod as data
 import parameters, fom_funcs
+import dill
 
 #==============================================================================
 #BEGIN: Class Model
@@ -86,8 +87,10 @@ class Model:
             raise IOError('Could not open file.', filename)
         #new_data = pickle.loads(open(loadfile.read('data')))
         #new_data = pickle.loads(loadfile.read('data'),fix_imports=True,encoding = 'latin1')
+        # dill._dill._reverse_typemap["ObjectType"] = object
         try:
             new_data = pickle.loads(loadfile.read('data'),fix_imports=True, encoding = 'latin1')
+            # new_data = pickle.loads(open(loadfile.read('data'),'rb'),fix_imports=True, encoding = 'latin1')
             #print 'data_type',type(new_data)
             self.data.safe_copy(new_data)
             self.data_original.safe_copy(new_data)

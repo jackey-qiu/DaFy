@@ -850,7 +850,7 @@
   <action name="actionSimulate">
    <property name="icon">
     <iconset>
-     <normaloff>icons/simulate.png</normaloff>icons/simulate.png</iconset>
+     <normaloff>icons/simulate3.png</normaloff>icons/simulate3.png</iconset>
    </property>
    <property name="text">
     <string>Simulate model</string>
@@ -886,7 +886,7 @@
   <action name="actionNew">
    <property name="icon">
     <iconset>
-     <normaloff>icons/open.png</normaloff>icons/open.png</iconset>
+     <normaloff>icons/open2.png</normaloff>icons/open2.png</iconset>
    </property>
    <property name="text">
     <string>New</string>
@@ -895,7 +895,7 @@
   <action name="actionOpen">
    <property name="icon">
     <iconset>
-     <normaloff>icons/load.png</normaloff>icons/load.png</iconset>
+     <normaloff>icons/load_3.png</normaloff>icons/load_3.png</iconset>
    </property>
    <property name="text">
     <string>Open</string>
@@ -919,7 +919,7 @@
    </property>
    <property name="icon">
     <iconset>
-     <normaloff>icons/calculator3.png</normaloff>icons/calculator3.png</iconset>
+     <normaloff>icons/calculator2.png</normaloff>icons/calculator2.png</iconset>
    </property>
    <property name="text">
     <string>calculate error bars</string>

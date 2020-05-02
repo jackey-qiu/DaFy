@@ -800,6 +800,7 @@ class MyMainWindow(QMainWindow):
                 save_add_ = "failure"
             self.statusbar.clearMessage()
             self.statusbar.showMessage("Model is saved, and {} in config saving".format(save_add_))
+            self.setWindowTitle('Data analysis factory: CTR data modeling-->{}'.format(path))
 
     #here save also the config pars for diffev solver
     def save_addition(self):
