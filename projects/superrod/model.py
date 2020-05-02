@@ -18,7 +18,7 @@ import numpy as np
 #import data
 import data_superrod as data
 import parameters, fom_funcs
-import dill
+#import dill
 
 #==============================================================================
 #BEGIN: Class Model

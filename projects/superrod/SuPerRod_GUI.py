@@ -1556,10 +1556,15 @@ class MyMainWindow(QMainWindow):
                 if len(vertical_labels)==0:
                     vertical_labels.append('1')
                 else:
-                    if vertical_labels[-1] != '':
-                        vertical_labels.append('{}'.format(int(vertical_labels[-1])+1))
-                    else:
-                        vertical_labels.append('{}'.format(int(vertical_labels[-2])+1))
+                    #if vertical_labels[-1] != '':
+                    jj=0
+                    while vertical_labels[-1-jj]=='':
+                        jj = jj + 1
+                    vertical_labels.append('{}'.format(int(vertical_labels[-1-jj])+1))
+
+                    #vertical_labels.append('{}'.format(int(vertical_labels[-1])+1))
+                    #else:
+                    #    vertical_labels.append('{}'.format(int(vertical_labels[-2])+1))
                 for item in items:
                     if j == 2:
                         check_box = QCheckBox()
