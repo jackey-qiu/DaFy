@@ -130,11 +130,10 @@ class MyMainWindow(QMainWindow):
 
     def update_poly_order(self, init_step = False):
         ord_total = 0
-        i=1
         for each in self.groupBox_2.findChildren(QCheckBox):
             ord_total += int(bool(each.checkState()))*int(each.text())
-            i+=i
         self.app_ctr.bkg_sub.update_integration_order(ord_total)
+        print('ord_total:',ord_total)
         if not init_step:
             self.updatePlot()
 
@@ -150,6 +149,7 @@ class MyMainWindow(QMainWindow):
 
     def update_ss_factor(self, init_step = False):
         self.app_ctr.bkg_sub.update_ss_factor(self.doubleSpinBox_ss_factor.value())
+        self.updatePlot()
         try:
             self.updatePlot()
         except:
@@ -175,14 +175,14 @@ class MyMainWindow(QMainWindow):
         self.hist.setImageItem(img)
 
         # Custom ROI for selecting an image region
-        roi = pg.ROI([100, 100], [100, 100])
+        roi = pg.ROI([100, 100], [200, 200])
         self.roi = roi
         roi.addScaleHandle([0.5, 1], [0.5, 0.5])
         roi.addScaleHandle([0, 0.5], [0.5, 0.5])
         p1.addItem(roi)
 
         # Custom ROI for monitoring bkg
-        roi_bkg = pg.ROI([0, 100], [100, 100],pen = 'r')
+        roi_bkg = pg.ROI([0, 100], [200, 200],pen = 'r')
         self.roi_bkg = roi_bkg
         roi_bkg.addScaleHandle([0.5, 1], [0.5, 0.5])
         roi_bkg.addScaleHandle([0, 0.5], [0.5, 0.5])
@@ -312,7 +312,7 @@ class MyMainWindow(QMainWindow):
         def updatePlot():
             #global data
             try:
-                selected = roi.getArrayRegion(self.app_ctr.bkg_sub.img, self.img_pyqtgraph)
+                selected = self.roi.getArrayRegion(self.app_ctr.bkg_sub.img, self.img_pyqtgraph)
             except:
                 pass
 
@@ -455,16 +455,17 @@ class MyMainWindow(QMainWindow):
                 #if self.current_scan_number == None:
                 #    self.current_scan_number = self.app_ctr.img_loader.scan_number
                 self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
-                #set image and cut on the image
-                cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center[0]-self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1],self.app_ctr.peak_fitting_instance.peak_center[0]+self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1]]
-                cut_values_hoz=[self.app_ctr.peak_fitting_instance.peak_center[1]-self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1],self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1]]
+                #set image and cut on the image (NOTE:row-major index)
+                cut_values_hoz=[self.app_ctr.peak_fitting_instance.peak_center[0]-self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1],self.app_ctr.peak_fitting_instance.peak_center[0]+self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1]]
+                cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center[1]-self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1],self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1]]
                 self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
                 self.region_cut_hor.setRegion(cut_values_hoz)
                 self.region_cut_ver.setRegion(cut_values_ver)
 
                 #set roi
                 size_of_roi = self.roi.size()
-                self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
+                # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
+                self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
                 #self.p1.plot([0,400],[200,200])
                 if self.app_ctr.img_loader.frame_number == 0:
                     self.p1.autoRange() 

@@ -574,8 +574,10 @@ class XRD_Peak_Fitting(object):
                     fit_ip_0, fom_ip_0 = fit_ip, fom_ip
                     fit_oop_0, fom_oop_0 = fit_oop, fom_oop
                 peak_center_ = [np.argmin(np.abs(self.q_oop[:,0]-fit_oop[0])),np.argmin(np.abs(self.q_ip[0,:]-fit_ip[0]))]
+                # print(i,j,peak_center_,fit_oop[0],fit_ip[0])
                 if i==0 or (i==1 and j==0):
                     self.peak_center = peak_center_
+                    self.previous_peak_center = peak_center_
                 elif (i==1 and j==1):#in second where run j=1 and j=0, the peakcenter should be very close to each other, if not peak is not located correctly! Note 10 pixel away is only arbitrary value, which may be changed accordingly!
                     if (not self.pot_step_scan) and np.abs(np.array(self.previous_peak_center)-np.array(peak_center_)).sum()>4 and (not self.first_frame):
                         center_far_off_test = False
@@ -1342,7 +1344,7 @@ class background_subtraction_single_img():
     def fit_background(self,fig,img,data=None,plot_live=False,freeze_sf = False):
         # import time
         # t1=time.time()
-        I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
+        # I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
         try:
             I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
             self.fit_status = True
