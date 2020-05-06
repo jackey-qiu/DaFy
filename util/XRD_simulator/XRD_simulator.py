@@ -198,7 +198,7 @@ if(plot_axes):
     rsplt.Arrow_From_A_to_B(0, 0, 0, q3[0], q3[1], q3[2], color=(0,0,0))
 
 
-if(1): # plot Ewald sphere
+if(0): # plot Ewald sphere
 
     def Rx(theta_x):
         return np.array([[1, 0, 0], [0, np.cos(theta_x), -np.sin(theta_x)],[0, np.sin(theta_x), np.cos(theta_x)]])

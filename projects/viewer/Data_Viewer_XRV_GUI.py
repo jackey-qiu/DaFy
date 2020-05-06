@@ -427,6 +427,7 @@ class MyMainWindow(QMainWindow):
             plot_y_labels = [each for each in list(self.data_summary[self.scans[0]].keys()) if each in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']]
             #TODO this has to be changed to set the y_max automatically in different cases.
             lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.4,'grain_size_ip':-1.2,'grain_size_oop':-1.4}
+            output_data = []
             for each in plot_y_labels:
                 for each_pot in self.pot_range:
                     # plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)],self.data_summary[each_scan][each][-1]] for each_scan in self.scans])
@@ -435,6 +436,8 @@ class MyMainWindow(QMainWindow):
                     labels = ['pH {}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range), self.pot_range.index(each_pot)+1+len(self.pot_range)*plot_y_labels.index(each))
                     ax_temp.bar(plot_data_x,-plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
+                    ax_temp.plot(plot_data_x,-plot_data_y[:,0], '*:',color='0.1')
+                    output_data.append(-plot_data_y[:,0])
                     if each_pot == self.pot_range[0]:
                         ax_temp.set_ylabel(y_label_map[each],fontsize=13)
                         ax_temp.set_ylim([lim_y_temp[each],0])
@@ -449,8 +452,12 @@ class MyMainWindow(QMainWindow):
                         ax_temp.set_xticklabels(labels,fontsize=13)
                     if each_pot!=self.pot_range[0]:
                         ax_temp.set_yticklabels([])
-                        
-                    # ax_temp.set_xticklabels(plot_data_x,labels)
+            #print output data
+            output_data = np.array(output_data).T
+            output_data = np.append(output_data,np.array([int(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans])[:,np.newaxis],axis=1)
+            output_data = np.append(np.array([int(each_) for each_ in self.scans])[:,np.newaxis],output_data,axis = 1)
+            for each_row in output_data:
+                print("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:2.0f}".format(*each_row))
             self.mplwidget2.fig.subplots_adjust(hspace=0.04)
             self.mplwidget2.canvas.draw()
         else:

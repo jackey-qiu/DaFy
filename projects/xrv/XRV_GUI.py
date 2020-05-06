@@ -413,7 +413,7 @@ class MyMainWindow(QMainWindow):
             else:
                 pass
             self.timer_save_data.stop()
-            self.timer_save_data.start(self.spinBox_save_frequency.value()*1000)
+            self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
             self.plot_()
             self.launch.setText("Relaunch")
             self.statusbar.showMessage('Initialization succeed!')
