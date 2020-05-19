@@ -404,7 +404,7 @@ class MyMainWindow(QMainWindow):
                     if num_plots_>10:
                         columns = 4
                     else:
-                        columns = 3
+                        columns = 2
         elif self.num_screens_plot==1:#only one screen
             if total_datasets==self.max_num_plots_per_screen:
                 num_plots_on_current_screen = self.max_num_plots_per_screen
@@ -414,7 +414,7 @@ class MyMainWindow(QMainWindow):
                 if total_datasets>10:
                     columns = 4
                 else:
-                    columns = 3
+                    columns = 2
 
         #current list of ax handle
         self.num_plots_on_current_screen = num_plots_on_current_screen
@@ -804,6 +804,8 @@ class MyMainWindow(QMainWindow):
         """save model file, promting a dialog widget to ask the file name to save model"""
         path, _ = QFileDialog.getSaveFileName(self, "Save file as", "", "rod file (*.rod);;zip files (*.rar)")
         if path:
+            #update the rod_file attribute
+            self.rod_file = path
             self.model.script = (self.plainTextEdit_script.toPlainText())
             self.model.save(path)
             save_add_ = 'success'

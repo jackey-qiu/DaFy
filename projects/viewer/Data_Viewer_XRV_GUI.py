@@ -446,6 +446,9 @@ class MyMainWindow(QMainWindow):
                             lim_y_temp[each].append(-self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2])
             for each in lim_y_temp:
                 lim_y_temp[each] = [min(lim_y_temp[each]),max(lim_y_temp[each])]
+            for each in lim_y_temp:
+                offset = (lim_y_temp[each][1]-lim_y_temp[each][0])*0.1
+                lim_y_temp[each] = [lim_y_temp[each][0]-offset,lim_y_temp[each][1]+offset]
             if use_absolute_value:
                y_label_map = y_label_map_abs 
             #print(self.data_summary)

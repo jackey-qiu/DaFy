@@ -325,6 +325,7 @@ def create_fp_lookup(path):
                 unpack = True)
         energy = 1239.842/wavelength*10
         if energy >= e[-2] or energy <= e[1]:
+            return 0 + 0J
             raise ValueError('The energy/wavelength is outside the databse'\
                 + 'range, the energy should be inside [%f,%f] '%(e[1],e[-2]))
         pos1 = np.argmin(abs(e - energy))
