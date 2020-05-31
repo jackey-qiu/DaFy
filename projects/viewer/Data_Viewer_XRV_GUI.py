@@ -123,7 +123,7 @@ class MyMainWindow(QMainWindow):
 
     #data format based on Fouad's potentiostat
     def extract_cv_file(self,file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
-        #return:pot(V), current (mA)
+        #return:time(s), pot(V), current (mA)
         skiprows = 0
         with open(file_path,'r') as f:
             for each in f.readlines():
@@ -142,18 +142,19 @@ class MyMainWindow(QMainWindow):
         nodes.append(len(data[:,1]))
         if which_cycle>len(nodes):
             print('Cycle number lager than the total cycles! Use the first cycle instead!')
-            return data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
+            return data[nodes[1]:nodes[2],0], data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
         else:
-            return data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
+            return data[nodes[which_cycle]:nodes[which_cycle+1],0],data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
 
     def plot_cv_from_external(self,ax,scan_no,marker_pos):
         file_name,which_cycle,cv_spike_cut,cv_scale_factor, color, ph, func_name= self.plot_lib[scan_no]
         func = eval('self.{}'.format(func_name))
-        pot,current = func(file_name, which_cycle)
-        pot_filtered, current_filtered = pot, current
+        t, pot,current = func(file_name, which_cycle)
+        t_filtered, pot_filtered, current_filtered = t, pot, current
         for ii in range(4):
             filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
             filter_index = filter_index+1#index offset by 1
+            t_filtered = t_filtered[(filter_index,)]
             pot_filtered = pot_filtered[(filter_index,)]
             current_filtered = current_filtered[(filter_index,)]
         pot_filtered = RHE(pot_filtered,pH=ph)
@@ -163,7 +164,57 @@ class MyMainWindow(QMainWindow):
         for each in marker_pos:
             ax.plot([each,each],[-100,100],':k')
         #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
+        print('scan{} based on cv'.format(scan_no))
+        print(self.get_integrated_charge(pot_filtered, current_filtered, t_filtered, plot = False))
         return min(current_filtered*8*cv_scale_factor),max(current*8)
+
+    def get_integrated_charge(self, pot, current, t, pot_range_full = [1., 1.57], steps = 10,plot= False):
+        trans_pot = [1.4,1.42,1.43,1.45,1.5]
+        pot_ranges = []
+        for each in trans_pot:
+            pot_ranges.append([pot_range_full[0],each])
+            pot_ranges.append([each,pot_range_full[1]])
+        for pot_range in pot_ranges:
+            Q_integrated = 0
+            pot_step = (pot_range[1] - pot_range[0])/steps
+            def _get_index(all_values, current_value, first_half = True):
+                all_values = np.array(all_values)
+                half_index = int(len(all_values)/2)
+                if first_half:
+                    return np.argmin(abs(all_values[0:half_index]-current_value))
+                else:
+                    return np.argmin(abs(all_values[half_index:]-current_value))
+            for i in range(steps):
+                pot_left, pot_right = pot_range[0] + pot_step*i, pot_range[0] + pot_step*(i+1)
+                delta_t = abs(t[_get_index(pot, pot_left)] - t[_get_index(pot, pot_right)])
+                i_top_left, i_top_right = current[_get_index(pot, pot_left)], current[_get_index(pot, pot_right)]
+                i_bottom_left, i_bottom_right = current[_get_index(pot, pot_left,False)], current[_get_index(pot, pot_right,False)]
+                Q_two_triangles = abs(i_top_left - i_top_right)*delta_t/2 + abs(i_bottom_left - i_bottom_right)*delta_t/2
+                if i_top_left > i_bottom_left:
+                    Q_retangle = abs(abs(min([i_top_left, i_top_right]))-abs(max([i_bottom_left, i_bottom_right])))*delta_t
+                else:
+                    Q_retangle = abs(abs(min([i_bottom_left, i_bottom_right]))-abs(max([i_top_left, i_top_right])))*delta_t
+                Q_integrated = Q_integrated + Q_two_triangles + Q_retangle
+            if plot:
+                fig = plt.figure()
+                plt.plot(t, current)
+                plt.show()
+            print('Integrated charge between E {} and E {} is {} mC'.format(pot_range[0], pot_range[1], Q_integrated/2))
+            #factor of 2 is due to contributions from the anodic and cathodic cycle
+        return Q_integrated/2
+
+    def estimate_charge_from_skin_layer_thickness(self, slope, transition_E, pot_range,charge_per_unit_cell = 2, roughness_factor = 1):
+        surface_area = 0.125 #cm2
+        unitcell_area = 28.3 #A2
+        single_layer_thickness = 0.5 #nm
+        num_unit_cell_at_surface = surface_area/unitcell_area*10**16*roughness_factor
+        single_layer_charge_transfer = num_unit_cell_at_surface * charge_per_unit_cell
+        thickness_skin_layer = abs(slope * (pot_range[0] - pot_range[1]))
+        percentage_oxidation = thickness_skin_layer/single_layer_thickness
+        # print('percentage_oxidation={}'.format(percentage_oxidation))
+        charge_transfer = percentage_oxidation * single_layer_charge_transfer * 1.6 * 10**-19 #in C
+        print('Charge transfer between E {} and E {} is  {} mC based on skin layer thickness estimation'.format(pot_range[0], pot_range[1], charge_transfer*10**3))
+        return charge_transfer*10**3
 
     def show_or_hide(self):
         self.frame.setVisible(not self.show_frame)
@@ -626,6 +677,10 @@ class MyMainWindow(QMainWindow):
                                 p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
                                 y0 = a1*(p0-p1)+y1
                                 y2 = a2*(p2-p1)+y1
+                                if 'size' in each:
+                                    print('scan{}'.format(scan))
+                                    self.estimate_charge_from_skin_layer_thickness(slope=a1, transition_E=p1, pot_range = [1.0,p1],charge_per_unit_cell = 2, roughness_factor = 1)
+                                    self.estimate_charge_from_skin_layer_thickness(slope=a2, transition_E=p1, pot_range = [p1,1.57],charge_per_unit_cell = 2, roughness_factor = 1)
                                 getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y_smooth_temp,'-')
                         # for pot in np.arange(1.0,1.8,0.1):
@@ -642,6 +697,7 @@ class MyMainWindow(QMainWindow):
                                 getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                     else:
                         if self.checkBox_use_external_cv.isChecked():
+                            # lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
                             try:
                                 if self.checkBox_use_external_slope.isChecked():
                                     lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
