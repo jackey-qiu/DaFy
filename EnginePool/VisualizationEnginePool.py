@@ -426,17 +426,19 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
     L_list = []
     for i in plot_index:
         if i>0:
-            if data['L'][i]<data['L'][i-1]:
+            #if data['L'][i]<(data['L'][i-1]+0.1):
+            if [np.round(data['H'][i],0),np.round(data['K'][i],0)]!=[np.round(data['H'][i-1],0),np.round(data['K'][i-1],0)]:
                 offset_L = data['L'][i-1]+offset_L
             else:
                 pass
         else:
             pass
         L_list.append(data['L'][i]+offset_L)
+    L_list = np.array(L_list)
     potential = [data['potential'][i] for i in plot_index]
     current = [data['current'][i] for i in plot_index]
     peak_intensity = np.array([data['peak_intensity'][i] for i in plot_index])
-    peak_intensity_error = [data['peak_intensity_error'][i] for i in plot_index]
+    peak_intensity_error = np.array([data['peak_intensity_error'][i] for i in plot_index])
     bkg_intensity = np.array([data['bkg'][i] for i in plot_index])
 
     #print(np.array(data['image_no'])[plot_index].shape)
@@ -459,9 +461,9 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
             if app_ctr.p3_data_source == 'peak_intensity':
                 ax_ctr.plot(L_list, peak_intensity,pen={'color': 'y', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
                 #draw error bars
-                x = np.append(np.array(L_list)[:,np.newaxis],np.array(L_list)[:,np.newaxis],axis = 1)
-                y_d = np.array(peak_intensity)[:,np.newaxis]-np.array(peak_intensity_error)[:,np.newaxis]/2
-                y_u = np.array(peak_intensity)[:,np.newaxis]+np.array(peak_intensity_error)[:,np.newaxis]/2
+                x = np.append(L_list[:,np.newaxis],L_list[:,np.newaxis],axis = 1)
+                y_d = peak_intensity[:,np.newaxis]-peak_intensity_error[:,np.newaxis]/2
+                y_u = peak_intensity[:,np.newaxis]+peak_intensity_error[:,np.newaxis]/2
                 y = np.append(y_d,y_u,axis=1)
                 for ii in range(len(y)):
                     ax_ctr.plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)

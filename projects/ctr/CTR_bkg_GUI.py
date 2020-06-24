@@ -40,6 +40,7 @@ class MyMainWindow(QMainWindow):
         self.bkg_intensity = 0
         self.bkg_clip_image = None
         self.image_log_scale = False
+        self.current_HK = [100000,100000]
          
         #self.setupUi(self)
         self.stop = False
@@ -75,6 +76,7 @@ class MyMainWindow(QMainWindow):
         self.radioButton_automatic.toggled.connect(self.update_image)
         self.radioButton_fixed_between.toggled.connect(self.update_image)
         self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
+        self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
 
         self.comboBox_p3.activated.connect(self.select_source_for_plot_p3)
         self.comboBox_p4.activated.connect(self.select_source_for_plot_p4)
@@ -91,7 +93,6 @@ class MyMainWindow(QMainWindow):
         else:
             self.image_log_scale = False
             self.update_image()
-
 
     #to fold or unfold the config file editor
     def fold_or_unfold(self):
@@ -482,13 +483,14 @@ class MyMainWindow(QMainWindow):
         else:
             self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
         self.p1.autoRange() 
+        self.hist.setImageItem(self.img_pyqtgraph)
         # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
         if self.radioButton_automatic.isChecked():
             offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)
             # print(int_min,int_max,offset_)
             self.hist.setLevels(int_min, int_min+offset_)
         else:
-            self.hist.setLevels(float(self.lineEdit_left.text()), float(self.lineEdit_right.text()))
+            self.hist.setLevels(max([int_min,float(self.lineEdit_left.text())]), float(self.lineEdit_right.text()))
 
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)
@@ -504,6 +506,7 @@ class MyMainWindow(QMainWindow):
                 self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
                 #trans_temp = QTransform()
                 #trans_temp.setMatrix(1,trans_temp.m12(),trans_temp.m13(),trans_temp.m21(),1,3,0.5,trans_temp.m32(),trans_temp.m33())
+                """
                 int_max,int_min = np.max(self.app_ctr.bkg_sub.img),np.min(self.app_ctr.bkg_sub.img)
                 if self.image_log_scale:
                     self.img_pyqtgraph.setImage(np.log10(self.app_ctr.bkg_sub.img))
@@ -519,6 +522,8 @@ class MyMainWindow(QMainWindow):
                     self.hist.setLevels(int_min, int_min+offset_)
                 else:
                     self.hist.setLevels(float(self.lineEdit_left.text()), float(self.lineEdit_right.text()))
+                """
+                self.update_image()
                 self.updatePlot()
                 #if you want to save the images, then uncomment the following three lines
                 #QtGui.QApplication.processEvents()
