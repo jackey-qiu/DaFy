@@ -40,8 +40,8 @@ class MyMainWindow(QMainWindow):
         self.bkg_intensity = 0
         self.bkg_clip_image = None
         self.image_log_scale = False
-        self.current_HK = [100000,100000]
-         
+        self.run_mode = False
+
         #self.setupUi(self)
         self.stop = False
         self.open.clicked.connect(self.load_file)
@@ -326,6 +326,8 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
             self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])
             self.lcdNumber_iso.display(isoLine.value())
+            if self.run_mode and ((self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])<1.5):
+                self.pushButton_remove_current_point.click()
 
         def updatePlot_after_remove_point():
             #global data
@@ -473,6 +475,7 @@ class MyMainWindow(QMainWindow):
     def plot_figure(self):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.plot_)
+        self.run_mode = True
         self.timer.start(5)
 
     def update_image(self):
@@ -497,6 +500,7 @@ class MyMainWindow(QMainWindow):
         t0 = time.time()
         if self.stop:
             self.timer.stop()
+            self.run_mode = False
         else:
             #self.update_bkg_clip()
             return_value = self.app_ctr.run_script()

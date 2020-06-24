@@ -461,12 +461,14 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
             if app_ctr.p3_data_source == 'peak_intensity':
                 ax_ctr.plot(L_list, peak_intensity,pen={'color': 'y', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
                 #draw error bars
+                """
                 x = np.append(L_list[:,np.newaxis],L_list[:,np.newaxis],axis = 1)
                 y_d = peak_intensity[:,np.newaxis]-peak_intensity_error[:,np.newaxis]/2
                 y_u = peak_intensity[:,np.newaxis]+peak_intensity_error[:,np.newaxis]/2
                 y = np.append(y_d,y_u,axis=1)
                 for ii in range(len(y)):
                     ax_ctr.plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
+                """
                 ax_ctr.setLogMode(x=False,y=True)
             elif app_ctr.p3_data_source == 'bkg_intensity':
                 ax_ctr.plot(L_list, bkg_intensity,pen={'color': 'g', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
