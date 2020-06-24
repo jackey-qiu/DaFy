@@ -1288,12 +1288,17 @@ class background_subtraction_single_img():
         for s in ss:
             for ord_cus in ord_cus_s:
                 z,a,it,ord_cus,s,fct = backcor(n,y,ord_cus,s,fct)
-                I_container.append(np.sum(y[peak_l:peak_r][index]-z[peak_l:peak_r][index]))
+                # I_container.append(np.sum(y[peak_l:peak_r][index]-z[peak_l:peak_r][index]))
+                I_container.append(np.sum(y[peak_l:peak_r]-z[peak_l:peak_r]))
+                # print(I_container[-1])
+                # print(peak_l,peak_r)
+                # print(index)
                 indexs_bkg=list(range(0,peak_l))+list(range(peak_r,len(y)))
                 if len(indexs_bkg)!=0:
                     std_I_bkg = np.array(y[indexs_bkg]-z[indexs_bkg]).std()
                 else:
                     std_I_bkg = 0
+                # print(I_container[-1],std_I_bkg,std_I_bkg*abs(peak_l-peak_r))
                 # print('sensor',y[index])
                 # I_container.append(np.sum(y[index]))
                 Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
@@ -1302,7 +1307,8 @@ class background_subtraction_single_img():
                 # Ierr_container.append((I_container[-1])**0.5+FOM_container[-1][1]+I_container[-1]*0.03)#possoin error + error from integration + 3% of current intensity
                 # Ierr_container.append(std_bkg/abs(I_container[-1])*std_bkg+(np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
                 #Ierr_container.append((I_container[-1])**.5+std_I_bkg*(peak_r-peak_l))#possoin error + error from integration + 3% of current intensity
-                Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
+                #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
+                Ierr_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
 
                 # try:
                     # Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity

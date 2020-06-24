@@ -126,7 +126,7 @@ def merge_data_bkg(data, object_bkg):
                      }
     for key in key_map_rules:
         data[key].append(key_map_rules[key])
-    data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
+    # data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
     return data
 
 def update_data_bkg(data, object_bkg):
@@ -137,7 +137,7 @@ def update_data_bkg(data, object_bkg):
                      }
     for key in key_map_rules:
         data[key][-1] = key_map_rules[key]
-    data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
+    # data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
     return data
 
 def merge_data(data, object_image_loader, object_peak_fit, object_bkg, global_kwarg, tweak = False):

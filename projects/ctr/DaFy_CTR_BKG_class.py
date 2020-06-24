@@ -61,7 +61,17 @@ class run_app(object):
             self.conf_file = config
             self.kwarg_global = extract_vars_from_config(self.conf_file, section_var ='Global')
         for each in self.kwarg_global:
-            setattr(self,each,self.kwarg_global[each])
+            #flatten [[1,5],15] to [1,2,3,4,5,15] if necessarily
+            if each=='scan_nos':
+                temp_scans = []
+                for each_item in self.kwarg_global['scan_nos']:
+                    if type(each_item)==list:
+                        temp_scans = temp_scans + list(range(each_item[0],each_item[1]+1))
+                    else:
+                        temp_scans.append(each_item)
+                setattr(self,'scan_nos',temp_scans)
+            else:
+                setattr(self,each,self.kwarg_global[each])
 
         #pars lib for everything else
         self.kwarg_image = extract_vars_from_config(self.conf_file, section_var = 'Image_Loader')

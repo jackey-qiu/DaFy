@@ -1054,12 +1054,18 @@ class nexus_image_loader(object):
 
     def extract_pot_current(self, frame_number):
         try:
-            pot = np.array(self.nexus_data['scan/data/voltage2'])[frame_number]
+            try:
+                pot = np.array(self.nexus_data['scan/data/voltage2'])[frame_number]
+            except:
+                pot = np.array(self.nexus_data['scan/data/pilc_voltage2'])[frame_number]
         except:
             print('Potential channel not saved in the nexus file!')
             pot = np.zeros(self.total_frame_number)[frame_number]
         try:
-            cur = np.array(self.nexus_data['scan/data/voltage1'])[frame_number]
+            try:
+                cur = np.array(self.nexus_data['scan/data/voltage1'])[frame_number]
+            except:
+                cur = np.array(self.nexus_data['scan/data/pilc_voltage1'])[frame_number]
         except:
             print('Current channel not saved in the nexus file!')
             cur = np.zeros(self.total_frame_number)[frame_number]
@@ -1073,7 +1079,11 @@ class nexus_image_loader(object):
         return pot, cur
 
     def extract_pot_profile(self):
-        pot_profile = np.array(self.nexus_data['scan/data/voltage2'])
+        try:
+            pot_profile = np.array(self.nexus_data['scan/data/voltage2'])
+        except:
+            pot_profile = np.array(self.nexus_data['scan/data/pilc_voltage2'])
+
         self.potential_profile = pot_profile
         self.potential_profile_cal = FitEnginePool.fit_pot_profile(list(range(len(pot_profile))),pot_profile, show_fig = False)
         return pot_profile

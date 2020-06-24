@@ -31,7 +31,7 @@ class MyMainWindow(QMainWindow):
         super(MyMainWindow, self).__init__(parent)
         pg.setConfigOptions(imageAxisOrder='row-major')
         pg.mkQApp()
-        uic.loadUi(os.path.join(DaFy_path,'projects','ctr','CTR_bkg_pyqtgraph.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','ctr','CTR_bkg_pyqtgraph_new.ui'),self)
         self.setWindowTitle('Data analysis factory: CTR data analasis')
         self.app_ctr=run_app()
         #self.app_ctr.run()
@@ -39,6 +39,7 @@ class MyMainWindow(QMainWindow):
         self.current_scan_number = None
         self.bkg_intensity = 0
         self.bkg_clip_image = None
+        self.image_log_scale = False
          
         #self.setupUi(self)
         self.stop = False
@@ -70,6 +71,9 @@ class MyMainWindow(QMainWindow):
         self.pushButton_up.clicked.connect(self.move_roi_up)
         self.pushButton_down.clicked.connect(self.move_roi_down)
 
+        self.checkBox_use_log_scale.stateChanged.connect(self.set_log_image)
+        self.radioButton_automatic.toggled.connect(self.update_image)
+        self.radioButton_fixed_between.toggled.connect(self.update_image)
         self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
 
         self.comboBox_p3.activated.connect(self.select_source_for_plot_p3)
@@ -80,6 +84,15 @@ class MyMainWindow(QMainWindow):
         setattr(self.app_ctr,'p4_data_source',self.comboBox_p4.currentText())
         self.timer_save_data = QtCore.QTimer(self)
         
+    def set_log_image(self):
+        if self.checkBox_use_log_scale.isChecked():
+            self.image_log_scale = True
+            self.update_image()
+        else:
+            self.image_log_scale = False
+            self.update_image()
+
+
     #to fold or unfold the config file editor
     def fold_or_unfold(self):
         text = self.pushButton_fold_or_unfold.text()
@@ -310,6 +323,7 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
             self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
+            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])
             self.lcdNumber_iso.display(isoLine.value())
 
         def updatePlot_after_remove_point():
@@ -337,6 +351,7 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_potential.display(self.app_ctr.data['potential'][-2])
             self.lcdNumber_current.display(self.app_ctr.data['current'][-2])
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-2])
+            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-2]/self.app_ctr.data['peak_intensity_error'][-2])
             self.lcdNumber_iso.display(isoLine.value())
 
         roi.sigRegionChanged.connect(updatePlot)
@@ -459,6 +474,22 @@ class MyMainWindow(QMainWindow):
         self.timer.timeout.connect(self.plot_)
         self.timer.start(5)
 
+    def update_image(self):
+        int_max,int_min = np.max(self.app_ctr.bkg_sub.img),np.min(self.app_ctr.bkg_sub.img)
+        if self.image_log_scale:
+            self.img_pyqtgraph.setImage(np.log10(self.app_ctr.bkg_sub.img))
+            int_max,int_min = np.log10(int_max),np.log10(int_min)
+        else:
+            self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
+        self.p1.autoRange() 
+        # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
+        if self.radioButton_automatic.isChecked():
+            offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)
+            # print(int_min,int_max,offset_)
+            self.hist.setLevels(int_min, int_min+offset_)
+        else:
+            self.hist.setLevels(float(self.lineEdit_left.text()), float(self.lineEdit_right.text()))
+
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)
         t0 = time.time()
@@ -473,11 +504,21 @@ class MyMainWindow(QMainWindow):
                 self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
                 #trans_temp = QTransform()
                 #trans_temp.setMatrix(1,trans_temp.m12(),trans_temp.m13(),trans_temp.m21(),1,3,0.5,trans_temp.m32(),trans_temp.m33())
-                self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
+                int_max,int_min = np.max(self.app_ctr.bkg_sub.img),np.min(self.app_ctr.bkg_sub.img)
+                if self.image_log_scale:
+                    self.img_pyqtgraph.setImage(np.log10(self.app_ctr.bkg_sub.img))
+                    int_max,int_min = np.log10(int_max),np.log10(int_min)
+                else:
+                    self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
                 if self.app_ctr.img_loader.frame_number == 0:
                     self.p1.autoRange() 
                 # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
-                self.hist.setLevels(0, 0.0005)
+                if self.radioButton_automatic.isChecked():
+                    offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)
+                    # print(int_min,int_max,offset_)
+                    self.hist.setLevels(int_min, int_min+offset_)
+                else:
+                    self.hist.setLevels(float(self.lineEdit_left.text()), float(self.lineEdit_right.text()))
                 self.updatePlot()
                 #if you want to save the images, then uncomment the following three lines
                 #QtGui.QApplication.processEvents()
