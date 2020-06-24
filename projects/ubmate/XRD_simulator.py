@@ -16,7 +16,8 @@ script_path = locate_path.module_path_locator()
 config = ConfigParser.RawConfigParser()
 config.optionxform = str # make entries in config file case sensitive
 
-config.read(os.path.join(script_path,'settings/Co_Oxides_Au111.cfg'))
+# config.read(os.path.join(script_path,'settings/Co_Oxides_Au111.cfg'))
+config.read(os.path.join(script_path,'settings/Ag111_Cu001.cfg'))
 #config.read('settings/Co_Oxides_Au001.cfg')
 #config.read('settings/Ni_Oxides_Au111.cfg')
 #config.read('settings/Fe_Oxides_Au111.cfg')
