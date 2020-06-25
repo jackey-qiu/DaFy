@@ -324,9 +324,10 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
             self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
-            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])
+            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['noise'][-1])
             self.lcdNumber_iso.display(isoLine.value())
-            if self.run_mode and ((self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])<1.5):
+            # if self.run_mode and ((self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])<1.5):
+            if self.run_mode and ((self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['noise'][-1])<self.doubleSpinBox_SN_cutoff.value()):
                 self.pushButton_remove_current_point.click()
 
         def updatePlot_after_remove_point():
@@ -354,7 +355,7 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_potential.display(self.app_ctr.data['potential'][-2])
             self.lcdNumber_current.display(self.app_ctr.data['current'][-2])
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-2])
-            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-2]/self.app_ctr.data['peak_intensity_error'][-2])
+            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-2]/self.app_ctr.data['noise'][-2])
             self.lcdNumber_iso.display(isoLine.value())
 
         roi.sigRegionChanged.connect(updatePlot)

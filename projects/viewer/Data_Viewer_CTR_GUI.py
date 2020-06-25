@@ -69,6 +69,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_save_data.clicked.connect(self.save_data_method)
 
         self.pushButton_auto_plot.clicked.connect(self.generate_plot_settings)
+        self.pushButton_reset.clicked.connect(self.reset)
         # self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
         # self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
         self.data = None
@@ -77,6 +78,10 @@ class MyMainWindow(QMainWindow):
         self.pot_range = None
         self.potential = []
        
+    def reset(self):
+        self.data = None
+        self.data_to_plot = {}
+
     def locate_data_folder(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -90,7 +95,7 @@ class MyMainWindow(QMainWindow):
             # print(self.data_to_save[each])
             self.data_to_save[each].to_csv(os.path.join(self.lineEdit_data_file_path.text(), self.lineEdit_data_file_name.text()+'_{}.csv'.format(each)),header = False, sep =' ',index=False)
 
-    def _symmetry_rods(self,hk=[1,3]):
+    def uniform_symmetry_rods(self,hk=[1,3]):
         if (hk[0]>=0) and (hk[1]>=0):#[1,1]-->[1,1]
             return hk
         elif (hk[0]<=0) and (hk[1]<=0):#[-1,-3]-->[3,1]
@@ -99,6 +104,7 @@ class MyMainWindow(QMainWindow):
             return [abs(each) for each in hk[::-1]]
 
     def generate_plot_settings(self):
+        self.data_to_plot = {}
         set_of_NhkE = list(set(zip(self.data['scan_no'],self.data['H'].round(0),self.data['K'].round(0),self.data['potential'].round(1))))
         set_of_potential = list(set(self.data['potential'].round(1)))
         set_of_hk = list(set(zip(self.data['H'].round(0),self.data['K'].round(0))))
@@ -123,6 +129,7 @@ class MyMainWindow(QMainWindow):
             all_scans_plot.append(';'.join(temp))
         all_scans_plot = ['[{}]'.format(each) for each in all_scans_plot]
         self.scan_numbers_append.setText('+'.join(all_scans_plot))
+        self.append_scans_ctr()
         return all_scans_plot
 
     #save a segment of data to be formated for loading in superrod
@@ -205,7 +212,7 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_y.setText('peak_intensity,potential')
         else:
             self.lineEdit_x.setText('L')
-            self.lineEdit_y.setText('peak_intensity,peak_intensity_error') 
+            self.lineEdit_y.setText('peak_intensity,peak_intensity_error,H,K') 
 
     def _load_file(self):
         fileName = self.lineEdit_data_file.text()
@@ -233,11 +240,18 @@ class MyMainWindow(QMainWindow):
             fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Data Files (*.xlsx);;All Files (*.csv)", options=options)
             if fileName:
                 self.lineEdit_data_file.setText(fileName)
-                if self.data==None:
+                if type(self.data)==type(None):
                     self.data = pd.read_excel(fileName)
                 else:
                     self.data = self.data.append(pd.read_excel(fileName))
             col_labels = 'col_labels\n'+str(list(self.data.columns))+'\n'
+            self.data['H'] = self.data['H'].round(0)
+            self.data['K'] = self.data['K'].round(0)
+            #uniform HK
+            for i in range(len(self.data['H'])):
+                HK = self.uniform_symmetry_rods([self.data['H'][i],self.data['K'][i]])
+                self.data['H'][i] = HK[0]
+                self.data['K'][i] = HK[1]
             scans = list(set(list(self.data['scan_no'])))
             self.scans_all = scans
             scans.sort()
@@ -376,7 +390,6 @@ class MyMainWindow(QMainWindow):
                     lorentz_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['delta']))*np.cos(np.deg2rad(self.data_to_plot[scan]['omega_t']))*np.cos(np.deg2rad(self.data_to_plot[scan]['gamma']))
                     #footprint area correction factor (take effect only for specular rod)
                     area_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['omega_t']))
-                    lorentz_ft,area_ft =1,1
                     self.data_to_save[temp_key] = self.data_to_save[temp_key].append(pd.DataFrame({"L":self.data_to_plot[scan]['L'],"H":self.data_to_plot[scan]['H'],\
                                                                                      "K":self.data_to_plot[scan]['K'],"na":[0]*len_data,"I":self.data_to_plot[scan]['peak_intensity']*lorentz_ft*area_ft,\
                                                                                      "I_err":self.data_to_plot[scan]['peak_intensity_error']*lorentz_ft*area_ft,"BL":[BL]*len_data ,"dL":[2]*len_data}))

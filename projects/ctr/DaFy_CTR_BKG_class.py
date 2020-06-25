@@ -85,6 +85,8 @@ class run_app(object):
         self.img = None
         #data file
         self.data = {}
+        if 'noise' not in self.data_keys:
+            self.data_keys.append('noise')
         for key in self.data_keys:
             self.data[key]=[]
         # print(data)

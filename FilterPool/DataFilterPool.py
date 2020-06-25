@@ -122,6 +122,7 @@ def merge_data_bkg(data, object_bkg):
     key_map_rules = {
                      'peak_intensity':object_bkg.fit_results['I'],
                      'peak_intensity_error':object_bkg.fit_results['Ierr'],
+                     'noise':object_bkg.fit_results['noise'],
                      'mask_ctr':object_bkg.fit_status,
                      }
     for key in key_map_rules:

@@ -1254,6 +1254,7 @@ class background_subtraction_single_img():
 
         # If you know the parameter, use this syntax:
         I_container=[]
+        noise_container = []
         Ibgr_container=[]
         Ierr_container=[]
         FOM_container=[]
@@ -1308,12 +1309,8 @@ class background_subtraction_single_img():
                 # Ierr_container.append(std_bkg/abs(I_container[-1])*std_bkg+(np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
                 #Ierr_container.append((I_container[-1])**.5+std_I_bkg*(peak_r-peak_l))#possoin error + error from integration + 3% of current intensity
                 #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
-                Ierr_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
-
-                # try:
-                    # Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
-                # except:
-                    # Ierr_container.append((np.sum(y))**0.5)#possoin error + error from integration + 3% of current intensity
+                noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
+                Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
 
                 z_container.append(z)
                 s_container.append(s)
@@ -1333,7 +1330,7 @@ class background_subtraction_single_img():
         self.fit_data['y_bkg'] = z[index]
         # print ("When s=",s_container[index_best],'pow=',ord_cus_container[index_best],"integration sum is ",I_container[index_best], " counts!",'S/N ratio is {:3.2f}'.format(I_container[index_best]/Ibgr_container[index_best]+1))
         #return np.sum(y[index]-z[index]),abs(np.sum(z[index])),np.sum(y[index])**0.5+np.sum(y[index]-z[index])**0.5
-        return I_container[index_best],FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,30,r_width,c_width,bkg_sum,check_result
+        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,30,r_width,c_width,bkg_sum,check_result
 
     def update_motor_angles(self, motor_lib):
         # keys_motor_new = ['gamma','delta','mu','omega_t', 'phi', 'chi']
@@ -1351,8 +1348,9 @@ class background_subtraction_single_img():
         # import time
         # t1=time.time()
         # I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
+        I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
         try:
-            I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
+            I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
             self.fit_status = True
         except:
             self.fit_status = False
@@ -1362,6 +1360,7 @@ class background_subtraction_single_img():
         self.fit_results['F']=I**0.5
         self.fit_results['Ferr']=I_err**0.5
         self.fit_results['I']=I
+        self.fit_results['noise'] = noise
         self.fit_results['Ierr']=I_err#scale intensity error
         self.fit_results['bkg']=bkg_sum
         #fit parameters values

@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1440</width>
-    <height>1133</height>
+    <height>988</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -88,7 +88,14 @@
          <item>
           <widget class="QPushButton" name="pushButton_auto_plot">
            <property name="text">
-            <string>Generate Plot settings</string>
+            <string>Plot init</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_reset">
+           <property name="text">
+            <string>reset</string>
            </property>
           </widget>
          </item>
@@ -680,7 +687,7 @@
      <x>0</x>
      <y>0</y>
      <width>1440</width>
-     <height>21</height>
+     <height>22</height>
     </rect>
    </property>
   </widget>
