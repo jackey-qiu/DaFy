@@ -106,7 +106,7 @@ class MyMainWindow(QMainWindow):
     def generate_plot_settings(self):
         self.data_to_plot = {}
         set_of_NhkE = list(set(zip(self.data['scan_no'],self.data['H'].round(0),self.data['K'].round(0),self.data['potential'].round(1))))
-        set_of_potential = list(set(self.data['potential'].round(1)))
+        set_of_potential = sorted(list(set(self.data['potential'].round(1))))
         set_of_hk = list(set(zip(self.data['H'].round(0),self.data['K'].round(0))))
         all_scans = []
         plot_styles = '-*r;-*y;-*b;-*g;-*m;-*k;:*r;:*y;:*b;:*g;:*m;:*k;--*r;--*y;--*b;--*g;--*m;--*k'
@@ -250,8 +250,8 @@ class MyMainWindow(QMainWindow):
             #uniform HK
             for i in range(len(self.data['H'])):
                 HK = self.uniform_symmetry_rods([self.data['H'][i],self.data['K'][i]])
-                self.data['H'][i] = HK[0]
-                self.data['K'][i] = HK[1]
+                self.data.iloc[i,self.data.columns.get_loc('H')] = HK[0]
+                self.data.iloc[i,self.data.columns.get_loc('K')] = HK[1]
             scans = list(set(list(self.data['scan_no'])))
             self.scans_all = scans
             scans.sort()
