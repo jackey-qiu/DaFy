@@ -1,5 +1,5 @@
 import sys,os,qdarkstyle
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QShortcut
 from PyQt5 import uic
 import random
 import numpy as np
@@ -71,6 +71,20 @@ class MyMainWindow(QMainWindow):
         self.pushButton_right.clicked.connect(self.move_roi_right)
         self.pushButton_up.clicked.connect(self.move_roi_up)
         self.pushButton_down.clicked.connect(self.move_roi_down)
+
+        self.leftShort = QShortcut(QtGui.QKeySequence("Ctrl+Left"), self)
+        self.leftShort.activated.connect(self.move_roi_left)
+        self.rightShort = QShortcut(QtGui.QKeySequence("Ctrl+Right"), self)
+        self.rightShort.activated.connect(self.move_roi_right)
+        self.upShort = QShortcut(QtGui.QKeySequence("Ctrl+Up"), self)
+        self.upShort.activated.connect(self.move_roi_up)
+        self.downShort = QShortcut(QtGui.QKeySequence("Ctrl+Down"), self)
+        self.downShort.activated.connect(self.move_roi_down)
+
+        self.nextShort = QShortcut(QtGui.QKeySequence("Right"), self)
+        self.nextShort.activated.connect(self.plot_)
+        self.deleteShort = QShortcut(QtGui.QKeySequence("Down"), self)
+        self.deleteShort.activated.connect(self.remove_data_point)
 
         self.checkBox_use_log_scale.stateChanged.connect(self.set_log_image)
         self.radioButton_automatic.toggled.connect(self.update_image)
@@ -460,7 +474,7 @@ class MyMainWindow(QMainWindow):
         if path != '':
             self.widget_config.save_parameter(path)
         else:
-            self.statusbar.showMessage('Failure to save Config file with the file name of !'.format(path))
+            self.statusbar.showMessage('Failure to save Config file with the file name of {}!'.format(path))
 
     def save_file(self):
         #text = self.textEdit.toPlainText()
