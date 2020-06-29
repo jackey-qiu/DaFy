@@ -305,6 +305,7 @@ class MyMainWindow(QMainWindow):
 
         # Callbacks for handling user interaction
         def updatePlot():
+            # t0 = time.time()
             update_bkg_signal()
             #global data
             try:
@@ -319,6 +320,7 @@ class MyMainWindow(QMainWindow):
             p2.plot(selected.sum(axis=int(self.app_ctr.bkg_sub.int_direct=='y')), clear=True)
             self.reset_peak_center_and_width()
             self.app_ctr.run_update(bkg_intensity=self.bkg_intensity)
+            # t1 = time.time()
             ##update iso curves
             x, y = [int(each) for each in self.roi.pos()]
             w, h = [int(each) for each in self.roi.size()]
@@ -327,7 +329,8 @@ class MyMainWindow(QMainWindow):
             #update bkg roi
             self.roi_bkg.setSize([w,h])
             #self.roi_bkg.setPos([x-w,y])
-
+            # t2 = time.time()
+            # print(t1-t0,t2-t1)
             if self.app_ctr.img_loader.frame_number ==0:
                 isoLine.setValue(self.app_ctr.bkg_sub.img[y:(y+h),x:(x+w)].mean())
             else:
@@ -501,7 +504,7 @@ class MyMainWindow(QMainWindow):
         else:
             self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
         self.p1.autoRange() 
-        self.hist.setImageItem(self.img_pyqtgraph)
+        # self.hist.setImageItem(self.img_pyqtgraph)
         # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
         if self.radioButton_automatic.isChecked():
             offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)

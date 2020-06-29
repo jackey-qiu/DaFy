@@ -40,6 +40,7 @@ from util.UtilityFunctions import extract_vars_from_config
 from util.UtilityFunctions import get_console_size
 from util.UtilityFunctions import make_tweak_string
 from util.UtilityFunctions import tweak_integration
+import time
 #make compatibility of py 2 and py 3#
 if (sys.version_info > (3, 0)):
     raw_input = input
@@ -103,6 +104,7 @@ class run_app(object):
 
     def run_script(self,bkg_intensity = 0):
         try:
+            # t0 = time.time()
             img = next(self._images)
             #img = img/self.bkg_clip_image
             if hasattr(self,'current_scan_number'):
@@ -111,12 +113,18 @@ class run_app(object):
                     self.current_scan_number = self.img_loader.scan_number
             else:
                 setattr(self,'current_scan_number',self.img_loader.scan_number)
+            # t1 = time.time()
             self.current_frame = self.img_loader.frame_number
             self.img = img
+            # t2 = time.time()
             self.data = merge_data_image_loader(self.data, self.img_loader)
+            # t3 = time.time()
             self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True)
+            # t4 = time.time()
             self.data = merge_data_bkg(self.data, self.bkg_sub)
             self.data['bkg'].append(bkg_intensity)
+            # t5 = time.time()
+            # print(t1-t0,t2-t1,t3-t2,t4-t3,t5-t4)
             return True
         except StopIteration:
             self.save_data_file(self.data_path)
