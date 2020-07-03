@@ -113,25 +113,21 @@ class run_app(object):
                     self.current_scan_number = self.img_loader.scan_number
             else:
                 setattr(self,'current_scan_number',self.img_loader.scan_number)
-            # t1 = time.time()
             self.current_frame = self.img_loader.frame_number
             self.img = img
-            # t2 = time.time()
             self.data = merge_data_image_loader(self.data, self.img_loader)
-            # t3 = time.time()
             self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True)
-            # t4 = time.time()
             self.data = merge_data_bkg(self.data, self.bkg_sub)
             self.data['bkg'].append(bkg_intensity)
-            # t5 = time.time()
             # print(t1-t0,t2-t1,t3-t2,t4-t3,t5-t4)
             return True
         except StopIteration:
             self.save_data_file(self.data_path)
             return False
 
-    def run_update(self,bkg_intensity = 0):
-        self.bkg_sub.fit_background(None, self.img, self.data, plot_live = True, freeze_sf = True)
+    def run_update(self,bkg_intensity = 0,begin = False):
+        if not begin:
+            self.bkg_sub.fit_background(None, self.img, self.data, plot_live = True, freeze_sf = True)
         self.data = update_data_bkg(self.data, self.bkg_sub)
         self.data['bkg'][-1] = bkg_intensity
 

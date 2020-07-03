@@ -41,6 +41,7 @@ class MyMainWindow(QMainWindow):
         self.bkg_clip_image = None
         self.image_log_scale = False
         self.run_mode = False
+        self.image_set_up = False
 
         #self.setupUi(self)
         self.stop = False
@@ -208,17 +209,27 @@ class MyMainWindow(QMainWindow):
         p1.addItem(img)
 
         # Custom ROI for selecting an image region
-        roi = pg.ROI([100, 100], [100, 100])
+        ver_width,hor_width = self.app_ctr.cen_clip
+
+        roi = pg.ROI(pos = [hor_width*2*0.2, 0.], size = [hor_width*2*0.6, ver_width*2])
+        #roi = pg.ROI([100, 100], [100, 100])
         self.roi = roi
         roi.addScaleHandle([0.5, 1], [0.5, 0.5])
         roi.addScaleHandle([0, 0.5], [0.5, 0.5])
+        roi.addRotateHandle([0., 0.], [0.5, 0.5])
         p1.addItem(roi)
+        
+        roi_peak = pg.ROI(pos = [hor_width-self.app_ctr.bkg_sub.peak_width, 0.], size = [self.app_ctr.bkg_sub.peak_width*2, ver_width*2], pen = 'g')
+        #roi = pg.ROI([100, 100], [100, 100])
+        self.roi_peak = roi_peak
+        p1.addItem(roi_peak)
 
         # Custom ROI for monitoring bkg
-        roi_bkg = pg.ROI([0, 100], [100, 100],pen = 'r')
+        roi_bkg = pg.ROI(pos = [hor_width*2*0.2, 0.], size = [hor_width*2*0.1, ver_width*2],pen = 'r')
+        # roi_bkg = pg.ROI([0, 100], [100, 100],pen = 'r')
         self.roi_bkg = roi_bkg
-        roi_bkg.addScaleHandle([0.5, 1], [0.5, 0.5])
-        roi_bkg.addScaleHandle([0, 0.5], [0.5, 0.5])
+        # roi_bkg.addScaleHandle([0.5, 1], [0.5, 0.5])
+        # roi_bkg.addScaleHandle([0, 0.5], [0.5, 0.5])
         p1.addItem(roi_bkg)
         #roi.setZValue(10)  # make sure ROI is drawn above image
 
@@ -304,7 +315,7 @@ class MyMainWindow(QMainWindow):
             self.app_ctr.bkg_clip_image = selected
 
         # Callbacks for handling user interaction
-        def updatePlot():
+        def updatePlot(begin = False):
             # t0 = time.time()
             update_bkg_signal()
             #global data
@@ -319,16 +330,19 @@ class MyMainWindow(QMainWindow):
             
             p2.plot(selected.sum(axis=int(self.app_ctr.bkg_sub.int_direct=='y')), clear=True)
             self.reset_peak_center_and_width()
-            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity)
+            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity,begin = begin)
             # t1 = time.time()
             ##update iso curves
             x, y = [int(each) for each in self.roi.pos()]
             w, h = [int(each) for each in self.roi.size()]
             self.iso.setData(pg.gaussianFilter(self.app_ctr.bkg_sub.img[y:(y+h),x:(x+w)], (2, 2)))
             self.iso.setPos(x,y)
+            #update peak roi
+            self.roi_peak.setSize([self.app_ctr.bkg_sub.peak_width*2,h])
+            self.roi_peak.setPos([x+w/2.-self.app_ctr.bkg_sub.peak_width,y])
             #update bkg roi
-            self.roi_bkg.setSize([w,h])
-            #self.roi_bkg.setPos([x-w,y])
+            self.roi_bkg.setSize([w/2-self.app_ctr.bkg_sub.peak_width,h])
+            self.roi_bkg.setPos([x,y])
             # t2 = time.time()
             # print(t1-t0,t2-t1)
             if self.app_ctr.img_loader.frame_number ==0:
@@ -438,18 +452,7 @@ class MyMainWindow(QMainWindow):
         #update the path to save data
         data_file = os.path.join(self.lineEdit_data_file_path.text(),self.lineEdit_data_file_name.text())
         self.app_ctr.data_path = data_file
-        self.app_ctr.run(self.lineEdit.text())
-        self.update_poly_order(init_step=True)
-        self.update_cost_func(init_step=True)
-        if self.launch.text()=='Launch':
-            self.setup_image()
-        else:
-            pass
-        self.timer_save_data.stop()
-        self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
-        self.plot_()
-        self.launch.setText("Relaunch")
-        self.statusbar.showMessage('Initialization succeed!')
+        self.image_set_up = True
 
         try:
             self.app_ctr.run(self.lineEdit.text())
@@ -462,6 +465,7 @@ class MyMainWindow(QMainWindow):
             self.timer_save_data.stop()
             self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
             self.plot_()
+            self.image_set_up = False
             self.launch.setText("Relaunch")
             self.statusbar.showMessage('Initialization succeed!')
         except:
@@ -546,7 +550,10 @@ class MyMainWindow(QMainWindow):
                     self.hist.setLevels(float(self.lineEdit_left.text()), float(self.lineEdit_right.text()))
                 """
                 self.update_image()
-                self.updatePlot()
+                if self.image_set_up:
+                    self.updatePlot(begin = False)
+                else:
+                    self.updatePlot(begin = True)
                 #if you want to save the images, then uncomment the following three lines
                 #QtGui.QApplication.processEvents()
                 #exporter = pg.exporters.ImageExporter(self.widget_image.scene())

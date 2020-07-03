@@ -692,7 +692,7 @@ def setup_sorbate_BD_new(VARS,i,j):
     anchor,anchor_offset=None,None
     if "HO" in SORBATE_ATTACH_ATOM[i][j][0]:#a sign for ternary complex structure forming
         ids=[SORBATE_ATTACH_ATOM[i][j][0]+BASAL_EL[i][int(j/2)]+str(j-1)+'_D'+str(int(i+1))+'A',SORBATE_ATTACH_ATOM[i][j][1]+BASAL_EL[i][int(j/2)]+str(j-1)+'_D'+str(int(i+1))+'A']
-        anchor=BASAL_EL[i][j/2]+str(j-1)+'_D'+str(int(i+1))+'A'
+        anchor=BASAL_EL[i][int(j/2)]+str(j-1)+'_D'+str(int(i+1))+'A'
         anchor_offset=ANCHOR_REFERENCE_OFFSET[i][j]
     else:
         ids=[SORBATE_ATTACH_ATOM[i][j][0]+'_D'+str(int(i+1))+'A',SORBATE_ATTACH_ATOM[i][j][1]+'_D'+str(int(i+1))+'A']

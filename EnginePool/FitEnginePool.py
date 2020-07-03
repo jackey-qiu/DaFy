@@ -874,7 +874,7 @@ class background_subtraction_single_img():
         self.row_width = 10
         self.bkg_row_width = 10
         self.bkg_col_width = 10
-        self.ord_cus_s = [1]
+        self.ord_cus_s = []
         self.ss = [1]
         self.ss_factor = 1
         self.fct = 'atq'
@@ -1310,6 +1310,7 @@ class background_subtraction_single_img():
                 #Ierr_container.append((I_container[-1])**.5+std_I_bkg*(peak_r-peak_l))#possoin error + error from integration + 3% of current intensity
                 #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
+                # print(peak_l,peak_r,len(y),std_I_bkg,noise_container[-1])
                 Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
 
                 z_container.append(z)
@@ -1348,7 +1349,7 @@ class background_subtraction_single_img():
         # import time
         # t1=time.time()
         # I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
-        I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
+        # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
         try:
             I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
             self.fit_status = True

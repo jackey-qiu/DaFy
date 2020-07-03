@@ -65,7 +65,7 @@ class MyMainWindow(QMainWindow):
         # self.radioButton_xrv.clicked.connect(self.set_plot_channels)
         self.checkBox_mask.clicked.connect(self.append_scans)
         self.pushButton_load_config.clicked.connect(self.load_config)
-        self.pushButton_save_config.clicked.connect(self.save_config)
+        self.pushButton_save_config.clicked.connect(self.save_config_ctr)
         self.pushButton_save_data.clicked.connect(self.save_data_method)
 
         self.pushButton_auto_plot.clicked.connect(self.generate_plot_settings)
@@ -204,7 +204,19 @@ class MyMainWindow(QMainWindow):
                     f.write(channel+':'+str(getattr(self,channel).isChecked())+'\n')
                 except:
                     f.write(channel+':'+getattr(self,channel).text()+'\n')
-            
+
+    def save_config_ctr(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","config file (*.ini);Text Files (*.txt);all files(*.*)", options=options)
+        with open(fileName,'w') as f:
+            channels = ['lineEdit_data_file','radioButton_ctr','checkBox_time_scan','checkBox_mask','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt','lineEdit_labels']
+            for channel in channels:
+                try:
+                    f.write(channel+':'+str(getattr(self,channel).isChecked())+'\n')
+                except:
+                    f.write(channel+':'+getattr(self,channel).text()+'\n')  
+
     def set_plot_channels(self):
         time_scan = self.checkBox_time_scan.isChecked()
         if time_scan:
