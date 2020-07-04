@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1440</width>
-    <height>952</height>
+    <width>1306</width>
+    <height>996</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -1094,22 +1094,52 @@
            <double>0.100000000000000</double>
           </property>
           <property name="value">
-           <double>1.000000000000000</double>
+           <double>2.000000000000000</double>
           </property>
          </widget>
         </item>
         <item>
-         <widget class="QLabel" name="label_21">
-          <property name="text">
+         <widget class="QGroupBox" name="groupBox_3">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="title">
            <string>ROI adjustment</string>
           </property>
-         </widget>
-        </item>
-        <item>
-         <widget class="Line" name="line_5">
-          <property name="orientation">
-           <enum>Qt::Horizontal</enum>
-          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <widget class="QRadioButton" name="radioButton_roi_position">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>position</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioButton_roi_size">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
+             <property name="text">
+              <string>size</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
          </widget>
         </item>
         <item>
@@ -1270,46 +1300,12 @@
            </widget>
           </item>
           <item>
-           <widget class="QSlider" name="horizontalSlider">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
+           <widget class="QSpinBox" name="spinBox_peak_width">
             <property name="minimum">
-             <number>5</number>
-            </property>
-            <property name="maximum">
-             <number>40</number>
-            </property>
-            <property name="singleStep">
-             <number>2</number>
+             <number>1</number>
             </property>
             <property name="value">
              <number>15</number>
-            </property>
-            <property name="orientation">
-             <enum>Qt::Horizontal</enum>
-            </property>
-           </widget>
-          </item>
-          <item>
-           <widget class="QLineEdit" name="lineEdit_peak_width">
-            <property name="sizePolicy">
-             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-              <horstretch>0</horstretch>
-              <verstretch>0</verstretch>
-             </sizepolicy>
-            </property>
-            <property name="maximumSize">
-             <size>
-              <width>50</width>
-              <height>16777215</height>
-             </size>
-            </property>
-            <property name="text">
-             <string>15</string>
             </property>
            </widget>
           </item>
@@ -1438,7 +1434,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1440</width>
+     <width>1306</width>
      <height>22</height>
     </rect>
    </property>
@@ -1474,8 +1470,8 @@
   <action name="actionOpenConfig">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/blue-folder--arrow.png</normalon>
-    </iconset>
+     <normaloff>icons/open.png</normaloff>
+     <normalon>../../../icons/blue-folder--arrow.png</normalon>icons/open.png</iconset>
    </property>
    <property name="text">
     <string>OpenConfig</string>
@@ -1484,8 +1480,8 @@
   <action name="actionSaveConfig">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/application-dock-270.png</normalon>
-    </iconset>
+     <normaloff>icons/save.png</normaloff>
+     <normalon>../../../icons/application-dock-270.png</normalon>icons/save.png</iconset>
    </property>
    <property name="text">
     <string>SaveConfig</string>
@@ -1494,8 +1490,8 @@
   <action name="actionRun">
    <property name="icon">
     <iconset>
-     <normaloff>../../../icons/clapperboard--arrow.png</normaloff>
-     <normalon>../../../icons/battery-charge.png</normalon>../../../icons/clapperboard--arrow.png</iconset>
+     <normaloff>icons/run.png</normaloff>
+     <normalon>../../../icons/battery-charge.png</normalon>icons/run.png</iconset>
    </property>
    <property name="text">
     <string>Run</string>
@@ -1504,8 +1500,8 @@
   <action name="actionSaveData">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/disc--plus.png</normalon>
-    </iconset>
+     <normaloff>icons/saveas.png</normaloff>
+     <normalon>../../../icons/disc--plus.png</normalon>icons/saveas.png</iconset>
    </property>
    <property name="text">
     <string>SaveData</string>
@@ -1514,8 +1510,8 @@
   <action name="actionStop">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/clapperboard--minus.png</normalon>
-    </iconset>
+     <normaloff>icons/stop.png</normaloff>
+     <normalon>../../../icons/clapperboard--minus.png</normalon>icons/stop.png</iconset>
    </property>
    <property name="text">
     <string>Stop</string>

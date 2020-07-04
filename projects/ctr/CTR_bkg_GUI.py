@@ -48,7 +48,8 @@ class MyMainWindow(QMainWindow):
         self.open.clicked.connect(self.load_file)
         self.launch.clicked.connect(self.launch_file)
         #self.reload.clicked.connect(self.rload_file)
-        self.horizontalSlider.valueChanged.connect(self.change_peak_width)
+        #self.horizontalSlider.valueChanged.connect(self.change_peak_width)
+        self.spinBox_peak_width.valueChanged.connect(self.change_peak_width)
         self.stopBtn.clicked.connect(self.stop_func)
         self.saveas.clicked.connect(self.save_file_as)
         self.save.clicked.connect(self.save_file)
@@ -120,8 +121,8 @@ class MyMainWindow(QMainWindow):
             self.pushButton_fold_or_unfold.setText("<")
 
     def change_peak_width(self):
-        self.lineEdit_peak_width.setText(str(self.horizontalSlider.value()))
-        self.app_ctr.bkg_sub.peak_width = int(self.horizontalSlider.value())
+        # self.lineEdit_peak_width.setText(str(self.horizontalSlider.value()))
+        self.app_ctr.bkg_sub.peak_width = int(self.spinBox_peak_width.value())
         self.updatePlot()
 
     def save_data(self):
@@ -176,21 +177,44 @@ class MyMainWindow(QMainWindow):
             pass
 
     def move_roi_left(self):
-        pos = self.roi.pos()
-        self.roi.setPos(pos[0]-int(self.lineEdit_roi_offset.text()), pos[1])
+        if self.radioButton_roi_position.isChecked():
+            pos = self.roi.pos() 
+            self.roi.setPos(pos[0]-int(self.lineEdit_roi_offset.text()), pos[1])
+        else:
+            pos = [int(each) for each in self.roi.pos()] 
+            size=[int(each) for each in self.roi.size()]
+            self.roi.setSize(size=(size[0]+int(self.lineEdit_roi_offset.text())*2, size[1]))
+            self.roi.setPos(pos[0]-int(self.lineEdit_roi_offset.text()), pos[1])
 
     def move_roi_right(self):
-        pos = self.roi.pos()
-        self.roi.setPos(pos[0]+int(self.lineEdit_roi_offset.text()), pos[1])
+        if self.radioButton_roi_position.isChecked():
+            pos = self.roi.pos() 
+            self.roi.setPos(pos[0]+int(self.lineEdit_roi_offset.text()), pos[1])
+        else:
+            pos = [int(each) for each in self.roi.pos()] 
+            size=[int(each) for each in self.roi.size()]
+            self.roi.setSize(size=(size[0]-int(self.lineEdit_roi_offset.text())*2, size[1]))
+            self.roi.setPos(pos[0]+int(self.lineEdit_roi_offset.text()), pos[1])
 
     def move_roi_down(self):
-        pos = self.roi.pos()
-        self.roi.setPos(pos[0], pos[1]-int(self.lineEdit_roi_offset.text()))
+        if self.radioButton_roi_position.isChecked():
+            pos = self.roi.pos()
+            self.roi.setPos(pos[0], pos[1]-int(self.lineEdit_roi_offset.text()))
+        else:
+            pos = [int(each) for each in self.roi.pos()] 
+            size=[int(each) for each in self.roi.size()]
+            self.roi.setPos(pos[0], pos[1]+int(self.lineEdit_roi_offset.text()))
+            self.roi.setSize(size=(size[0],size[1]-int(self.lineEdit_roi_offset.text())*2))
 
     def move_roi_up(self):
-        pos = self.roi.pos()
-        self.roi.setPos(pos[0], pos[1] + int(self.lineEdit_roi_offset.text()))
-
+        if self.radioButton_roi_position.isChecked():
+            pos = self.roi.pos()
+            self.roi.setPos(pos[0], pos[1]+int(self.lineEdit_roi_offset.text()))
+        else:
+            pos = [int(each) for each in self.roi.pos()] 
+            size=[int(each) for each in self.roi.size()]
+            self.roi.setPos(pos[0], pos[1]-int(self.lineEdit_roi_offset.text()))
+            self.roi.setSize(size=(size[0],size[1]+int(self.lineEdit_roi_offset.text())*2))
 
     def setup_image(self):
         # Interpret image data as row-major instead of col-major
@@ -389,10 +413,11 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-2]/self.app_ctr.data['noise'][-2])
             self.lcdNumber_iso.display(isoLine.value())
 
-        roi.sigRegionChanged.connect(updatePlot)
         self.updatePlot = updatePlot
         self.updatePlot2 = updatePlot_after_remove_point
         self.update_bkg_clip = update_bkg_clip
+        #roi.sigRegionChanged.connect(updatePlot)
+        roi.sigRegionChanged.connect(self.update_ss_factor)
 
         def updateIsocurve():
             global isoLine, iso
@@ -465,6 +490,7 @@ class MyMainWindow(QMainWindow):
             self.timer_save_data.stop()
             self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
             self.plot_()
+            self.update_ss_factor()
             self.image_set_up = False
             self.launch.setText("Relaunch")
             self.statusbar.showMessage('Initialization succeed!')
