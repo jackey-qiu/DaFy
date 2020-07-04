@@ -176,45 +176,88 @@ class MyMainWindow(QMainWindow):
         except:
             pass
 
-    def move_roi_left(self):
-        if self.radioButton_roi_position.isChecked():
-            pos = self.roi.pos() 
-            self.roi.setPos(pos[0]-int(self.lineEdit_roi_offset.text()), pos[1])
+    def _check_roi_boundary(self,pos,size):
+        ver,hor = self.app_ctr.cen_clip
+        pos_bound_x = hor*2
+        pos_bound_y = ver*2
+        pos_return = []
+        size_return = []
+        if pos[0]<0:
+            pos_return.append(0)
+        elif pos[0]>pos_bound_x:
+            pos_return.append(pos_bound_x-10)
         else:
-            pos = [int(each) for each in self.roi.pos()] 
-            size=[int(each) for each in self.roi.size()]
-            self.roi.setSize(size=(size[0]+int(self.lineEdit_roi_offset.text())*2, size[1]))
-            self.roi.setPos(pos[0]-int(self.lineEdit_roi_offset.text()), pos[1])
+            pos_return.append(pos[0])
+
+        if pos[1]<0:
+            pos_return.append(0)
+        elif pos[1]>pos_bound_y:
+            pos_return.append(pos_bound_y-10)
+        else:
+            pos_return.append(pos[1]) 
+
+        if size[0]<1:
+            size_return.append(1)
+        elif size[0]+pos_return[0]>pos_bound_x:
+            size_return.append(pos_bound_x-pos_return[0])
+        else:
+            size_return.append(size[0])
+
+        if size[1]<1:
+            size_return.append(1)
+        elif size[1]+pos_return[1]>pos_bound_y:
+            size_return.append(pos_bound_y-pos_return[1])
+        else:
+            size_return.append(size[1])
+        return pos_return,size_return
+
+    def move_roi_left(self):
+        pos = [int(each) for each in self.roi.pos()] 
+        size=[int(each) for each in self.roi.size()]
+        if self.radioButton_roi_position.isChecked():
+            pos_return,size_return = self._check_roi_boundary([pos[0]-int(self.lineEdit_roi_offset.text()),pos[1]],size)
+            self.roi.setPos(pos = pos_return)
+            self.roi.setSize(size = size_return)
+        else:
+            pos_return,size_return = self._check_roi_boundary(pos=[pos[0]-int(self.lineEdit_roi_offset.text()), pos[1]],size=[size[0]+int(self.lineEdit_roi_offset.text())*2, size[1]])
+            self.roi.setSize(size=size_return)
+            self.roi.setPos(pos = pos_return)
 
     def move_roi_right(self):
+        pos = [int(each) for each in self.roi.pos()] 
+        size=[int(each) for each in self.roi.size()]
         if self.radioButton_roi_position.isChecked():
-            pos = self.roi.pos() 
-            self.roi.setPos(pos[0]+int(self.lineEdit_roi_offset.text()), pos[1])
+            pos_return,size_return = self._check_roi_boundary([pos[0]+int(self.lineEdit_roi_offset.text()),pos[1]],size)
+            self.roi.setPos(pos = pos_return)
+            self.roi.setSize(size = size_return)
         else:
-            pos = [int(each) for each in self.roi.pos()] 
-            size=[int(each) for each in self.roi.size()]
-            self.roi.setSize(size=(size[0]-int(self.lineEdit_roi_offset.text())*2, size[1]))
-            self.roi.setPos(pos[0]+int(self.lineEdit_roi_offset.text()), pos[1])
+            pos_return,size_return = self._check_roi_boundary(pos=[pos[0]+int(self.lineEdit_roi_offset.text()), pos[1]],size=[size[0]-int(self.lineEdit_roi_offset.text())*2, size[1]])
+            self.roi.setSize(size=size_return)
+            self.roi.setPos(pos = pos_return)
 
     def move_roi_down(self):
+        pos = [int(each) for each in self.roi.pos()] 
+        size=[int(each) for each in self.roi.size()]
         if self.radioButton_roi_position.isChecked():
-            pos = self.roi.pos()
-            self.roi.setPos(pos[0], pos[1]-int(self.lineEdit_roi_offset.text()))
+            pos_return,size_return =self._check_roi_boundary([pos[0], pos[1]-int(self.lineEdit_roi_offset.text())],size)
+            self.roi.setPos(pos_return)
+            self.roi.setSize(size_return)
         else:
-            pos = [int(each) for each in self.roi.pos()] 
-            size=[int(each) for each in self.roi.size()]
-            self.roi.setPos(pos[0], pos[1]+int(self.lineEdit_roi_offset.text()))
-            self.roi.setSize(size=(size[0],size[1]-int(self.lineEdit_roi_offset.text())*2))
+            pos_return,size_return =self._check_roi_boundary([pos[0], pos[1]+int(self.lineEdit_roi_offset.text())],[size[0],size[1]-int(self.lineEdit_roi_offset.text())*2])
+            self.roi.setPos(pos = pos_return)
+            self.roi.setSize(size=size_return)
 
     def move_roi_up(self):
+        pos = [int(each) for each in self.roi.pos()] 
+        size=[int(each) for each in self.roi.size()]
         if self.radioButton_roi_position.isChecked():
-            pos = self.roi.pos()
-            self.roi.setPos(pos[0], pos[1]+int(self.lineEdit_roi_offset.text()))
+            pos_return,size_return =self._check_roi_boundary([pos[0], pos[1]+int(self.lineEdit_roi_offset.text())],size)
+            self.roi.setPos(pos_return)
+            self.roi.setSize(size_return)
         else:
-            pos = [int(each) for each in self.roi.pos()] 
-            size=[int(each) for each in self.roi.size()]
-            self.roi.setPos(pos[0], pos[1]-int(self.lineEdit_roi_offset.text()))
-            self.roi.setSize(size=(size[0],size[1]+int(self.lineEdit_roi_offset.text())*2))
+            pos_return,size_return =self._check_roi_boundary([pos[0], pos[1]-int(self.lineEdit_roi_offset.text())],[size[0],size[1]+int(self.lineEdit_roi_offset.text())*2])
+            self.roi.setPos(pos = pos_return)
+            self.roi.setSize(size=size_return)
 
     def setup_image(self):
         # Interpret image data as row-major instead of col-major
