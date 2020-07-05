@@ -431,6 +431,8 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
         else:
             if ((int(round(data['H'][i],0))==current_HK[0]) and (int(round(data['K'][i],0))==current_HK[1]) and (data['mask_ctr'][i]==True)):
                 plot_index.append(i)
+            elif ((int(round(data['H'][i],0))==current_HK[0]) and (int(round(data['K'][i],0))==current_HK[1]) and (data['mask_ctr'][i]==False)):
+                pass
             else:
                 break
 
@@ -486,6 +488,7 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
                     ax_ctr.plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
                 """
                 ax_ctr.setLogMode(x=False,y=True)
+                ax_ctr.setTitle("{}{}L".format(*current_HK))
             elif app_ctr.p3_data_source == 'bkg_intensity':
                 ax_ctr.plot(L_list, bkg_intensity,pen={'color': 'g', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
                 ax_ctr.setLogMode(x=False,y=True)
