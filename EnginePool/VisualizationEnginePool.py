@@ -419,9 +419,24 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
     #for i in range(len(data['mask_ctr'])):
     #    if data['mask_ctr'][i]==True:
     #        plot_index.append(i)
-    plot_index = [i for i in range(len(data['mask_ctr'])) if data['mask_ctr'][i]==True]
+    #plot_index = [i for i in range(len(data['mask_ctr'])) if data['mask_ctr'][i]==True]
+    i=len(data['mask_ctr'])-1
+    current_HK = [int(round(data['H'][-1],0)),int(round(data['K'][-1],0))]
+    plot_index = [len(data['mask_ctr'])-1]
+    #only extract the datapoints for current rod
+    while 1:
+        i=i-1
+        if i<0:
+            break
+        else:
+            if ((int(round(data['H'][i],0))==current_HK[0]) and (int(round(data['K'][i],0))==current_HK[1]) and (data['mask_ctr'][i]==True)):
+                plot_index.append(i)
+            else:
+                break
+
     imge_no = [data['image_no'][i] for i in plot_index]
     L_list = [data['L'][i] for i in plot_index]
+    """
     offset_L = 0
     L_list = []
     for i in plot_index:
@@ -434,6 +449,7 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
         else:
             pass
         L_list.append(data['L'][i]+offset_L)
+    """
     L_list = np.array(L_list)
     potential = [data['potential'][i] for i in plot_index]
     current = [data['current'][i] for i in plot_index]
