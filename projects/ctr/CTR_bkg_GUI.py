@@ -88,11 +88,14 @@ class MyMainWindow(QMainWindow):
         self.deleteShort = QShortcut(QtGui.QKeySequence("Down"), self)
         self.deleteShort.activated.connect(self.remove_data_point)
 
-        self.checkBox_use_log_scale.stateChanged.connect(self.set_log_image)
+        # self.checkBox_use_log_scale.stateChanged.connect(self.set_log_image)
         self.radioButton_automatic.toggled.connect(self.update_image)
         self.radioButton_fixed_between.toggled.connect(self.update_image)
+        self.radioButton_traditional.toggled.connect(self.update_ss_factor)
+        self.radioButton_vincent.toggled.connect(self.update_ss_factor)
         self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
         self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
+
 
         self.comboBox_p3.activated.connect(self.select_source_for_plot_p3)
         self.comboBox_p4.activated.connect(self.select_source_for_plot_p4)
@@ -397,7 +400,7 @@ class MyMainWindow(QMainWindow):
             
             p2.plot(selected.sum(axis=int(self.app_ctr.bkg_sub.int_direct=='y')), clear=True)
             self.reset_peak_center_and_width()
-            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity,begin = begin)
+            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity,begin = begin,poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
             # t1 = time.time()
             ##update iso curves
             x, y = [int(each) for each in self.roi.pos()]
@@ -594,7 +597,7 @@ class MyMainWindow(QMainWindow):
             self.run_mode = False
         else:
             #self.update_bkg_clip()
-            return_value = self.app_ctr.run_script()
+            return_value = self.app_ctr.run_script(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
             if self.app_ctr.bkg_sub.img is not None:
                 #if self.current_scan_number == None:
                 #    self.current_scan_number = self.app_ctr.img_loader.scan_number
@@ -648,7 +651,7 @@ class MyMainWindow(QMainWindow):
             pass
 
     def update_plot(self):
-        img = self.app_ctr.run_update()
+        img = self.app_ctr.run_update(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
         plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
         #self.MplWidget.canvas.figure.tight_layout()
         #self.MplWidget.canvas.draw()

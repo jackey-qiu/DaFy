@@ -401,9 +401,16 @@ def plot_pxrd_fit_gui_pyqtgraph_old(ax_profile, ax_ctr, ax_pot,app_ctr):
 def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
     data = app_ctr.data
     fit_bkg_object = app_ctr.bkg_sub
-    z = fit_bkg_object.fit_data['y_bkg'][:,0]
+    try:
+        z = fit_bkg_object.fit_data['y_bkg'][:,0]
+    except:
+        z = fit_bkg_object.fit_data['y_bkg']
     n = fit_bkg_object.fit_data['x']
-    y = fit_bkg_object.fit_data['y_total'][:,0]
+    try:
+        y = fit_bkg_object.fit_data['y_total'][:,0]
+    except:
+        y = fit_bkg_object.fit_data['y_total']
+
     y_span = fit_bkg_object.y_span
     x_span = fit_bkg_object.x_span
     clip_image_center = [int(y_span/2)+fit_bkg_object.peak_shift,int(x_span/2)+fit_bkg_object.peak_shift]

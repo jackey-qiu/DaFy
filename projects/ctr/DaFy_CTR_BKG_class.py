@@ -102,7 +102,7 @@ class run_app(object):
         self._scans = scan_generator(scans = self.scan_nos)
         self._images = image_generator_bkg(self._scans,self.img_loader,self.create_mask_new)
 
-    def run_script(self,bkg_intensity = 0):
+    def run_script(self,bkg_intensity = 0,poly_func = 'Vincent'):
         try:
             # t0 = time.time()
             img = next(self._images)
@@ -116,7 +116,7 @@ class run_app(object):
             self.current_frame = self.img_loader.frame_number
             self.img = img
             self.data = merge_data_image_loader(self.data, self.img_loader)
-            self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True)
+            self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True,poly_func = poly_func)
             self.data = merge_data_bkg(self.data, self.bkg_sub)
             self.data['bkg'].append(bkg_intensity)
             # print(t1-t0,t2-t1,t3-t2,t4-t3,t5-t4)
@@ -125,9 +125,9 @@ class run_app(object):
             self.save_data_file(self.data_path)
             return False
 
-    def run_update(self,bkg_intensity = 0,begin = False):
+    def run_update(self,bkg_intensity = 0,begin = False, poly_func = 'Vincent'):
         if not begin:
-            self.bkg_sub.fit_background(None, self.img, self.data, plot_live = True, freeze_sf = True)
+            self.bkg_sub.fit_background(None, self.img, self.data, plot_live = True, freeze_sf = True, poly_func = poly_func)
         self.data = update_data_bkg(self.data, self.bkg_sub)
         self.data['bkg'][-1] = bkg_intensity
 

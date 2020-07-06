@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1306</width>
-    <height>1021</height>
+    <height>1051</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -823,10 +823,10 @@
            </font>
           </property>
           <property name="title">
-           <string>Image_Setup</string>
+           <string>Color_bar_range</string>
           </property>
           <layout class="QGridLayout" name="gridLayout_6">
-           <item row="3" column="1">
+           <item row="1" column="1">
             <widget class="QLabel" name="label_24">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
@@ -845,7 +845,7 @@
              </property>
             </widget>
            </item>
-           <item row="6" column="2">
+           <item row="4" column="2">
             <widget class="QLineEdit" name="lineEdit_right">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -864,7 +864,7 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="2">
+           <item row="1" column="2">
             <widget class="QDoubleSpinBox" name="doubleSpinBox_scale_factor">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
@@ -895,7 +895,7 @@
              </property>
             </widget>
            </item>
-           <item row="6" column="0">
+           <item row="4" column="0">
             <widget class="QRadioButton" name="radioButton_fixed_between">
              <property name="font">
               <font>
@@ -908,7 +908,7 @@
              </property>
             </widget>
            </item>
-           <item row="6" column="1">
+           <item row="4" column="1">
             <widget class="QLineEdit" name="lineEdit_left">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -927,7 +927,7 @@
              </property>
             </widget>
            </item>
-           <item row="3" column="0">
+           <item row="1" column="0">
             <widget class="QRadioButton" name="radioButton_automatic">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
@@ -949,17 +949,23 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="0" colspan="2">
-            <widget class="QCheckBox" name="checkBox_use_log_scale">
-             <property name="enabled">
-              <bool>false</bool>
-             </property>
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
+          </layout>
+         </widget>
+        </item>
+        <item>
+         <widget class="QGroupBox" name="groupBox_4">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="title">
+           <string>Polynormial type</string>
+          </property>
+          <layout class="QHBoxLayout" name="horizontalLayout_6">
+           <item>
+            <widget class="QRadioButton" name="radioButton_traditional">
              <property name="font">
               <font>
                <weight>50</weight>
@@ -967,32 +973,27 @@
               </font>
              </property>
              <property name="text">
-              <string>Use_Log_scale</string>
+              <string>Traditional</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
              </property>
             </widget>
            </item>
-           <item row="2" column="0" colspan="2">
-            <widget class="QLabel" name="label_23">
+           <item>
+            <widget class="QRadioButton" name="radioButton_vincent">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
-              <string>color_bar_range</string>
+              <string>Vincent</string>
              </property>
             </widget>
            </item>
           </layout>
-         </widget>
-        </item>
-        <item>
-         <widget class="QLabel" name="label_4">
-          <property name="font">
-           <font>
-            <pointsize>10</pointsize>
-            <weight>75</weight>
-            <bold>true</bold>
-           </font>
-          </property>
-          <property name="text">
-           <string>Background substraction</string>
-          </property>
          </widget>
         </item>
         <item>
