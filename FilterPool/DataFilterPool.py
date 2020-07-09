@@ -102,8 +102,8 @@ def merge_data_image_loader(data, object_image_loader):
                      'image_no':object_image_loader.frame_number,
                      'potential':object_image_loader.potential,
                      'current':object_image_loader.current,
-                     'H':object_image_loader.hkl[0],
-                     'K':object_image_loader.hkl[1],
+                     'H':int(round(object_image_loader.hkl[0],0)),
+                     'K':int(round(object_image_loader.hkl[1],0)),
                      'L':object_image_loader.hkl[2],
                      'phi':object_image_loader.motor_angles['phi'],
                      'chi':object_image_loader.motor_angles['chi'],
@@ -124,6 +124,14 @@ def merge_data_bkg(data, object_bkg):
                      'peak_intensity_error':object_bkg.fit_results['Ierr'],
                      'noise':object_bkg.fit_results['noise'],
                      'mask_ctr':object_bkg.fit_status,
+                     "roi_x": object_bkg.opt_values["cen"][1]-object_bkg.opt_values["row_width"], 
+                     "roi_y":object_bkg.opt_values["cen"][0]-object_bkg.opt_values["col_width"], 
+                     "roi_w":object_bkg.opt_values["row_width"]*2, 
+                     "roi_h":object_bkg.opt_values["col_width"]*2, 
+                     "ss_factor":object_bkg.ss_factor, 
+                     "poly_func":object_bkg.fct, 
+                     "poly_order":object_bkg.opt_values['int_power'], 
+                     "poly_type":object_bkg.opt_values['poly_type']
                      }
     for key in key_map_rules:
         data[key].append(key_map_rules[key])
@@ -136,6 +144,14 @@ def update_data_bkg(data, object_bkg):
                      'peak_intensity_error':object_bkg.fit_results['Ierr'],
                      'noise':object_bkg.fit_results['noise'],
                      'mask_ctr':object_bkg.fit_status,
+                     "roi_x": object_bkg.opt_values["cen"][1]-object_bkg.opt_values["row_width"], 
+                     "roi_y":object_bkg.opt_values["cen"][0]-object_bkg.opt_values["col_width"], 
+                     "roi_w":object_bkg.opt_values["row_width"]*2, 
+                     "roi_h":object_bkg.opt_values["col_width"]*2, 
+                     "ss_factor":object_bkg.ss_factor, 
+                     "poly_func":object_bkg.fct, 
+                     "poly_order":object_bkg.opt_values['int_power'], 
+                     "poly_type":object_bkg.opt_values['poly_type']
                      }
     for key in key_map_rules:
         data[key][-1] = key_map_rules[key]

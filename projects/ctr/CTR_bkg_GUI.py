@@ -2,6 +2,7 @@ import sys,os,qdarkstyle
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QShortcut
 from PyQt5 import uic
 import random
+import pandas as pd
 import numpy as np
 import matplotlib.pyplot as plt
 from DaFy_CTR_BKG_class import run_app
@@ -34,6 +35,8 @@ class MyMainWindow(QMainWindow):
         uic.loadUi(os.path.join(DaFy_path,'projects','ctr','CTR_bkg_pyqtgraph_new.ui'),self)
         self.setWindowTitle('Data analysis factory: CTR data analasis')
         self.app_ctr=run_app()
+        self.ref_data = None
+        self.ref_fit_pars_current_point = {}
         #self.app_ctr.run()
         self.current_image_no = 0
         self.current_scan_number = None
@@ -56,6 +59,7 @@ class MyMainWindow(QMainWindow):
         self.plot.clicked.connect(self.plot_figure)
         self.runstepwise.clicked.connect(self.plot_)
         self.pushButton_filePath.clicked.connect(self.locate_data_folder)
+        self.pushButton_load_ref_data.clicked.connect(self.load_ref_data)
         self.lineEdit_data_file_name.setText('temp_data_ctr.xlsx')
         self.lineEdit_data_file_path.setText(self.app_ctr.data_path)
         self.actionOpenConfig.triggered.connect(self.load_file)
@@ -95,7 +99,6 @@ class MyMainWindow(QMainWindow):
         self.radioButton_vincent.toggled.connect(self.update_ss_factor)
         self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
         self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
-
 
         self.comboBox_p3.activated.connect(self.select_source_for_plot_p3)
         self.comboBox_p4.activated.connect(self.select_source_for_plot_p4)
@@ -213,6 +216,79 @@ class MyMainWindow(QMainWindow):
         else:
             size_return.append(size[1])
         return pos_return,size_return
+
+    def load_ref_data(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Data Files (*.xlsx);;text Files (*.csv)", options=options)
+        self.lineEdit_ref_data_path.setText(fileName)
+        #self.lineEdit_data_file.setText(fileName)
+        if fileName != "":
+            try:
+                self.ref_data = pd.read_excel(fileName)
+            except:
+                print("Failure to load ref data file!!")
+
+    def get_fit_pars_from_reference(self):
+        if type(self.ref_data) != pd.DataFrame:
+            self.ref_fit_pars_current_point = {}
+            return
+        current_HKL = [int(self.app_ctr.img_loader.hkl[0]),int(self.app_ctr.img_loader.hkl[1]), self.app_ctr.img_loader.hkl[2]]
+        current_H, current_K, current_L = current_HKL
+        current_H = int(current_H)
+        current_K = int(current_K)
+        condition = (self.ref_data["H"] == current_H) & (self.ref_data["K"] == current_K)
+        data_sub = self.ref_data[condition]
+        if len(data_sub)!=0:
+            which_row = (data_sub['L']-current_L).abs().idxmin()
+            f = lambda obj_, str_,row_:obj_[str_][row_]
+            for each in ["H", "K", "roi_x", "roi_y", "roi_w", "roi_h", "ss_factor", "poly_func", "poly_order", "poly_type"]:
+                self.ref_fit_pars_current_point[each] = f(data_sub, each, which_row) 
+        else:
+            self.ref_fit_pars_current_point = {}
+        # print(self.ref_fit_pars_current_point)
+
+    def set_fit_pars_from_reference(self):
+        if len(self.ref_fit_pars_current_point)==0:
+            return
+
+        self.roi.setPos(pos = [self.ref_fit_pars_current_point['roi_x'],self.ref_fit_pars_current_point['roi_y']])
+        self.roi.setSize(size = [self.ref_fit_pars_current_point['roi_w'],self.ref_fit_pars_current_point['roi_h']])
+        self.doubleSpinBox_ss_factor.setValue(self.ref_fit_pars_current_point['ss_factor'])
+
+        def _split_poly_order(order):
+            if order in [1,2,3,4]:
+                return [order]
+            else:
+                if order == 5:
+                    return [1,4]
+                elif order == 6:
+                    return [2,4]
+                elif order == 7:
+                    return [2,5]
+                elif order == 8:
+                    return [1,3,4]
+                elif order == 9:
+                    return [2,3,4]
+                elif order ==10:
+                    return [1,2,3,4]
+        try:
+            eval("self.radioButton_{}.setChecked(True)".format(self.ref_fit_pars_current_point['poly_func']))
+        except:
+            print("No radioButton named radioButton_{}".format(self.ref_fit_pars_current_point['poly_func']))
+
+        try:
+            eval("self.radioButton_{}.setChecked(True)".format(self.ref_fit_pars_current_point['poly_type']))
+        except:
+            print("No radioButton named radioButton_{}".format(self.ref_fit_pars_current_point['poly_type']))
+        
+        poly_order_list = _split_poly_order(self.ref_fit_pars_current_point['poly_order'])
+        for each in poly_order_list:
+            try:
+                eval("self.checkBox_order{}.setChecked(True)".format(each))
+            except:
+                print("No checkBox named checkBox_order{}".format(each))
+
 
     def move_roi_left(self):
         pos = [int(each) for each in self.roi.pos()] 
@@ -524,6 +600,22 @@ class MyMainWindow(QMainWindow):
         data_file = os.path.join(self.lineEdit_data_file_path.text(),self.lineEdit_data_file_name.text())
         self.app_ctr.data_path = data_file
         self.image_set_up = True
+        """
+        self.app_ctr.run(self.lineEdit.text())
+        self.update_poly_order(init_step=True)
+        self.update_cost_func(init_step=True)
+        if self.launch.text()=='Launch':
+            self.setup_image()
+        else:
+            pass
+        self.timer_save_data.stop()
+        self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
+        self.plot_()
+        self.update_ss_factor()
+        self.image_set_up = False
+        self.launch.setText("Relaunch")
+        self.statusbar.showMessage('Initialization succeed!')
+        """
 
         try:
             self.app_ctr.run(self.lineEdit.text())
@@ -598,6 +690,9 @@ class MyMainWindow(QMainWindow):
         else:
             #self.update_bkg_clip()
             return_value = self.app_ctr.run_script(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
+            self.get_fit_pars_from_reference()
+            self.set_fit_pars_from_reference()
+            self.update_plot()
             if self.app_ctr.bkg_sub.img is not None:
                 #if self.current_scan_number == None:
                 #    self.current_scan_number = self.app_ctr.img_loader.scan_number

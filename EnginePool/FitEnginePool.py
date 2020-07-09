@@ -1340,14 +1340,12 @@ class background_subtraction_single_img():
     def integrate_one_image_use_traditional_polyfit(self,fig, img, data=None, plot_live = False, freeze_sf=False):
         self.img = img
         center_pix=self.center_pix
-        #print(center_pix)
         r_width=self.row_width
         c_width=self.col_width
         integration_direction=self.int_direct
         ord_cus_s=self.ord_cus_s
         ss=self.ss
         fct=self.fct
-        #print(r_width,c_width)
         if center_pix[0]<c_width:
             c_width = center_pix[0]-10
 
@@ -1355,36 +1353,16 @@ class background_subtraction_single_img():
             r_width = center_pix[1]-10
         index_cutoff=np.array([[center_pix[0]-c_width,center_pix[1]-r_width],[center_pix[0]+c_width,center_pix[1]+r_width]])
         sub_index=[np.min(index_cutoff,axis=0),np.max(index_cutoff,axis=0)]
-        #print(sub_index)
         x_min,x_max=sub_index[0][1],sub_index[1][1]
         y_min,y_max=sub_index[0][0],sub_index[1][0]
         pil_y,pil_x=img.shape#shape of the pilatus image
-        #reset the boundary if the index number is beyond the pilatus shape
-        #x_min,x_max,y_min,y_max=[int(x_min>0)*x_min,int(x_max>0)*x_max,int(y_min>0)*y_min,int(y_max>0)*y_max]
-        #x_min,x_max,y_min,y_max=[int(x_min<pil_x)*x_min,int(x_max<pil_x)*x_max,int(y_min<pil_y)*y_min,int(y_max<pil_y)*y_max]
         x_min,x_max,y_min,y_max=[int(x_min<pil_x)*x_min,[pil_x,x_max][int(x_max<pil_x)],int(y_min<pil_y)*y_min,[pil_y,y_max][int(y_max<pil_y)]]
-        # x_min_new,x_max_new,y_min_new,y_max_new=[int(x_min>0)*x_min,int(x_max>0)*x_max,int(y_min>0)*y_min,int(y_max>0)*y_max]
-        # x_min_new,x_max_new,y_min_new,y_max_new=[int(x_min_new<pil_x)*x_min_new,int(x_max_new<pil_x)*x_max_new,int(y_min_new<pil_y)*y_min_new,int(y_max_new<pil_y)*y_max_new]
-        # compare_results =[x_min == x_min_new, x_max == x_max_new, y_min == y_min_new, y_max == y_max_new]
-        # x_corner, y_corner =None, None
-
-        # for i in range(4):
-            # if i in [0,1] and compare_results[i]:
-                # x_corner = i
-            # elif i in [2,3] and compare_results[i]:
-                # y_corner = i
-        # if [x_corner,y_corner] == [0,1]:
-
-        # elif [x_corner,y_corner] == [1,1]:
-        # elif [x_corner,y_corner] == [0,0]:
-        # elif [x_corner,y_corner] == [1,0]:
 
         x_span,y_span=x_max-x_min,y_max-y_min
         clip_image_center = [int(y_span/2)+self.peak_shift,int(x_span/2)+self.peak_shift]
         peak_l = max([clip_image_center[int(self.int_direct=='x')]-self.peak_width,0])#peak_l>0
         peak_r = clip_image_center[int(self.int_direct=='x')]+self.peak_width
         self.x_min, self.y_min, self.x_max, self.y_max, self.x_span, self.y_span = x_min, y_min, x_max, y_max, x_span, y_span
-        #print (y_min,y_max,x_min,x_max)
         clip_img=img[y_min:y_max+1,x_min:x_max+1]
         
         clip_image_center_bkg = clip_image_center+np.array([-self.bkg_win_cen_offset_ud,self.bkg_win_cen_offset_lr])
@@ -1400,21 +1378,16 @@ class background_subtraction_single_img():
         bkg_sum = np.sum(img[y_min_bkg:y_max_bkg+1,x_min_bkg:x_max_bkg+1])
 
         if integration_direction=="x":
-            #y=img.sum(axis=0)[:,np.newaxis][sub_index[0][1]:sub_index[1][1]]
             y=clip_img.sum(axis=0)[:,np.newaxis]
         elif integration_direction=="y":
-            #y=img.sum(axis=1)[:,np.newaxis][sub_index[0][0]:sub_index[1][0]]
             y=clip_img.sum(axis=1)[:,np.newaxis]
         #Now normalized the data
-        #y = y/data['mon'][-1]/data['transm'][-1]
         n=np.array(range(len(y)))
         y= y.flatten()
         n_bkg = list(range(0,peak_l))+list(range(peak_r,len(y)))
         if len(n_bkg)==0:
             n_bkg = [0,1,2,3,4,5,6]
         y_bkg = [y[each] for each in n_bkg]
-        #print(n_bkg)
-        #print(y_bkg)
 
         # If you know the parameter, use this syntax:
         I_container=[]
@@ -1426,12 +1399,6 @@ class background_subtraction_single_img():
         s_container=[]
         ord_cus_container=[]
         index=None
-        # peak_width=10
-        # if self.int_direct=='y':
-            # peak_width==int(self.col_width*peak_width_percent)
-        # elif self.int_direct=='x':
-            # peak_width=int(self.row_width*peak_width_percent)
-        #y=y-np.average(list(y[0:brg_width])+list(y[-brg_width:-1]))
         def _cal_FOM(y,z,peak_width):
             ct=int(len(y)/2)
             lf=ct-peak_width
@@ -1454,48 +1421,26 @@ class background_subtraction_single_img():
             for ord_cus in ord_cus_s:
                 bkg_func = backcor_normal(n_bkg,y_bkg,ord_cus)
                 z = bkg_func(n)
-                # I_container.append(np.sum(y[peak_l:peak_r][index]-z[peak_l:peak_r][index]))
                 I_container.append(np.sum(y[peak_l:peak_r]-z[peak_l:peak_r]))
-                # print(I_container[-1])
-                # print(peak_l,peak_r)
-                # print(index)
                 indexs_bkg=list(range(0,peak_l))+list(range(peak_r,len(y)))
                 if len(indexs_bkg)!=0:
                     std_I_bkg = np.array(y[indexs_bkg]-z[indexs_bkg]).std()
                 else:
                     std_I_bkg = 0
-                # print(I_container[-1],std_I_bkg,std_I_bkg*abs(peak_l-peak_r))
-                # print('sensor',y[index])
-                # I_container.append(np.sum(y[index]))
                 Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
                 FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
-                #Ierr_container.append((I_container[-1]+FOM_container[-1])**0.5)
-                # Ierr_container.append((I_container[-1])**0.5+FOM_container[-1][1]+I_container[-1]*0.03)#possoin error + error from integration + 3% of current intensity
-                # Ierr_container.append(std_bkg/abs(I_container[-1])*std_bkg+(np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
-                #Ierr_container.append((I_container[-1])**.5+std_I_bkg*(peak_r-peak_l))#possoin error + error from integration + 3% of current intensity
-                #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
-                # print(peak_l,peak_r,len(y),std_I_bkg,noise_container[-1])
                 Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
-
                 z_container.append(z)
                 s_container.append(s)
                 ord_cus_container.append(ord_cus)
         index_best=np.argmin(np.array(FOM_container)[:,0])
-        #print 'std=',FOM_container[index_best]
-        #print 'all std=',FOM_container
         index = np.argsort(n)
-        # data['peak_intensity'].append(I_container[index_best])
         check_result = True
-        # if check:
-            # if I_container[index_best]<check_level:
-                # check_result = False
 
         self.fit_data['x'] = n[index]
         self.fit_data['y_total'] = y[index]
         self.fit_data['y_bkg'] = z[index]
-        # print ("When s=",s_container[index_best],'pow=',ord_cus_container[index_best],"integration sum is ",I_container[index_best], " counts!",'S/N ratio is {:3.2f}'.format(I_container[index_best]/Ibgr_container[index_best]+1))
-        #return np.sum(y[index]-z[index]),abs(np.sum(z[index])),np.sum(y[index])**0.5+np.sum(y[index]-z[index])**0.5
         return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,30,r_width,c_width,bkg_sum,check_result
 
     def update_motor_angles(self, motor_lib):
@@ -1546,6 +1491,7 @@ class background_subtraction_single_img():
         self.opt_values['int_power'] = ord_cus
         self.opt_values['int_dir'] = self.int_direct
         self.opt_values['cost_fun'] = self.fct
+        self.opt_values['poly_type'] = poly_func.lower()
         # t3=time.time()
         # print(t3-t2,t2-t1)
         # return data

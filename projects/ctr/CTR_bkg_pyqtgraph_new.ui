@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1306</width>
-    <height>1051</height>
+    <width>1440</width>
+    <height>830</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -279,6 +279,20 @@
              </size>
             </property>
            </widget>
+          </item>
+         </layout>
+        </item>
+        <item>
+         <layout class="QHBoxLayout" name="horizontalLayout_11">
+          <item>
+           <widget class="QPushButton" name="pushButton_load_ref_data">
+            <property name="text">
+             <string>Load_ref_data</string>
+            </property>
+           </widget>
+          </item>
+          <item>
+           <widget class="QLineEdit" name="lineEdit_ref_data_path"/>
           </item>
          </layout>
         </item>
@@ -1435,7 +1449,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1306</width>
+     <width>1440</width>
      <height>22</height>
     </rect>
    </property>
