@@ -233,16 +233,15 @@ class MyMainWindow(QMainWindow):
         if type(self.ref_data) != pd.DataFrame:
             self.ref_fit_pars_current_point = {}
             return
-        current_HKL = [int(self.app_ctr.img_loader.hkl[0]),int(self.app_ctr.img_loader.hkl[1]), self.app_ctr.img_loader.hkl[2]]
-        current_H, current_K, current_L = current_HKL
-        current_H = int(current_H)
-        current_K = int(current_K)
+        current_H, current_K, current_L = self.app_ctr.img_loader.hkl
+        current_H = int(round(current_H,0))
+        current_K = int(round(current_K,0))
         condition = (self.ref_data["H"] == current_H) & (self.ref_data["K"] == current_K)
         data_sub = self.ref_data[condition]
         if len(data_sub)!=0:
             which_row = (data_sub['L']-current_L).abs().idxmin()
             f = lambda obj_, str_,row_:obj_[str_][row_]
-            for each in ["H", "K", "roi_x", "roi_y", "roi_w", "roi_h", "ss_factor", "poly_func", "poly_order", "poly_type"]:
+            for each in ["H", "K", "roi_x", "roi_y", "roi_w", "roi_h", "ss_factor", "peak_width","poly_func", "poly_order", "poly_type"]:
                 self.ref_fit_pars_current_point[each] = f(data_sub, each, which_row) 
         else:
             self.ref_fit_pars_current_point = {}
@@ -255,6 +254,7 @@ class MyMainWindow(QMainWindow):
         self.roi.setPos(pos = [self.ref_fit_pars_current_point['roi_x'],self.ref_fit_pars_current_point['roi_y']])
         self.roi.setSize(size = [self.ref_fit_pars_current_point['roi_w'],self.ref_fit_pars_current_point['roi_h']])
         self.doubleSpinBox_ss_factor.setValue(self.ref_fit_pars_current_point['ss_factor'])
+        self.spinBox_peak_width.setValue(self.ref_fit_pars_current_point['peak_width'])
 
         def _split_poly_order(order):
             if order in [1,2,3,4]:
@@ -748,8 +748,8 @@ class MyMainWindow(QMainWindow):
     def update_plot(self):
         img = self.app_ctr.run_update(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
         plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
-        #self.MplWidget.canvas.figure.tight_layout()
-        #self.MplWidget.canvas.draw()
+        # self.MplWidget.canvas.figure.tight_layout()
+        # self.MplWidget.canvas.draw()
 
     def reset_peak_center_and_width(self):
         roi_size = [int(each/2) for each in self.roi.size()][::-1]

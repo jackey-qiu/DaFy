@@ -1384,6 +1384,7 @@ class background_subtraction_single_img():
         #Now normalized the data
         n=np.array(range(len(y)))
         y= y.flatten()
+        # print("len y=",len(y))
         n_bkg = list(range(0,peak_l))+list(range(peak_r,len(y)))
         if len(n_bkg)==0:
             n_bkg = [0,1,2,3,4,5,6]

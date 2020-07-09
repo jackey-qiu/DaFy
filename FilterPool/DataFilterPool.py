@@ -131,7 +131,8 @@ def merge_data_bkg(data, object_bkg):
                      "ss_factor":object_bkg.ss_factor, 
                      "poly_func":object_bkg.fct, 
                      "poly_order":object_bkg.opt_values['int_power'], 
-                     "poly_type":object_bkg.opt_values['poly_type']
+                     "poly_type":object_bkg.opt_values['poly_type'],
+                     "peak_width":object_bkg.opt_values['peak_width']
                      }
     for key in key_map_rules:
         data[key].append(key_map_rules[key])
@@ -151,7 +152,8 @@ def update_data_bkg(data, object_bkg):
                      "ss_factor":object_bkg.ss_factor, 
                      "poly_func":object_bkg.fct, 
                      "poly_order":object_bkg.opt_values['int_power'], 
-                     "poly_type":object_bkg.opt_values['poly_type']
+                     "poly_type":object_bkg.opt_values['poly_type'],
+                     "peak_width":object_bkg.opt_values['peak_width']
                      }
     for key in key_map_rules:
         data[key][-1] = key_map_rules[key]

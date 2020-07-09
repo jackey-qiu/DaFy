@@ -415,7 +415,8 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
     x_span = fit_bkg_object.x_span
     clip_image_center = [int(y_span/2)+fit_bkg_object.peak_shift,int(x_span/2)+fit_bkg_object.peak_shift]
     peak_l = max([clip_image_center[int(fit_bkg_object.int_direct=='x')]-fit_bkg_object.peak_width,0])#peak_l>0
-    peak_r = clip_image_center[int(fit_bkg_object.int_direct=='x')]+fit_bkg_object.peak_width
+    peak_r = min(clip_image_center[int(fit_bkg_object.int_direct=='x')]+fit_bkg_object.peak_width,len(z)-1)
+    #print([peak_l,peak_r],)
     #ax_profile.plot(n,y,pen='b',name="data")
     ax_profile.plot(n,z,pen="r",name="background")
     #ax_profile.plot(n,y-z,pen="m",name="data-background")
