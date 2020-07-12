@@ -24,7 +24,7 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from GrainAnalysisEnginePool import cal_strain_and_grain
 from VisualizationEnginePool import plot_bkg_fit
-from DataFilterPool import create_mask, merge_data_bkg, update_data_bkg, merge_data_image_loader, make_data_config_file
+from DataFilterPool import create_mask, merge_data_bkg, update_data_bkg, update_data_bkg_previous_frame, merge_data_image_loader, make_data_config_file
 from FitEnginePool import fit_pot_profile
 from FitEnginePool import Reciprocal_Space_Mapping
 from FitEnginePool import XRD_Peak_Fitting
@@ -130,6 +130,13 @@ class run_app(object):
             self.bkg_sub.fit_background(None, self.img, self.data, plot_live = True, freeze_sf = True, poly_func = poly_func)
         self.data = update_data_bkg(self.data, self.bkg_sub)
         self.data['bkg'][-1] = bkg_intensity
+
+    def run_update_one_specific_frame(self, img, bkg_intensity, poly_func = 'Vincent', frame_offset = -1):
+        self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True, poly_func = poly_func)
+        # print(self.data['peak_intensity'])
+        self.data = update_data_bkg_previous_frame(self.data, self.bkg_sub, frame_offset)
+        # print(self.data['peak_intensity'])
+        self.data['bkg'][frame_offset] = bkg_intensity
 
     def save_data_file(self,path):
         #update path for saving data

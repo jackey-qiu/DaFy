@@ -398,7 +398,7 @@ def plot_pxrd_fit_gui_pyqtgraph_old(ax_profile, ax_ctr, ax_pot,app_ctr):
         #ax_ctr.addLegend()
         ax_pot.plot(app_ctr.data[app_ctr.img_loader.scan_number]['frame_number'],app_ctr.data[app_ctr.img_loader.scan_number]['potential'])
 
-def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
+def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr, processed_frame_index = -1):
     data = app_ctr.data
     fit_bkg_object = app_ctr.bkg_sub
     try:
@@ -443,6 +443,7 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
                 pass
             else:
                 break
+    plot_index = plot_index[::-1]
 
     imge_no = [data['image_no'][i] for i in plot_index]
     L_list = [data['L'][i] for i in plot_index]
@@ -486,6 +487,7 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr):
             ax_ctr.setLabel('bottom','L')
             if app_ctr.p3_data_source == 'peak_intensity':
                 ax_ctr.plot(L_list, peak_intensity,pen={'color': 'y', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
+                ax_ctr.plot([L_list[processed_frame_index]], [peak_intensity[processed_frame_index]],pen={'color': 'y', 'width': 1},  symbolBrush=(0,255,0), symbolSize=8,symbolPen='r',clear = False)
                 #draw error bars
                 """
                 x = np.append(L_list[:,np.newaxis],L_list[:,np.newaxis],axis = 1)

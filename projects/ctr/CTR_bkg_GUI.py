@@ -45,6 +45,7 @@ class MyMainWindow(QMainWindow):
         self.image_log_scale = False
         self.run_mode = False
         self.image_set_up = False
+        self.tag_reprocess = False
 
         #self.setupUi(self)
         self.stop = False
@@ -57,6 +58,7 @@ class MyMainWindow(QMainWindow):
         self.saveas.clicked.connect(self.save_file_as)
         self.save.clicked.connect(self.save_file)
         self.plot.clicked.connect(self.plot_figure)
+        self.runstepwise.clicked.connect(self.set_tag_process_type)
         self.runstepwise.clicked.connect(self.plot_)
         self.pushButton_filePath.clicked.connect(self.locate_data_folder)
         self.pushButton_load_ref_data.clicked.connect(self.load_ref_data)
@@ -64,6 +66,7 @@ class MyMainWindow(QMainWindow):
         self.lineEdit_data_file_path.setText(self.app_ctr.data_path)
         self.actionOpenConfig.triggered.connect(self.load_file)
         self.actionSaveConfig.triggered.connect(self.save_file)
+        self.actionRun.triggered.connect(self.set_tag_process_type)
         self.actionRun.triggered.connect(self.plot_)
         self.actionStop.triggered.connect(self.stop_func)
         self.actionSaveData.triggered.connect(self.save_data)
@@ -77,6 +80,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_right.clicked.connect(self.move_roi_right)
         self.pushButton_up.clicked.connect(self.move_roi_up)
         self.pushButton_down.clicked.connect(self.move_roi_down)
+        self.pushButton_go.clicked.connect(self.reprocess_previous_frame)
 
         self.leftShort = QShortcut(QtGui.QKeySequence("Ctrl+Left"), self)
         self.leftShort.activated.connect(self.move_roi_left)
@@ -107,7 +111,41 @@ class MyMainWindow(QMainWindow):
         setattr(self.app_ctr,'p3_data_source',self.comboBox_p3.currentText())
         setattr(self.app_ctr,'p4_data_source',self.comboBox_p4.currentText())
         self.timer_save_data = QtCore.QTimer(self)
+
+    def set_tag_process_type(self):
+        self.tag_reprocess = False
         
+    def reprocess_previous_frame(self):
+        self.tag_reprocess = True
+        frame_number = self.app_ctr.current_frame + 1 +int(self.lineEdit_frame_index_offset.text())
+        if (frame_number < 0) or (frame_number > self.app_ctr.current_frame):
+            self.tag_reprocess = False
+            return
+        img = self.app_ctr.img_loader.load_one_frame(frame_number = frame_number)
+        img = self.app_ctr.create_mask_new.create_mask_new(img = img, img_q_ver = None,
+                                  img_q_par = None, mon = self.app_ctr.img_loader.extract_transm_and_mon(frame_number))
+        self.app_ctr.bkg_sub.img = img
+        self.get_fit_pars_from_frame_index(int(self.lineEdit_frame_index_offset.text()))
+        self.set_fit_pars_from_reference()
+        self.reset_peak_center_and_width()
+        self.update_image()
+        
+        selected = self.roi_bkg.getArrayRegion(self.app_ctr.img, self.img_pyqtgraph)
+        self.bkg_intensity = selected.mean()
+        self.app_ctr.run_update_one_specific_frame(img, self.bkg_intensity, poly_func = ['Vincent','traditional'][int(self.radioButton_traditional.isChecked())], frame_offset = int(self.lineEdit_frame_index_offset.text()))
+        # self.update_plot()
+        self.update_ss_factor()
+        #plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
+
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,frame_number+1,self.app_ctr.img_loader.total_frame_number))
+        self.progressBar.setValue((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100)
+        # self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
+        try:
+            self.lcdNumber_speed.display(int(1./(time.time()-t0)))
+        except:
+            pass
+    
     def set_log_image(self):
         if self.checkBox_use_log_scale.isChecked():
             self.image_log_scale = True
@@ -247,15 +285,25 @@ class MyMainWindow(QMainWindow):
             self.ref_fit_pars_current_point = {}
         # print(self.ref_fit_pars_current_point)
 
+    def get_fit_pars_from_frame_index(self,frame_index):
+        which_row = frame_index
+        f = lambda obj_, str_,row_:obj_[str_][row_]
+        for each in ["H", "K", "roi_x", "roi_y", "roi_w", "roi_h", "ss_factor", "peak_width","poly_func", "poly_order", "poly_type"]:
+            if each == "peak_width":
+                self.ref_fit_pars_current_point[each] = f(self.app_ctr.data, each, which_row)/2 
+            else:
+                self.ref_fit_pars_current_point[each] = f(self.app_ctr.data, each, which_row) 
+        # print(self.ref_fit_pars_current_point)
+
     def set_fit_pars_from_reference(self):
         if len(self.ref_fit_pars_current_point)==0:
             return
-
+        # print(self.app_ctr.bkg_sub.peak_width)
+        # print(self.ref_fit_pars_current_point['peak_width'])
         self.roi.setPos(pos = [self.ref_fit_pars_current_point['roi_x'],self.ref_fit_pars_current_point['roi_y']])
         self.roi.setSize(size = [self.ref_fit_pars_current_point['roi_w'],self.ref_fit_pars_current_point['roi_h']])
         self.doubleSpinBox_ss_factor.setValue(self.ref_fit_pars_current_point['ss_factor'])
         self.spinBox_peak_width.setValue(self.ref_fit_pars_current_point['peak_width'])
-
         def _split_poly_order(order):
             if order in [1,2,3,4]:
                 return [order]
@@ -476,7 +524,10 @@ class MyMainWindow(QMainWindow):
             
             p2.plot(selected.sum(axis=int(self.app_ctr.bkg_sub.int_direct=='y')), clear=True)
             self.reset_peak_center_and_width()
-            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity,begin = begin,poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
+            if self.tag_reprocess:
+                self.app_ctr.run_update_one_specific_frame(self.app_ctr.bkg_sub.img, self.bkg_intensity, poly_func = ['Vincent','traditional'][int(self.radioButton_traditional.isChecked())], frame_offset = int(self.lineEdit_frame_index_offset.text()))
+            else:
+                self.app_ctr.run_update(bkg_intensity=self.bkg_intensity,begin = begin,poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
             # t1 = time.time()
             ##update iso curves
             x, y = [int(each) for each in self.roi.pos()]
@@ -497,11 +548,21 @@ class MyMainWindow(QMainWindow):
                 pass
             #print(isoLine.value(),self.current_image_no)
             #plot others
-            plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
-            self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
-            self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
-            self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
-            self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['noise'][-1])
+            #plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
+            if self.tag_reprocess:
+                index_frame = int(self.lineEdit_frame_index_offset.text())
+                plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr,index_frame)
+                self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1+index_frame+1)
+                self.lcdNumber_potential.display(self.app_ctr.data['potential'][index_frame])
+                self.lcdNumber_current.display(self.app_ctr.data['current'][index_frame])
+                self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][index_frame])
+                self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][index_frame]/self.app_ctr.data['noise'][index_frame])
+            else:
+                plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
+                self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
+                self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
+                self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
+                self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['noise'][-1])
             self.lcdNumber_iso.display(isoLine.value())
             # if self.run_mode and ((self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['peak_intensity_error'][-1])<1.5):
             if self.run_mode and ((self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['noise'][-1])<self.doubleSpinBox_SN_cutoff.value()):
@@ -659,6 +720,7 @@ class MyMainWindow(QMainWindow):
             self.statusbar.showMessage('Failure to save Config file with the file name of {}!'.format(self.lineEdit.text()))
 
     def plot_figure(self):
+        self.tag_reprocess = False
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.plot_)
         self.run_mode = True
@@ -747,7 +809,10 @@ class MyMainWindow(QMainWindow):
 
     def update_plot(self):
         img = self.app_ctr.run_update(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
-        plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
+        if self.tag_reprocess:
+            plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr, int(self.lineEdit_frame_index_offset.text()))
+        else:
+            plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
         # self.MplWidget.canvas.figure.tight_layout()
         # self.MplWidget.canvas.draw()
 

@@ -160,6 +160,29 @@ def update_data_bkg(data, object_bkg):
     # data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
     return data
 
+def update_data_bkg_previous_frame(data, object_bkg, frame_index_offset=-1):
+    key_map_rules = {
+                     'peak_intensity':object_bkg.fit_results['I'],
+                     'peak_intensity_error':object_bkg.fit_results['Ierr'],
+                     'noise':object_bkg.fit_results['noise'],
+                     'mask_ctr':object_bkg.fit_status,
+                     "roi_x": object_bkg.opt_values["cen"][1]-object_bkg.opt_values["row_width"], 
+                     "roi_y":object_bkg.opt_values["cen"][0]-object_bkg.opt_values["col_width"], 
+                     "roi_w":object_bkg.opt_values["row_width"]*2, 
+                     "roi_h":object_bkg.opt_values["col_width"]*2, 
+                     "ss_factor":object_bkg.ss_factor, 
+                     "poly_func":object_bkg.fct, 
+                     "poly_order":object_bkg.opt_values['int_power'], 
+                     "poly_type":object_bkg.opt_values['poly_type'],
+                     "peak_width":object_bkg.opt_values['peak_width']
+                     }
+    for key in key_map_rules:
+        data[key][frame_index_offset] = key_map_rules[key]
+        # if key=='peak_intensity':
+            # print(data[key][frame_index_offset],key_map_rules[key])
+    # data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
+    return data
+
 def merge_data(data, object_image_loader, object_peak_fit, object_bkg, global_kwarg, tweak = False):
     key_map_rules = {'scan_no':object_image_loader.scan_number,
                      'phs': global_kwarg['phs'][global_kwarg['scan_nos'].index(object_image_loader.scan_number)],

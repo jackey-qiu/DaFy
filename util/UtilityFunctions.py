@@ -955,6 +955,48 @@ class nexus_image_loader(object):
         img = img[clip_boundary['ver'][0]:clip_boundary['ver'][1],clip_boundary['hor'][0]:clip_boundary['hor'][1]]
         return img
 
+    def load_one_frame(self,frame_number,flip = True):
+        #if one frame one nxs file
+        #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #data=nxload(img_path)
+        #img=np.array(data.entry.instrument.detector.data.nxdata[0])
+        if self.img_structure=='one':
+            if (frame_number < self.total_frame_number) and (frame_number >= 0):
+                img=self.nexus_data_1.entry.instrument.detector.data._get_filedata(frame_number)
+                #print(self.nexus_data_1.entry.instrument.detector.data.shape)
+                #print(img)
+                if img is None:
+                    img=self.nexus_data_1.entry.instrument.detector.data._get_filedata(frame_number-1)
+                if flip:
+                    img = np.flip(img.T,1)
+                img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
+                        self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
+                #normalized the intensity by the monitor and trams counters
+                self.extract_motor_angles(frame_number)
+                self.extract_pot_current(frame_number)
+                self.extract_HKL(frame_number)
+                return img/self.extract_transm_and_mon(frame_number)
+
+        elif self.img_structure == 'multiple':
+            if (frame_number < self.total_frame_number) and (frame_number >= 0):
+                img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,self.scan_number)
+                img_name_1='{}_{:0>5}_{:0>5}.nxs'.format(self.frame_prefix,self.scan_number,frame_number)
+                #print(img_name_1,img_name)
+                img_path_1=os.path.join(self.nexus_path,img_name.replace(".nxs",""),'lmbd',img_name_1)
+                self.nexus_data_1 = nxload(img_path_1)
+                img=self.nexus_data_1.entry.instrument.detector.data._get_filedata(0)
+                
+                if flip:
+                    img = np.flip(img.T,1)
+                img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
+                        self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
+                #normalized the intensity by the monitor and trams counters
+                self.extract_motor_angles(frame_number)
+                self.extract_pot_current(frame_number)
+                self.extract_HKL(frame_number)
+                return img/self.extract_transm_and_mon(frame_number)
+
     def load_frame(self,frame_number,flip=True):
         #if one frame one nxs file
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
@@ -1037,6 +1079,15 @@ class nexus_image_loader(object):
         #self.motor_angles['transm'] = 1
         #self.motor_angles['mon'] =1
         return motors
+
+    def extract_transm_and_mon(self,frame_number):
+        mon = np.array(self.nexus_data['scan/data/eh_c01'])[frame_number]
+        try:
+            transm=1./np.array(self.nexus_data['scan/data/atten'])[frame_number]
+        except:
+            #motors['transm']=np.array(self.nexus_data['scan/data/lmbd_countsroi1'])[frame_number]/np.array(self.nexus_data['scan/data/lmbd_countsroi1_atten'])[frame_number]
+            transm= 1
+        return mon*transm
 
     def extract_delta_angles(self):
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)

@@ -1165,7 +1165,7 @@ class background_subtraction_single_img():
         index = np.argsort(n)
         return I_container[index_best]
 
-    def integrate_one_image(self,fig, img, data=None, plot_live = False, freeze_sf=False):
+    def integrate_one_image(self,fig, img, data=None, plot_live = False, freeze_sf=False, index_offset = 0):
         self.img = img
         center_pix=self.center_pix
         #print(center_pix)
@@ -1315,7 +1315,7 @@ class background_subtraction_single_img():
                 #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
                 # print(peak_l,peak_r,len(y),std_I_bkg,noise_container[-1])
-                Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
+                Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
 
                 z_container.append(z)
                 s_container.append(s)
@@ -1337,7 +1337,7 @@ class background_subtraction_single_img():
         #return np.sum(y[index]-z[index]),abs(np.sum(z[index])),np.sum(y[index])**0.5+np.sum(y[index]-z[index])**0.5
         return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,30,r_width,c_width,bkg_sum,check_result
 
-    def integrate_one_image_use_traditional_polyfit(self,fig, img, data=None, plot_live = False, freeze_sf=False):
+    def integrate_one_image_use_traditional_polyfit(self,fig, img, data=None, plot_live = False, freeze_sf=False, index_offset = 0):
         self.img = img
         center_pix=self.center_pix
         r_width=self.row_width
@@ -1384,6 +1384,8 @@ class background_subtraction_single_img():
         #Now normalized the data
         n=np.array(range(len(y)))
         y= y.flatten()
+        #print(np.sum(y))
+        # print("next")
         # print("len y=",len(y))
         n_bkg = list(range(0,peak_l))+list(range(peak_r,len(y)))
         if len(n_bkg)==0:
@@ -1423,6 +1425,7 @@ class background_subtraction_single_img():
                 bkg_func = backcor_normal(n_bkg,y_bkg,ord_cus)
                 z = bkg_func(n)
                 I_container.append(np.sum(y[peak_l:peak_r]-z[peak_l:peak_r]))
+                # print(I_container[-1])
                 indexs_bkg=list(range(0,peak_l))+list(range(peak_r,len(y)))
                 if len(indexs_bkg)!=0:
                     std_I_bkg = np.array(y[indexs_bkg]-z[indexs_bkg]).std()
@@ -1431,7 +1434,7 @@ class background_subtraction_single_img():
                 Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
                 FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
-                Ierr_container.append((np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
+                Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
                 z_container.append(z)
                 s_container.append(s)
                 ord_cus_container.append(ord_cus)
@@ -1456,7 +1459,7 @@ class background_subtraction_single_img():
         self.motors['chi']=self.motors['chi']+90
 
 
-    def fit_background(self,fig,img,data=None,plot_live=False,freeze_sf = False,poly_func = ["traditional",'Vincent'][0]):
+    def fit_background(self,fig,img,data=None,plot_live=False,freeze_sf = False,poly_func = ["traditional",'Vincent'][0],index_offset = 0):
         # import time
         # t1=time.time()
         # I,I_bgr,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
@@ -1470,7 +1473,7 @@ class background_subtraction_single_img():
             func = self.integrate_one_image_use_traditional_polyfit
         try:
             # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
-            I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
+            I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf, index_offset = index_offset)
             self.fit_status = True
         except:
             self.fit_status = False
