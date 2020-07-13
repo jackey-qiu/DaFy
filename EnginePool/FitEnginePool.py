@@ -193,6 +193,70 @@ def backcor(n,y,ord_cus,s,fct):
     #print((t2-t1,t3-t2,t4-t3,t5-t4,t6-t5))
     return z,a,it,ord_cus,s,fct
 
+def backcor_confined(n,y,ord_cus,s,fct, peak_area_index = [0,1]):
+    n_original = copy.deepcopy(n)
+    y_original = copy.deepcopy(y)
+    n = [n[i] for i in range(len(n)) if (i<peak_area_index[0] or i>peak_area_index[1])]
+    y = [y[i] for i in range(len(y)) if (i<peak_area_index[0] or i>peak_area_index[1])]
+    # Rescaling
+    def cal_vandermonde_matrix(n,y,ord_cus):
+        N = len(n)
+        index = np.argsort(n)
+        n=np.array([n[i] for i in index])
+        y=np.array([y[i] for i in index])
+        maxy = max(y)
+        dely = (maxy-min(y))/2.
+        n = 2. * (n-n[N-1]) / float(n[N-1]-n[0]) + 1.
+        n=n[:,np.newaxis]
+        y = (y-maxy)/dely + 1
+
+        # Vandermonde matrix
+        p = np.array(range(ord_cus+1))[np.newaxis,:]
+        T = repmat(n,1,ord_cus+1) ** repmat(p,N,1)
+        Tinv = pinv(np.transpose(T).dot(T)).dot(np.transpose(T))
+        return n,N,y,maxy,dely,p,T,Tinv
+    n,N,y,maxy,dely,p,T,Tinv = cal_vandermonde_matrix(n,y,ord_cus)
+    n_original,N_original,y_original,maxy_original,dely_original,p_original,T_original,Tinv_original = cal_vandermonde_matrix(n_original,y_original,ord_cus)
+
+    # Initialisation (least-squares estimation)
+    a = Tinv.dot(y)
+    z = T.dot(a)
+
+    # Other variables
+    alpha = 0.99 * 1/2     # Scale parameter alpha
+    it = 0                 # Iteration number
+    zp = np.ones((N,1))         # Previous estimation
+
+    # LEGEND
+    while np.sum((z-zp)**2)/np.sum(zp**2) > 1e-10:
+        it = it + 1        # Iteration number
+        zp = z             # Previous estimation
+        res = y - z        # Residual
+        # Estimate d
+        if fct=='sh':
+            d = (res*(2*alpha-1)) * (abs(res)<s) + (-alpha*2*s-res) * (res<=-s) + (alpha*2*s-res) * (res>=s)
+        elif fct=='ah':
+            d = (res*(2*alpha-1)) * (res<s) + (alpha*2*s-res) * (res>=s)
+        elif fct=='stq':
+            d = (res*(2*alpha-1)) * (abs(res)<s) - res * (abs(res)>=s)
+        elif fct=='atq':
+            d = (res*(2*alpha-1)) * (res<s) - res * (res>=s)
+        else:
+            pass
+        # Estimate z
+        a = Tinv.dot(y+d)   # Polynomial coefficients a
+        z = T.dot(a)            # Polynomial
+
+    #z=np.array([(z[list(index).index(i)]-1)*dely+maxy for i in range(len(index))])
+    #print(index)
+    #z=(z-1)*dely+maxy
+    z = (T_original.dot(a)-1)*dely + maxy
+    #t7=time.time()
+    #print((t2-t1,t3-t2,t4-t3,t5-t4,t6-t5,t7-t6))
+    #
+    #print((t2-t1,t3-t2,t4-t3,t5-t4,t6-t5))
+    return z,a,it,ord_cus,s,fct
+
 valence_lib = {'Pb':2, 'O':2, 'Fe':3, 'Al':3, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5}
 class bond_valence_constraint(object):
     def __init__(self, r0_container, domain, lattice_abc, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3]):
@@ -1236,7 +1300,7 @@ class background_subtraction_single_img():
             y=clip_img.sum(axis=1)[:,np.newaxis]
         #Now normalized the data
         #y = y/data['mon'][-1]/data['transm'][-1]
-        n=np.array(range(len(y)))
+        '''
         #by default the contamination rate is 25%
         #the algorithm may fail if the peak cover >40% of the cut profile
         bkg_n = int(len(y)/4)
@@ -1244,6 +1308,10 @@ class background_subtraction_single_img():
         y_sorted.sort()
         # std_bkg =np.array(list(y[0:bkg_n])+list(y[-bkg_n:-1])).std()/(max(y)-min(y))
         std_bkg =np.array(y_sorted[0:bkg_n*3]).std()/(max(y_sorted)-min(y_sorted))
+        '''
+        n=np.array(range(len(y)))
+        y_bkg =np.array(list(y[0:peak_l])+list(y[peak_r:]))
+        std_bkg = y_bkg.std()/(max(y_bkg)-min(y_bkg))
         # if hasattr(self,'ss_factor'):
             # ss = [self.ss_factor*std_bkg]
         # else:
@@ -1292,7 +1360,8 @@ class background_subtraction_single_img():
 
         for s in ss:
             for ord_cus in ord_cus_s:
-                z,a,it,ord_cus,s,fct = backcor(n,y,ord_cus,s,fct)
+                # z,a,it,ord_cus,s,fct = backcor(n,y,ord_cus,s,fct)
+                z,a,it,ord_cus,s,fct = backcor_confined(n,y,ord_cus,s,fct,[peak_l,peak_r])
                 # I_container.append(np.sum(y[peak_l:peak_r][index]-z[peak_l:peak_r][index]))
                 I_container.append(np.sum(y[peak_l:peak_r]-z[peak_l:peak_r]))
                 # print(I_container[-1])
@@ -1471,6 +1540,7 @@ class background_subtraction_single_img():
             func = self.integrate_one_image
         else:
             func = self.integrate_one_image_use_traditional_polyfit
+        # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf, index_offset = index_offset)
         try:
             # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
             I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf, index_offset = index_offset)
