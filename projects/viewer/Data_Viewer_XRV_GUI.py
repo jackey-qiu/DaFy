@@ -16,6 +16,7 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
+from charge_calculation import calculate_charge
 from PlotSetup import data_viewer_plot_cv, RHE
 import pandas as pd
 import time
@@ -61,9 +62,11 @@ class MyMainWindow(QMainWindow):
         #style.use('ggplot')
         self.actionLoadData.triggered.connect(self.load_file)
         self.actionPlotData.triggered.connect(self.plot_figure_xrv)
+        self.actionPlotData.triggered.connect(self.print_summary_of_charge_info)
         self.actionPlotRate.triggered.connect(self.plot_data_summary_xrv)
         self.actionSaveData.triggered.connect(self.save_xrv_data)
         self.actionShowHide.triggered.connect(self.show_or_hide)
+        self.pushButton_cal_charge.clicked.connect(self.plot_figure_xrv)
         self.PushButton_append_scans.clicked.connect(self.append_scans_xrv)
         self.checkBox_time_scan.clicked.connect(self.set_plot_channels)
         self.checkBox_mask.clicked.connect(self.append_scans_xrv)
@@ -83,6 +86,8 @@ class MyMainWindow(QMainWindow):
         self.potential = []
         self.show_frame = True
         self.plot_lib = {}
+        self.grain_size_info = {'vertical':[],'horizontal':[]}
+        self.charge_info = {}
 
     def update_pot_offset(self):
         self.potential_offset = eval(self.lineEdit_pot_offset.text())/1000
@@ -165,7 +170,17 @@ class MyMainWindow(QMainWindow):
             ax.plot([each,each],[-100,100],':k')
         #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
         print('scan{} based on cv'.format(scan_no))
-        print(self.get_integrated_charge(pot_filtered, current_filtered, t_filtered, plot = False))
+        # print(self.get_integrated_charge(pot_filtered, current_filtered, t_filtered, plot = False))
+        #scan rate in V/s
+        scan_rate = float(self.lineEdit_scan_rate.text())
+        #potential range in V_RHE
+        pot_range = eval('[{}]'.format(self.lineEdit_pot_range.text().rstrip()))
+        charge_cv = calculate_charge(t, pot, current, which_cycle=0, ph=ph, cv_spike_cut=cv_spike_cut, cv_scale_factor=cv_scale_factor, scan_rate = scan_rate, pot_range = pot_range)
+        if scan_no not in self.charge_info:
+            self.charge_info[scan_no] = {'skin_charge':0,'film_charge':0,'total_charge':charge_cv}
+        else:
+            self.charge_info[scan_no]['total_charge'] = charge_cv
+
         return min(current_filtered*8*cv_scale_factor),max(current*8)
 
     def get_integrated_charge(self, pot, current, t, pot_range_full = [1., 1.57], steps = 10,plot= False):
@@ -215,6 +230,42 @@ class MyMainWindow(QMainWindow):
         charge_transfer = percentage_oxidation * single_layer_charge_transfer * 1.6 * 10**-19 #in C
         print('Charge transfer between E {} and E {} is  {} mC based on skin layer thickness estimation'.format(pot_range[0], pot_range[1], charge_transfer*10**3))
         return charge_transfer*10**3
+
+    #return size change in vertical or horizontal direction, and the associated absolute size
+    def calculate_size_change(self, x0,x1,x2,y1,slope1,slope2,pot_range,roughness_factor = 1):
+        y0 = slope1*(x0-x1)+y1
+        y2 = slope2*(x2-x1)+y1
+        pot_left, pot_right = pot_range
+
+        size_at_pot_left, size_at_pot_right = 0, 0
+        if pot_left<=x1:
+            size_at_pot_left = slope1*(pot_left-x1)+y1
+        else:
+            size_at_pot_left = slope2*(pot_left-x1)+y1
+
+        if pot_right<=x1:
+            size_at_pot_right = slope1*(pot_right-x1)+y1
+        else:
+            size_at_pot_right = slope2*(pot_right-x1)+y1
+        return max([size_at_pot_left, size_at_pot_right]),abs(size_at_pot_left - size_at_pot_right)
+
+    def estimate_charge_from_skin_layer_thickness_philippe_algorithm(self, size_info, q0 = 15.15):
+        #q0 : number of electron transfered per nm^3 during redox chemistry(15.15 only for Co3O4 material)
+        #check the document for details of this algorithm
+        vertical, horizontal = size_info['vertical'], size_info['horizontal']
+        vertical_size, vertical_size_change = vertical
+        horizontal_size, horizontal_size_change = horizontal
+        charge_per_electron = 1.6*(10**-19) # C
+        v_skin = (vertical_size_change + 2*(horizontal_size_change*vertical_size/horizontal_size))*(10**14)
+        q_skin = v_skin * q0 * charge_per_electron * 1000 # mC per m^2
+        q_film = vertical_size*(10**14)*q0 * charge_per_electron * 1000
+        return q_skin, q_film
+
+    def print_summary_of_charge_info(self):
+        for each in self.charge_info:
+            skin_charge, film_charge,total_charge = self.charge_info[each]['skin_charge'],self.charge_info[each]['film_charge'],self.charge_info[each]['total_charge']
+            print('scan{}:\n skin_charge:{} mC/m2, film_charge:{}mC/m2, total_charge:{}mC/m2, bulk oxidation %:{}'.\
+                  format(each,skin_charge, film_charge, total_charge, (total_charge - skin_charge)/film_charge*100))
 
     def show_or_hide(self):
         self.frame.setVisible(not self.show_frame)
@@ -677,10 +728,14 @@ class MyMainWindow(QMainWindow):
                                 p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
                                 y0 = a1*(p0-p1)+y1
                                 y2 = a2*(p2-p1)+y1
-                                if 'size' in each:
-                                    print('scan{}'.format(scan))
-                                    self.estimate_charge_from_skin_layer_thickness(slope=a1, transition_E=p1, pot_range = [1.0,p1],charge_per_unit_cell = 2, roughness_factor = 1)
-                                    self.estimate_charge_from_skin_layer_thickness(slope=a2, transition_E=p1, pot_range = [p1,1.57],charge_per_unit_cell = 2, roughness_factor = 1)
+                                if each=='grain_size_ip':
+                                    self.grain_size_info['horizontal'] = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = eval('[{}]'.format(self.lineEdit_pot_range.text().rstrip())))
+                                elif each == 'grain_size_oop':
+                                    self.grain_size_info['vertical'] = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = eval('[{}]'.format(self.lineEdit_pot_range.text().rstrip())))
+                                # if 'size' in each:
+                                    # print('scan{}'.format(scan))
+                                    # self.estimate_charge_from_skin_layer_thickness(slope=a1, transition_E=p1, pot_range = [1.0,p1],charge_per_unit_cell = 2, roughness_factor = 1)
+                                    # self.estimate_charge_from_skin_layer_thickness(slope=a2, transition_E=p1, pot_range = [p1,1.57],charge_per_unit_cell = 2, roughness_factor = 1)
                                 getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y_smooth_temp,'-')
                         # for pot in np.arange(1.0,1.8,0.1):
@@ -761,6 +816,19 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylabel(y_label_map[each], fontsize = 13)
                     else:
                         pass
+            
+            try:
+                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm(self.grain_size_info)
+                print(self.grain_size_info)
+                print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
+                if scan not in self.charge_info:
+                    self.charge_info[scan] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
+                else:
+                    self.charge_info[scan]['skin_charge'] = q_skin
+                    self.charge_info[scan]['film_charge'] = q_film
+            except:
+                print('charge calculation based on skin layer thickness failed. Check the grain_size_info!')
+            
         for scan in self.scans:
             for each in self.plot_labels_y:
                 i = self.plot_labels_y.index(each)
