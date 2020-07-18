@@ -62,11 +62,12 @@ class MyMainWindow(QMainWindow):
         #style.use('ggplot')
         self.actionLoadData.triggered.connect(self.load_file)
         self.actionPlotData.triggered.connect(self.plot_figure_xrv)
-        self.actionPlotData.triggered.connect(self.print_summary_of_charge_info)
+        self.actionPlotData.triggered.connect(self.print_data_summary)
         self.actionPlotRate.triggered.connect(self.plot_data_summary_xrv)
         self.actionSaveData.triggered.connect(self.save_xrv_data)
         self.actionShowHide.triggered.connect(self.show_or_hide)
         self.pushButton_cal_charge.clicked.connect(self.plot_figure_xrv)
+        self.pushButton_cal_charge.clicked.connect(self.print_data_summary)
         self.PushButton_append_scans.clicked.connect(self.append_scans_xrv)
         self.checkBox_time_scan.clicked.connect(self.set_plot_channels)
         self.checkBox_mask.clicked.connect(self.append_scans_xrv)
@@ -88,6 +89,9 @@ class MyMainWindow(QMainWindow):
         self.plot_lib = {}
         self.grain_size_info = {'vertical':[],'horizontal':[]}
         self.charge_info = {}
+        self.grain_size_info_all_scans = {}
+        self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
+        self.pot_ranges = {}
 
     def update_pot_offset(self):
         self.potential_offset = eval(self.lineEdit_pot_offset.text())/1000
@@ -170,16 +174,31 @@ class MyMainWindow(QMainWindow):
             ax.plot([each,each],[-100,100],':k')
         #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
         print('scan{} based on cv'.format(scan_no))
+        # print([self.pot_range1, self.pot_range2, self.pot_range3])
         # print(self.get_integrated_charge(pot_filtered, current_filtered, t_filtered, plot = False))
         #scan rate in V/s
         scan_rate = float(self.lineEdit_scan_rate.text())
         #potential range in V_RHE
+        """
         pot_range = eval('[{}]'.format(self.lineEdit_pot_range.text().rstrip()))
         charge_cv = calculate_charge(t, pot, current, which_cycle=0, ph=ph, cv_spike_cut=cv_spike_cut, cv_scale_factor=cv_scale_factor, scan_rate = scan_rate, pot_range = pot_range)
         if scan_no not in self.charge_info:
             self.charge_info[scan_no] = {'skin_charge':0,'film_charge':0,'total_charge':charge_cv}
         else:
             self.charge_info[scan_no]['total_charge'] = charge_cv
+        # pot_ranges = [self.pot_range1, self.pot_range2, self.pot_range3]
+        """
+        pot_ranges = self.pot_ranges[scan_no]
+        if scan_no not in self.charge_info:
+            self.charge_info[scan_no] = {}
+        for pot_range in pot_ranges:
+            charge_cv = calculate_charge(t, pot, current, which_cycle=0, ph=ph, cv_spike_cut=cv_spike_cut, cv_scale_factor=cv_scale_factor, scan_rate = scan_rate, pot_range = pot_range)
+            if pot_range not in self.charge_info[scan_no]:
+                self.charge_info[scan_no][pot_range] = {'skin_charge':0,'film_charge':0,'total_charge':charge_cv}
+            else:
+                self.charge_info[scan_no][pot_range]['total_charge'] = charge_cv
+        
+        # print(self.charge_info)
 
         return min(current_filtered*8*cv_scale_factor),max(current*8)
 
@@ -261,11 +280,36 @@ class MyMainWindow(QMainWindow):
         q_film = vertical_size*(10**14)*q0 * charge_per_electron * 1000
         return q_skin, q_film
 
-    def print_summary_of_charge_info(self):
-        for each in self.charge_info:
-            skin_charge, film_charge,total_charge = self.charge_info[each]['skin_charge'],self.charge_info[each]['film_charge'],self.charge_info[each]['total_charge']
-            print('scan{}:\n skin_charge:{} mC/m2, film_charge:{}mC/m2, total_charge:{}mC/m2, bulk oxidation %:{}'.\
-                  format(each,skin_charge, film_charge, total_charge, (total_charge - skin_charge)/film_charge*100))
+    def print_data_summary(self):
+        # print(self.charge_info[221])
+        # print(self.strain_info_all_scans[221])
+        # print(self.grain_size_info_all_scans[221])
+        header = "\t".join(["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain"])
+        output_text = [header]
+        # print(self.grain_size_info_all_scans)
+        for scan in self.scans:
+            for pot_range in self.pot_ranges[scan]:
+                #scan = each_scan
+                ph = self.grain_size_info_all_scans[scan][pot_range]['pH']
+                charges = [round(self.charge_info[scan][pot_range][each],2) for each in ['skin_charge','film_charge','total_charge']]
+                size_hor = [round(each,2) for each in list(self.grain_size_info_all_scans[scan][pot_range]["horizontal"])]
+                size_ver = [round(each, 2) for each in list(self.grain_size_info_all_scans[scan][pot_range]["vertical"])]
+                strain_hor = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["horizontal"])]
+                strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
+                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver
+                output_text.append('\t'.join([str(each) for each in data_temp]))
+        output_text.append("*********Notes*********")
+        output_text.append("*scan: scan number")
+        output_text.append("*pot_lf (V_RHE): left boundary of potential range considered ")
+        output_text.append("*pot_rt (V_RHE): right boundary of potential range considered ")
+        output_text.append("*q_skin(mc/m2): charge calculated based on skin layer thickness")
+        output_text.append("*q_film(mc/m2): charge calculated assuming all Co2+ in the film material has been oxidized to Co3+")
+        output_text.append("*q_cv(mc/m2): charge calculated from electrochemistry data (CV data)")
+        output_text.append("*(d)_hor/ver_size(nm): horizontal/vertical size or the associated change with a d_ prefix")
+        output_text.append("*(d)_hor/ver_strain(%): horizontal/vertical strain or the associated change with a d_ prefix")
+
+        #print("\n".join(output_text))
+        self.plainTextEdit_summary.setPlainText("\n".join(output_text))
 
     def show_or_hide(self):
         self.frame.setVisible(not self.show_frame)
@@ -630,7 +674,27 @@ class MyMainWindow(QMainWindow):
         #each item = [p0,p1,p2,y1,a1,a2], as are slope values, (p1,y1) transition value, y0 and y2 are end points for potentials
         return summary
 
+    def cal_potential_ranges(self,scan):
+        f = lambda x:(round(x[0],3),round(x[1],3))
+        if self.checkBox_use_external_slope.isChecked():
+            slope_info_temp = self.return_slope_values()
+        else:
+            slope_info_temp = None
+        if slope_info_temp == None:
+            pot_range = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
+            self.pot_ranges = [f((pot_range[0],sum(pot_range)/2)),f((sum(pot_range)/2,pot_range[1])),f(pot_range)]
+        else:
+            p0,p1,p2,y1,a1,a2 = slope_info_temp[scan]["strain_ip"]
+            pot_range_specified = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
+            if p1>pot_range_specified[1]:
+                p1 = sum(pot_range_specified)/2
+            pot_range1 = (pot_range_specified[0], p1)
+            pot_range2 = (p1, pot_range_specified[1])
+            pot_range3 = pot_range_specified
+            self.pot_ranges[scan] = [f(pot_range1),f(pot_range2),f(pot_range3)]
+
     def plot_figure_xrv(self):
+
         if self.checkBox_use_external_slope.isChecked():
             slope_info_temp = self.return_slope_values()
         else:
@@ -667,6 +731,7 @@ class MyMainWindow(QMainWindow):
                     pot_range_.append(each)
             self.pot_range = pot_range_
         for scan in self.scans:
+            self.cal_potential_ranges(scan)
             self.data_summary[scan] = {}
             if 'potential' in self.plot_labels_y and self.plot_label_x == 'potential':
                 plot_labels_y = [each for each in self.plot_labels_y if each!='potential']
@@ -728,10 +793,78 @@ class MyMainWindow(QMainWindow):
                                 p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
                                 y0 = a1*(p0-p1)+y1
                                 y2 = a2*(p2-p1)+y1
+                                #{(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
+                                #self.phs[self.scans.index(scan)]
+                                #pot_range1 = (float(self.lineEdit_pot_range.text().rstrip().rsplit(",")[0]), p1)
+                                #pot_range2 = (p1, float(self.lineEdit_pot_range.text().rstrip().rsplit(",")[1]))
+                                #pot_range3 = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
+
+                                pot_range1, pot_range2, pot_range3 = self.pot_ranges[scan]
+
+                                case_pot_range_1 = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = pot_range1)
+                                case_pot_range_2 = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = pot_range2)
+                                case_pot_range_3 = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = pot_range3)
+
                                 if each=='grain_size_ip':
-                                    self.grain_size_info['horizontal'] = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = eval('[{}]'.format(self.lineEdit_pot_range.text().rstrip())))
+                                    self.grain_size_info['horizontal'] = case_pot_range_3
+                                    if scan not in self.grain_size_info_all_scans:
+                                        self.grain_size_info_all_scans[scan] = {}
+                                    if pot_range1 not in self.grain_size_info_all_scans[scan]:
+                                        self.grain_size_info_all_scans[scan][pot_range1] = {"horizontal":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
+                                        self.grain_size_info_all_scans[scan][pot_range2] = {"horizontal":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
+                                        self.grain_size_info_all_scans[scan][pot_range3] = {"horizontal":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
+                                    else:
+                                        self.grain_size_info_all_scans[scan][pot_range1]['horizontal'] = case_pot_range_1
+                                        self.grain_size_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.grain_size_info_all_scans[scan][pot_range2]['horizontal'] = case_pot_range_2
+                                        self.grain_size_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.grain_size_info_all_scans[scan][pot_range3]['horizontal'] = case_pot_range_3
+                                        self.grain_size_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)]
+
                                 elif each == 'grain_size_oop':
-                                    self.grain_size_info['vertical'] = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = eval('[{}]'.format(self.lineEdit_pot_range.text().rstrip())))
+                                    self.grain_size_info['vertical'] = case_pot_range_3
+                                    if scan not in self.grain_size_info_all_scans:
+                                        self.grain_size_info_all_scans[scan] = {}
+                                    if pot_range1 not in self.grain_size_info_all_scans[scan]:
+                                        self.grain_size_info_all_scans[scan][pot_range1] = {"vertical":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
+                                        self.grain_size_info_all_scans[scan][pot_range2] = {"vertical":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
+                                        self.grain_size_info_all_scans[scan][pot_range3] = {"horizontal":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
+                                    else:
+                                        self.grain_size_info_all_scans[scan][pot_range1]['vertical'] = case_pot_range_1
+                                        self.grain_size_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.grain_size_info_all_scans[scan][pot_range2]['vertical'] = case_pot_range_2
+                                        self.grain_size_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.grain_size_info_all_scans[scan][pot_range3]['vertical'] = case_pot_range_3
+                                        self.grain_size_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)]
+
+                                elif each == "strain_ip":
+                                    if scan not in self.strain_info_all_scans:
+                                        self.strain_info_all_scans[scan] = {}
+                                    if pot_range1 not in self.strain_info_all_scans[scan]:
+                                        self.strain_info_all_scans[scan][pot_range1] = {"horizontal":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
+                                        self.strain_info_all_scans[scan][pot_range2] = {"horizontal":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
+                                        self.strain_info_all_scans[scan][pot_range3] = {"horizontal":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
+                                    else:
+                                        self.strain_info_all_scans[scan][pot_range1]['horizontal'] = case_pot_range_1
+                                        self.strain_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.strain_info_all_scans[scan][pot_range2]['horizontal'] = case_pot_range_2
+                                        self.strain_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.strain_info_all_scans[scan][pot_range3]['horizontal'] = case_pot_range_3
+                                        self.strain_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)] 
+                                elif each == "strain_oop":
+                                    if scan not in self.strain_info_all_scans:
+                                        self.strain_info_all_scans[scan] = {}
+                                    if pot_range1 not in self.strain_info_all_scans[scan]:
+                                        self.strain_info_all_scans[scan][pot_range1] = {"vertical":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
+                                        self.strain_info_all_scans[scan][pot_range2] = {"vertical":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
+                                        self.strain_info_all_scans[scan][pot_range3] = {"vertical":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
+                                    else:
+                                        self.strain_info_all_scans[scan][pot_range1]['vertical'] = case_pot_range_1
+                                        self.strain_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.strain_info_all_scans[scan][pot_range2]['vertical'] = case_pot_range_2
+                                        self.strain_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
+                                        self.strain_info_all_scans[scan][pot_range3]['vertical'] = case_pot_range_3
+                                        self.strain_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)] 
                                 # if 'size' in each:
                                     # print('scan{}'.format(scan))
                                     # self.estimate_charge_from_skin_layer_thickness(slope=a1, transition_E=p1, pot_range = [1.0,p1],charge_per_unit_cell = 2, roughness_factor = 1)
@@ -816,19 +949,54 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylabel(y_label_map[each], fontsize = 13)
                     else:
                         pass
-            
-            try:
-                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm(self.grain_size_info)
-                print(self.grain_size_info)
+            """
+            for each_pot_range in self.grain_size_info_all_scans[scan]:
+                horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
+                vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
+                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
+                print("potential range:",each_pot_range)
+                print({"horizontal":horizontal,"vertical":vertical})
                 print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
                 if scan not in self.charge_info:
-                    self.charge_info[scan] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
+                    self.charge_info[scan] = {}
+                    self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
                 else:
-                    self.charge_info[scan]['skin_charge'] = q_skin
-                    self.charge_info[scan]['film_charge'] = q_film
+                    self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
+                    self.charge_info[scan][each_pot_range]['film_charge'] = q_film
+            """
+            """
+            for each_pot_range in self.pot_ranges[scan]:
+                horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
+                vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
+                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
+                print("potential range:",each_pot_range)
+                print({"horizontal":horizontal,"vertical":vertical})
+                print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
+                if each_pot_range not in self.charge_info[scan]:
+                    self.charge_info[scan][each_pot_range] = {}
+                    self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
+                else:
+                    self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
+                    self.charge_info[scan][each_pot_range]['film_charge'] = q_film
+            """
+            try:
+                for each_pot_range in self.pot_ranges[scan]:
+                    horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
+                    vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
+                    q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
+                    print("potential range:",each_pot_range)
+                    print({"horizontal":horizontal,"vertical":vertical})
+                    print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
+                    if scan not in self.charge_info:
+                        self.charge_info[scan] = {}
+                        self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
+                    else:
+                        self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
+                        self.charge_info[scan][each_pot_range]['film_charge'] = q_film
             except:
                 print('charge calculation based on skin layer thickness failed. Check the grain_size_info!')
-            
+        # print(self.strain_info_all_scans[221])
+
         for scan in self.scans:
             for each in self.plot_labels_y:
                 i = self.plot_labels_y.index(each)
@@ -842,6 +1010,8 @@ class MyMainWindow(QMainWindow):
                     else:
                         pass
                 getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(y_min_values[i],y_max_values[i])
+        # self.print_data_summary()
+        #self.actionPlotData.triggered.connect(self.print_data_summary)
         self.mplwidget.fig.tight_layout()
         # print(self.data_summary)
         self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
