@@ -421,12 +421,12 @@ def ir_drop_analysis(pot, current,pot_first, half = 1):
     plt.plot(current*slope+intercept,current)
     plt.show()
 
-def plot_tafel(file_head='/home/qiu/apps', cv_files = ['054_S229_CV','048_S221_CV','057_S231_CV','064_S243_CV'],phs=[13,10,8,7],pot_starts=[1.6,1.6,1.69,1.7], colors = ['r','g','b','m'],labels=[],half = 1):
+def plot_tafel(file_head='D:\\processed_data\\P23_I20180835\\ids', cv_files = ['x054_S229_CV','x048_S221_CV','x057_S231_CV','x064_S243_CV'],phs=[13,10,8,7],pot_starts=[1.6,1.6,1.69,1.7], colors = ['r','g','b','m'],labels=['pH 13', 'pH 10', 'pH 8', 'pH 7'],half = 1, resistance = [-0.2,0,0,-0.18]):
     fig = plt.figure(figsize=(6,6))
     ax = fig.add_subplot(111)
-    ax.set_yscale('log')
-    ax.set_xlabel(r'E / V$_{RHE}$')
-    ax.set_ylabel(r'j / mAcm$^{-2}$')
+    ax.set_xscale('log')
+    ax.set_ylabel(r'E / V$_{RHE}$')
+    ax.set_xlabel(r'j / mAcm$^{-2}$')
     #labels = ['pH {}'.format(ph) for ph in phs]
     for i in range(len(phs)):
         cv = os.path.join(file_head,cv_files[i])
@@ -440,11 +440,42 @@ def plot_tafel(file_head='/home/qiu/apps', cv_files = ['054_S229_CV','048_S221_C
             pot_fit = RHE(pot[int(len(pot)/2):len(pot)][::-1],ph)
             current_fit = current[int(len(pot)/2):len(pot)][::-1]
         indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),len(pot_fit)]
-        ax.plot(pot_fit[indx1:indx2],current_fit[indx1:indx2]*8,label=labels[i])
+        ax.plot(current_fit[indx1:indx2]*8,pot_fit[indx1:indx2]-resistance[i]*current_fit[indx1:indx2],label=labels[i])
     plt.legend()
     plt.show()
     fig.savefig('Tafel.png', dpi=300, bbox_inches='tight')
 
+#temp to test different resistance for one cv file
+def plot_tafel_temp(file_head='D:\\processed_data\\P23_I20180835\\ids', cv_file = 'x064_S243_CV',ph=7,pot_start=1.7, color = 'm',label='pH 7',half = 1, resistances = [0,0,0,0,0]):
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot(111)
+    ax.set_yscale('log')
+    ax.set_xlabel(r'E / V$_{RHE}$')
+    ax.set_ylabel(r'j / mAcm$^{-2}$')
+    #labels = ['pH {}'.format(ph) for ph in phs]
+    phs = [ph]
+    pot_starts = [pot_start]
+    colors = [color]
+    labels = [label]
+    cv_files = [cv_file]
+
+    for resistance in resistances:
+        for i in range(len(phs)):
+            cv = os.path.join(file_head,cv_files[i])
+            ph = phs[i]
+            pot_start=pot_starts[i]
+            pot, current = extract_cv_data(cv,1)
+            if half==1:
+                pot_fit = RHE(pot[0:int(len(pot)/2)],ph)
+                current_fit = current[0:int(len(pot)/2)]
+            else:
+                pot_fit = RHE(pot[int(len(pot)/2):len(pot)][::-1],ph)
+                current_fit = current[int(len(pot)/2):len(pot)][::-1]
+            indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),len(pot_fit)]
+            ax.plot(pot_fit[indx1:indx2]-0.001*resistance*current_fit[indx1:indx2],current_fit[indx1:indx2]*8, label=labels[i]+', when R = {}'.format(resistance))
+    plt.legend()
+    plt.show()
+    fig.savefig('Tafel.png', dpi=300, bbox_inches='tight')
 
 def strain_ip(q_ip, HKL, lattice):
     q_bulk = lattice.q(HKL)
