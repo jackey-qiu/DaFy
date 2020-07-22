@@ -599,6 +599,13 @@
               <item>
                <widget class="QLineEdit" name="lineEdit_ref_data_path"/>
               </item>
+              <item>
+               <widget class="QCheckBox" name="checkBox_match_scan">
+                <property name="text">
+                 <string>match_scan</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
             <item>
@@ -1694,7 +1701,7 @@
      <x>0</x>
      <y>0</y>
      <width>1440</width>
-     <height>22</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

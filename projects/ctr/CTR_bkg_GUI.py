@@ -267,14 +267,19 @@ class MyMainWindow(QMainWindow):
             except:
                 print("Failure to load ref data file!!")
 
-    def get_fit_pars_from_reference(self):
+    def get_fit_pars_from_reference(self, match_scan = False):
         if type(self.ref_data) != pd.DataFrame:
             self.ref_fit_pars_current_point = {}
             return
         current_H, current_K, current_L = self.app_ctr.img_loader.hkl
+        current_scan = self.app_ctr.img_loader.scan_number
         current_H = int(round(current_H,0))
         current_K = int(round(current_K,0))
         condition = (self.ref_data["H"] == current_H) & (self.ref_data["K"] == current_K)
+        if hasattr(self,'checkBox_match_scan'):
+            match_scan = self.checkBox_match_scan.isChecked()
+        if match_scan:
+            condition = (self.ref_data["H"] == current_H) & (self.ref_data["K"] == current_K) & (self.ref_data["scan_no"] == current_scan)
         data_sub = self.ref_data[condition]
         if len(data_sub)!=0:
             which_row = (data_sub['L']-current_L).abs().idxmin()
