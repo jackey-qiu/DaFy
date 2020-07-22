@@ -176,7 +176,8 @@ class lattice():
     @staticmethod
     def from_cif(filename, HKL_normal=[0, 0, 1], HKL_para_x=[1, 0, 0],
                  offset_angle=0, E_keV=22.5, override_a=None, override_b=None, override_c=None, override_alpha=None, override_beta=None, override_gamma=None ):
-        cf = CifFile.ReadCif(filename)
+        # print(filename)
+        cf = CifFile.ReadCif(open(filename))
         data = cf.first_block()
 
         # Load unit cell parameters

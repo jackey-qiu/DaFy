@@ -1404,7 +1404,7 @@ class background_subtraction_single_img():
         self.fit_data['y_bkg'] = z[index]
         # print ("When s=",s_container[index_best],'pow=',ord_cus_container[index_best],"integration sum is ",I_container[index_best], " counts!",'S/N ratio is {:3.2f}'.format(I_container[index_best]/Ibgr_container[index_best]+1))
         #return np.sum(y[index]-z[index]),abs(np.sum(z[index])),np.sum(y[index])**0.5+np.sum(y[index]-z[index])**0.5
-        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,30,r_width,c_width,bkg_sum,check_result
+        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,self.peak_width*2,r_width,c_width,bkg_sum,check_result
 
     def integrate_one_image_use_traditional_polyfit(self,fig, img, data=None, plot_live = False, freeze_sf=False, index_offset = 0):
         self.img = img
@@ -1514,7 +1514,7 @@ class background_subtraction_single_img():
         self.fit_data['x'] = n[index]
         self.fit_data['y_total'] = y[index]
         self.fit_data['y_bkg'] = z[index]
-        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,30,r_width,c_width,bkg_sum,check_result
+        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,self.peak_width*2,r_width,c_width,bkg_sum,check_result
 
     def update_motor_angles(self, motor_lib):
         # keys_motor_new = ['gamma','delta','mu','omega_t', 'phi', 'chi']
