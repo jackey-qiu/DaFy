@@ -147,9 +147,13 @@ class space_plot():
             qz.append(scaled_qz_lims[1])
 
             #mlab.plot3d([qI[0]*scale_q[0], qI[0]*scale_q[0]], [qI[1]*scale_q[1], qI[1]*scale_q[1]], scaled_qz_lims, color=color)
-        src = mlab.pipeline.scalar_scatter(qx, qy, qz, color=color)
+        # src = mlab.pipeline.scalar_scatter(qx, qy, qz , np.zeros(len(qz))+1, color=color)
+        src = mlab.pipeline.scalar_scatter(qx, qy, qz)
         src.mlab_source.dataset.lines = connections
-        lines = mlab.pipeline.stripper(src)
+        # try:
+            # lines = mlab.pipeline.stripper(src)
+        # except:
+        lines = mlab.pipeline.surface(src)
         mlab.pipeline.surface(lines, color=color, line_width=line_width)
         
         #mlab.plot3d(qx, qy, qz, color=color)
@@ -197,7 +201,10 @@ class space_plot():
             #            [grid_qz*scale_q[2], grid_qz*scale_q[2]], color=color)
         src = mlab.pipeline.scalar_scatter(qx, qy, qz, color=color)
         src.mlab_source.dataset.lines = connections
-        lines = mlab.pipeline.stripper(src)
+        # try:
+            # lines = mlab.pipeline.stripper(src)
+        # except:
+        lines = mlab.pipeline.surface(src)
         mlab.pipeline.surface(lines, color=color, line_width=4)
 
     # Plot the unit cell

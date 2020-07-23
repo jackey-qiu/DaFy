@@ -241,6 +241,7 @@ class Visualization(HasTraits):
         for i in range(len(structures)):
             struc = structures[i]
             space_plots.append(rsplt.space_plot(struc.lattice))
+
             if(struc.plot_peaks):
                 peaks.append(space_plots[i].plot_peaks(qx_lims=qx_lims, qy_lims=qy_lims, qz_lims=qz_lims, q_inplane_lim=q_inplane_lim, mag_q_lims=mag_q_lims, color=struc.color))
             if(struc.plot_rods):
