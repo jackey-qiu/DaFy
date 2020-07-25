@@ -298,6 +298,10 @@ class MyMainWindow(QMainWindow):
                 strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
                 data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver
                 output_text.append('\t'.join([str(each) for each in data_temp]))
+        self.widget_terminal.update_name_space('charge_info',self.charge_info)
+        self.widget_terminal.update_name_space('size_info',self.grain_size_info_all_scans)
+        self.widget_terminal.update_name_space('strain_info',self.strain_info_all_scans)
+
         output_text.append("*********Notes*********")
         output_text.append("*scan: scan number")
         output_text.append("*pot_lf (V_RHE): left boundary of potential range considered ")
@@ -1075,6 +1079,6 @@ if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())

@@ -26,6 +26,8 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QCheckBox, QRadioButton
 from PyQt5.QtGui import QTransform
 from pyqtgraph.Qt import QtGui
+# pg.setConfigOption('background', 'w')
+# pg.setConfigOption('foreground', 'k')
 
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
@@ -33,8 +35,9 @@ class MyMainWindow(QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
         pg.mkQApp()
         uic.loadUi(os.path.join(DaFy_path,'projects','ctr','CTR_bkg_pyqtgraph_new.ui'),self)
+        self.widget_config.init_pars(data_type = self.comboBox_beamline.currentText())
         self.setWindowTitle('Data analysis factory: CTR data analasis')
-        self.app_ctr=run_app()
+        self.app_ctr=run_app(beamline = self.comboBox_beamline.currentText())
         self.ref_data = None
         self.ref_fit_pars_current_point = {}
         #self.app_ctr.run()
@@ -81,6 +84,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_up.clicked.connect(self.move_roi_up)
         self.pushButton_down.clicked.connect(self.move_roi_down)
         self.pushButton_go.clicked.connect(self.reprocess_previous_frame)
+        self.comboBox_beamline.currentTextChanged.connect(self.change_config_layout)
 
         self.leftShort = QShortcut(QtGui.QKeySequence("Ctrl+Left"), self)
         self.leftShort.activated.connect(self.move_roi_left)
@@ -111,6 +115,10 @@ class MyMainWindow(QMainWindow):
         setattr(self.app_ctr,'p3_data_source',self.comboBox_p3.currentText())
         setattr(self.app_ctr,'p4_data_source',self.comboBox_p4.currentText())
         self.timer_save_data = QtCore.QTimer(self)
+
+    def change_config_layout(self):
+        self.widget_config.init_pars(data_type = self.comboBox_beamline.currentText())
+        self.app_ctr.beamline = self.comboBox_beamline.currentText()
 
     def set_tag_process_type(self):
         self.tag_reprocess = False
@@ -527,7 +535,7 @@ class MyMainWindow(QMainWindow):
             self.p3.setLabel('left',self.comboBox_p3.currentText())
             self.p4.setLabel('left',self.comboBox_p4.currentText())
             
-            p2.plot(selected.sum(axis=int(self.app_ctr.bkg_sub.int_direct=='y')), clear=True)
+            # p2.plot(selected.sum(axis=int(self.app_ctr.bkg_sub.int_direct=='y')), clear=True)
             self.reset_peak_center_and_width()
             if self.tag_reprocess:
                 self.app_ctr.run_update_one_specific_frame(self.app_ctr.bkg_sub.img, self.bkg_intensity, poly_func = ['Vincent','traditional'][int(self.radioButton_traditional.isChecked())], frame_offset = int(self.lineEdit_frame_index_offset.text()))
@@ -558,14 +566,20 @@ class MyMainWindow(QMainWindow):
                 index_frame = int(self.lineEdit_frame_index_offset.text())
                 plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr,index_frame)
                 self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1+index_frame+1)
-                self.lcdNumber_potential.display(self.app_ctr.data['potential'][index_frame])
-                self.lcdNumber_current.display(self.app_ctr.data['current'][index_frame])
+                try:
+                    self.lcdNumber_potential.display(self.app_ctr.data['potential'][index_frame])
+                    self.lcdNumber_current.display(self.app_ctr.data['current'][index_frame])
+                except:
+                    pass
                 self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][index_frame])
                 self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][index_frame]/self.app_ctr.data['noise'][index_frame])
             else:
                 plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
-                self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
-                self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
+                try:
+                    self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
+                    self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
+                except:
+                    pass
                 self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
                 self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-1]/self.app_ctr.data['noise'][-1])
             self.lcdNumber_iso.display(isoLine.value())
@@ -595,8 +609,11 @@ class MyMainWindow(QMainWindow):
             #print(isoLine.value(),self.current_image_no)
             #plot others
             plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
-            self.lcdNumber_potential.display(self.app_ctr.data['potential'][-2])
-            self.lcdNumber_current.display(self.app_ctr.data['current'][-2])
+            try:
+                self.lcdNumber_potential.display(self.app_ctr.data['potential'][-2])
+                self.lcdNumber_current.display(self.app_ctr.data['current'][-2])
+            except:
+                pass
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-2])
             self.lcdNumber_signal_noise_ratio.display(self.app_ctr.data['peak_intensity'][-2]/self.app_ctr.data['noise'][-2])
             self.lcdNumber_iso.display(isoLine.value())
@@ -860,6 +877,6 @@ if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())

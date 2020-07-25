@@ -13,4 +13,6 @@ pymca5: pip3 install PyMca5
 matplotlib: pip3 install matplotlib
 numpy:pip3 install numpy
 scipy:pip3 install scipy
+imageio: pip3 install imageio==2.9.0
+
 

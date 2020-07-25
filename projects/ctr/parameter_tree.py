@@ -26,14 +26,16 @@ class ScalableGroup(pTypes.GroupParameter):
 
 
 foms_label = ["diff",'log','sqrt','R1','R1_weighted','R1_weighted_2','chi2bars_2','R1_weighted_2b','R1_weighted_3','logR1','R2','R2_wighted','logR2','sintth4','Norm','chi2bars','chi2bars_w_trainor','chi2bars_weighted','chibars','logbars','R1bars','R2bars']
-data_keys =",".join(['scan_no','image_no','potential','current','peak_intensity','peak_intensity_error', \
+
+data_keys_petra3 =",".join(['scan_no','image_no','potential','current','peak_intensity','peak_intensity_error', \
           'bkg', 'H','K','L','phi','chi','mu', 'delta', 'gamma','omega_t','mon','transm','mask_ctr'])
-params = [
+
+params_petra3 = [
     {'name': 'Global', 'type': 'group', 'children': [
         {'name': 'beamline', 'type': 'str', 'value': "P23_PETRA3"},
         {'name': 'beamtime_id', 'type': 'str', 'value': "I20190574"},
         {'name': 'scan_nos', 'type': 'text', 'value': '82'},
-        {'name': 'data_keys', 'type': 'text', 'value': data_keys},
+        {'name': 'data_keys', 'type': 'text', 'value': data_keys_petra3},
         {'name': 'update_width', 'type': 'str', 'value': "False"},
         {'name': 'cen', 'type': 'str', 'value': "637,328"},
         {'name': 'clip_width', 'type': 'str', 'value': "{'hor':200,'ver':300}"},
@@ -62,8 +64,52 @@ params = [
     ]}
 ]
 
+data_keys_aps =",".join(['scan_no','image_no','peak_intensity','peak_intensity_error', \
+          'bkg', 'H','K','L','phi','chi','mu', 'del', 'nu','eta','norm','transmission','mask_ctr'])
+
+params_aps = [
+    {'name': 'Global', 'type': 'group', 'children': [
+        {'name': 'beamline', 'type': 'str', 'value': "APS_13IDC"},
+        {'name': 'beamtime_id', 'type': 'str', 'value': "I20190574"},
+        {'name': 'scan_nos', 'type': 'text', 'value': '82'},
+        {'name': 'data_keys', 'type': 'text', 'value': data_keys_aps},
+        {'name': 'update_width', 'type': 'str', 'value': "False"},
+        {'name': 'cen', 'type': 'str', 'value': "200,100"},
+        {'name': 'clip_width', 'type': 'str', 'value': "{'hor':50,'ver':50}"},
+        {'name': 'dim_detector', 'type': 'str', 'value': "[487,195]"},
+    ]},
+    {'name': 'Image_Loader', 'type': 'group', 'children': [
+        {'name':'spec_path','type':'str','value':'F://P23_I20180678/raw'},
+        {'name':'spec_name','type':'str','value':'spec_file.spec'},
+        {'name':'img_extention','type':'str','value':'tif'},
+        {'name':'general_labels','type':'str','value':"{'H':'H','K':'K','L':'L','E':'Energy'}"},
+        {'name':'correction_labels','type':'str','value':"{'time':'Seconds','norm':'io','transmission':'trans'}"},
+        {'name':'angle_labels','type':'str','value':"{'del':'TwoTheta','eta':'theta','chi':'chi','phi':'phi','nu':'Nu','mu':'Psi'}"},
+        {'name':'angle_labels_escan','type':'str','value':"{'del':'del','eta':'eta','chi':'chi','phi':'phi','nu':'nu','mu':'mu'}"},
+        {"name":"G_labels","type":"text","value":"{'n_azt':['G0',list(range(3,6))],\n'cell':['G1',list(range(0,6))],\n'or0':['G1',list(range(12,15))+list(range(18,24))+[30]],\n'or1':['G1',list(range(15,18))+list(range(24,30))+[31]],\n'lambda':['G4',list(range(3,4))]}"},
+    ]},
+    {'name': 'Mask', 'type': 'group', 'children': [
+        {"name":"threshold","type":"str","value":'50000'},
+        {"name":"compare_method","type":"list","value":'larger',"values":["larger","smaller"]},
+        {"name":"remove_columns","type":"str","value":"10"},
+        {"name":"remove_rows","type":"str","value":"10"},
+        {"name":"remove_pix","type":"text","value":"[231,206]"},
+        {"name":"remove_q_par","type":"str","value":"[]"},
+        {"name":"remove_q_ver","type":"str","value":"[]"},
+        {"name":"line_strike_segments","type":"str","value":"[]"},
+        {"name":"line_strike_width","type":"str","value":"[]"},
+    ]},
+    {'name': 'Background_Subtraction', 'type': 'group', 'children': [
+        {"name":"rod_scan","type":"str","value":"False"},
+        {"name":"int_direct","type":"str","value":'x'},
+    ]}
+]
+
+
 ## Create tree of Parameter objects
-p = Parameter.create(name='params', type='group', children=params)
+p_petra3 = Parameter.create(name='params', type='group', children=params_petra3)
+p_aps = Parameter.create(name='params', type='group', children=params_aps)
+p_esrf = Parameter.create(name='params', type='group', children=params_aps)
 #print(p.names['Global'].names)
 # print(len(p.children()))
 # print(p.opts)
@@ -77,8 +123,17 @@ p = Parameter.create(name='params', type='group', children=params)
 class SolverParameters(ParameterTree):
     def __init__(self, parent=None):
         super().__init__(parent)
-        self.setParameters(p, showTop=False)
-        self.par = p
+
+    def init_pars(self,data_type = 'PETRA3_P23'):
+        if data_type == 'PETRA3_P23':
+            self.setParameters(p_petra3, showTop=False)
+            self.par = p_petra3
+        if data_type == 'APS_13IDC':
+            self.setParameters(p_aps, showTop=False)
+            self.par = p_aps
+        if data_type == 'ESRF_ROBL':
+            self.setParameters(p_esrf, showTop=False)
+            self.par = p_esrf
 
     def update_parameter(self,config_file, sections = ['Global','Image_Loader','Mask','Background_Subtraction']):
         for section in sections:

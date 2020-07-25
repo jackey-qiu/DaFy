@@ -417,8 +417,9 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr, processed_fra
     peak_l = max([clip_image_center[int(fit_bkg_object.int_direct=='x')]-fit_bkg_object.peak_width,0])#peak_l>0
     peak_r = min(clip_image_center[int(fit_bkg_object.int_direct=='x')]+fit_bkg_object.peak_width,len(z)-1)
     #print([peak_l,peak_r],)
-    #ax_profile.plot(n,y,pen='b',name="data")
+    ax_profile.plot(n,y,pen='w',name="data",clear = True)
     ax_profile.plot(n,z,pen="r",name="background")
+    # ax_profile.plot(n,y,pen="m",name="signal")
     #ax_profile.plot(n,y-z,pen="m",name="data-background")
     #ax_profile.plot(n,[0]*len(n),pen='k')
     ax_profile.plot([peak_l,peak_l],[z[peak_l],y.max()],pen = 'g')
@@ -462,17 +463,26 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr, processed_fra
         L_list.append(data['L'][i]+offset_L)
     """
     L_list = np.array(L_list)
-    potential = [data['potential'][i] for i in plot_index]
-    current = [data['current'][i] for i in plot_index]
+    try:
+        potential = [data['potential'][i] for i in plot_index]
+        current = [data['current'][i] for i in plot_index]
+    except:
+        potential, current = [], []
     peak_intensity = np.array([data['peak_intensity'][i] for i in plot_index])
     peak_intensity_error = np.array([data['peak_intensity_error'][i] for i in plot_index])
     bkg_intensity = np.array([data['bkg'][i] for i in plot_index])
 
     #print(np.array(data['image_no'])[plot_index].shape)
     if app_ctr.p4_data_source == 'potential':
-        ax_pot.plot(imge_no,potential,clear = True)
+        if len(potential)==0:
+            pass
+        else:
+            ax_pot.plot(imge_no,potential,clear = True)
     elif app_ctr.p4_data_source == 'current':
-        ax_pot.plot(imge_no,current,clear = True)
+        if len(current)==0:
+            pass
+        else:
+            ax_pot.plot(imge_no,current,clear = True)
     if 'L' in data:
         #L_list, I_list, I_err_list = np.array(data['L'])[plot_index],np.array(data['peak_intensity'])[plot_index], np.array(data['peak_intensity_error'])[plot_index]
         if not fit_bkg_object.rod_scan:

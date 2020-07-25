@@ -118,6 +118,25 @@ def merge_data_image_loader(data, object_image_loader):
         data[key].append(key_map_rules[key])
     return data
 
+def merge_data_image_loader_gsecars(data, object_image_loader):
+    key_map_rules = {'scan_no':object_image_loader.scan_number,
+                     'image_no':object_image_loader.frame_number,
+                     'H':int(round(object_image_loader.hkl[0],0)),
+                     'K':int(round(object_image_loader.hkl[1],0)),
+                     'L':object_image_loader.hkl[2],
+                     'phi':object_image_loader.motor_angles['phi'],
+                     'chi':object_image_loader.motor_angles['chi'],
+                     'mu':object_image_loader.motor_angles['mu'],
+                     'del':object_image_loader.motor_angles['del'],
+                     'nu':object_image_loader.motor_angles['nu'],
+                     'eta':object_image_loader.motor_angles['eta'],
+                     'norm':object_image_loader.motor_angles['norm'],
+                     'transmission':object_image_loader.motor_angles['transmission']
+                     }
+    for key in key_map_rules:
+        data[key].append(key_map_rules[key])
+    return data
+
 def merge_data_bkg(data, object_bkg):
     key_map_rules = {
                      'peak_intensity':object_bkg.fit_results['I'],

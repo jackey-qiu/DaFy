@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1440</width>
-    <height>855</height>
+    <width>1882</width>
+    <height>1038</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -34,7 +34,7 @@
       </property>
       <widget class="QFrame" name="frame">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
+        <sizepolicy hsizetype="MinimumExpanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
@@ -47,7 +47,7 @@
        </property>
        <property name="maximumSize">
         <size>
-         <width>5000000</width>
+         <width>550</width>
          <height>16777215</height>
         </size>
        </property>
@@ -57,11 +57,17 @@
        <property name="frameShadow">
         <enum>QFrame::Raised</enum>
        </property>
-       <layout class="QHBoxLayout" name="horizontalLayout_12">
+       <layout class="QVBoxLayout" name="verticalLayout_6">
         <item>
          <widget class="QTabWidget" name="tabWidget">
+          <property name="sizePolicy">
+           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+            <horstretch>0</horstretch>
+            <verstretch>0</verstretch>
+           </sizepolicy>
+          </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -143,6 +149,48 @@
                 <property name="text">
                  <string>Launch</string>
                 </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_12">
+              <item>
+               <widget class="QLabel" name="label_26">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <property name="text">
+                 <string>beamline</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QComboBox" name="comboBox_beamline">
+                <property name="sizePolicy">
+                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+                  <horstretch>0</horstretch>
+                  <verstretch>0</verstretch>
+                 </sizepolicy>
+                </property>
+                <item>
+                 <property name="text">
+                  <string>PETRA3_P23</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>ESRF_ROBL</string>
+                 </property>
+                </item>
+                <item>
+                 <property name="text">
+                  <string>APS_13IDC</string>
+                 </property>
+                </item>
                </widget>
               </item>
              </layout>
@@ -719,10 +767,16 @@
                 <item row="0" column="0" alignment="Qt::AlignHCenter">
                  <widget class="QLCDNumber" name="lcdNumber_scan_number">
                   <property name="sizePolicy">
-                   <sizepolicy hsizetype="Minimum" vsizetype="Minimum">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="font">
                    <font>
@@ -774,6 +828,18 @@
                 </item>
                 <item row="3" column="0" alignment="Qt::AlignHCenter">
                  <widget class="QLCDNumber" name="lcdNumber_current">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Maximum" vsizetype="Minimum">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <family>Times New Roman</family>
@@ -797,6 +863,12 @@
                 </item>
                 <item row="4" column="0" alignment="Qt::AlignHCenter">
                  <widget class="QLCDNumber" name="lcdNumber_intensity">
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <family>Times New Roman</family>
@@ -817,6 +889,12 @@
                 </item>
                 <item row="2" column="0" alignment="Qt::AlignHCenter">
                  <widget class="QLCDNumber" name="lcdNumber_potential">
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <family>Times New Roman</family>
@@ -837,6 +915,18 @@
                 </item>
                 <item row="1" column="0" alignment="Qt::AlignHCenter">
                  <widget class="QLCDNumber" name="lcdNumber_frame_number">
+                  <property name="sizePolicy">
+                   <sizepolicy hsizetype="Fixed" vsizetype="Minimum">
+                    <horstretch>0</horstretch>
+                    <verstretch>0</verstretch>
+                   </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>80</width>
+                    <height>16777215</height>
+                   </size>
+                  </property>
                   <property name="font">
                    <font>
                     <family>Times New Roman</family>
@@ -865,6 +955,12 @@
                     <horstretch>0</horstretch>
                     <verstretch>0</verstretch>
                    </sizepolicy>
+                  </property>
+                  <property name="maximumSize">
+                   <size>
+                    <width>70</width>
+                    <height>16777215</height>
+                   </size>
                   </property>
                   <property name="font">
                    <font>
@@ -1700,8 +1796,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1440</width>
-     <height>21</height>
+     <width>1882</width>
+     <height>22</height>
     </rect>
    </property>
   </widget>

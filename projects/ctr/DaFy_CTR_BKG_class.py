@@ -24,16 +24,16 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from GrainAnalysisEnginePool import cal_strain_and_grain
 from VisualizationEnginePool import plot_bkg_fit
-from DataFilterPool import create_mask, merge_data_bkg, update_data_bkg, update_data_bkg_previous_frame, merge_data_image_loader, make_data_config_file
+from DataFilterPool import create_mask, merge_data_bkg, update_data_bkg, update_data_bkg_previous_frame, merge_data_image_loader, merge_data_image_loader_gsecars,make_data_config_file
 from FitEnginePool import fit_pot_profile
 from FitEnginePool import Reciprocal_Space_Mapping
 from FitEnginePool import XRD_Peak_Fitting
 from FitEnginePool import background_subtraction_single_img
 from util.XRD_tools import reciprocal_space_v3 as rsp
 from util.UtilityFunctions import pop_last_item
-from util.UtilityFunctions import image_generator_bkg
+from util.UtilityFunctions import image_generator_bkg, image_generator_bkg_gsecars
 from util.UtilityFunctions import scan_generator
-from util.UtilityFunctions import nexus_image_loader
+from util.UtilityFunctions import nexus_image_loader, gsecars_image_loader
 from util.UtilityFunctions import find_boundary
 from util.UtilityFunctions import extract_global_vars_from_string
 from util.UtilityFunctions import extract_vars_from_config
@@ -46,11 +46,12 @@ if (sys.version_info > (3, 0)):
     raw_input = input
 
 class run_app(object):
-    def __init__(self):
+    def __init__(self, beamline = 'PETRA3_P23'):
         self.stop = True
         self.current_frame = 0
         self.conf_file = None
         self.bkg_clip_image = None
+        self.beamline = beamline
         self.data_path = os.path.join(DaFy_path,'dump_files')
         self.conf_path_temp = os.path.join(DaFy_path,"projects",'ctr','config_ctr_analysis_standard.ini')
 
@@ -93,14 +94,21 @@ class run_app(object):
         # print(data)
         #init peak fit, bkg subtraction and reciprocal space and image loader instance
         self.bkg_sub = background_subtraction_single_img(self.cen_clip, self.conf_file, sections = ['Background_Subtraction'])
-        self.img_loader = nexus_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image)
+        if self.beamline == 'PETRA3_P23':
+            self.img_loader = nexus_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image)
+        elif self.beamline == 'APS_13IDC':
+            self.img_loader = gsecars_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image, scan_numbers= self.scan_nos)
         self.create_mask_new = create_mask(kwarg = self.kwarg_mask)
         self.setup_frames()
+
 
     def setup_frames(self):
         #build generator funcs
         self._scans = scan_generator(scans = self.scan_nos)
-        self._images = image_generator_bkg(self._scans,self.img_loader,self.create_mask_new)
+        if self.beamline == 'PETRA3_P23':
+            self._images = image_generator_bkg(self._scans,self.img_loader,self.create_mask_new)
+        elif self.beamline == 'APS_13IDC':
+            self._images = image_generator_bkg_gsecars(self._scans,self.img_loader,self.create_mask_new)
 
     def run_script(self,bkg_intensity = 0,poly_func = 'Vincent'):
         try:
@@ -115,7 +123,10 @@ class run_app(object):
                 setattr(self,'current_scan_number',self.img_loader.scan_number)
             self.current_frame = self.img_loader.frame_number
             self.img = img
-            self.data = merge_data_image_loader(self.data, self.img_loader)
+            if self.beamline == 'PETRA3_P23':
+                self.data = merge_data_image_loader(self.data, self.img_loader)
+            elif self.beamline == 'APS_13IDC':
+                self.data = merge_data_image_loader_gsecars(self.data, self.img_loader)
             self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True,poly_func = poly_func)
             self.data = merge_data_bkg(self.data, self.bkg_sub)
             self.data['bkg'].append(bkg_intensity)

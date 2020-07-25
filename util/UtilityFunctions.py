@@ -4,7 +4,8 @@ from nexusformat.nexus import *
 import h5py
 import fnmatch
 import re,os,sys
-from scipy import misc
+#from scipy import misc
+import imageio as misc
 from scipy.ndimage import gaussian_filter
 from PyMca5.PyMcaIO import specfilewrapper
 # from pyspec import spec
@@ -210,6 +211,20 @@ def image_generator_bkg(scans,img_loader,mask_creator):
                 pass
             yield mask_creator.create_mask_new(img = image, img_q_ver = img_index_ver,
                                   img_q_par = img_index_hor, mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm'])
+            current_image_no +=1
+
+def image_generator_bkg_gsecars(scans,img_loader,mask_creator):
+    for scan in scans:
+        img_loader.update_scan_info(scan)
+        current_image_no = 0
+        img_index_ver, img_index_hor = None, None
+        for image in img_loader.load_frame(frame_number=0, flip=False):
+            if current_image_no==0:
+                img_index_hor, img_index_ver = np.meshgrid(range(image.shape[1]),range(image.shape[0]))
+            else:
+                pass
+            yield mask_creator.create_mask_new(img = image, img_q_ver = img_index_ver,
+                                  img_q_par = img_index_hor, mon = img_loader.motor_angles['norm']*img_loader.motor_angles['transmission'])
             current_image_no +=1
 
 def extract_vars_from_config(config_file, section_var):
@@ -1194,6 +1209,316 @@ class nexus_image_loader(object):
                     dead_pix_container.remove(each)
         return dead_pix_container
 
+class gsecars_image_loader(object):
+    def __init__(self,clip_boundary,kwarg,scan_numbers):
+        # self.nexus_path=nexus_path
+        # self.frame_prefix=frame_prefix
+        self.spec_info = None
+        self.scan_number = None
+        self.frame_number = None
+        self.scan_numbers = scan_numbers
+        self.hkl = None
+        self.clip_boundary = clip_boundary
+        for key in kwarg:
+            setattr(self, key, kwarg[key])
+        self.sort_spec_file()
+        # self.constant_motors = constant_motors
+        #load nexus data only once here
+        #img_name='{}_{:0>5}.nxs'.format(frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #self.nexus_data = nxload(img_path)
+        #self.get_frame_number()
+
+    def _get_col_from_file(self,lines,start_row,end_row,col,type=float):
+        numbers=[]
+        for i in range(start_row,end_row):
+            numbers.append(type(lines[i].rstrip().rsplit()[col]))
+        return numbers
+
+    #extract info from spec file
+    #def sort_spec_file(self,spec_path='.',spec_name='mica-zr_s2_longt_1.spec',scan_number=[16,17,19],\
+    #               general_labels={'H':'H','K':'K','L':'L','E':'Energy'},correction_labels={'time':'Seconds','norm':'io','transmision':'trans'},\
+    #                angle_labels={'del':'TwoTheta','eta':'theta','chi':'chi','phi':'phi','nu':'Nu','mu':'Psi'},\
+    #                angle_labels_escan={'del':'del','eta':'eta','chi':'chi','phi':'phi','nu':'nu','mu':'mu'},\
+    #                G_labels={'n_azt':['G0',range(3,6)],'cell':['G1',range(0,6)],'or0':['G1',range(12,15)+range(18,24)+[30]],'or1':['G1',range(15,18)+range(24,30)+[31]],'lambda':['G4',range(3,4)]}):
+    def sort_spec_file(self):
+        G_labels = self.g_labels
+        data_info,col_label={},{}
+        data_info['scan_type']=[]
+        data_info['scan_number']=self.scan_numbers
+        data_info['row_number_range']=[]
+
+        for key in self.general_labels.keys():
+            data_info[key]=[]
+
+        for key in self.correction_labels.keys():
+            data_info[key]=[]
+
+        for key in self.angle_labels.keys():
+            data_info[key]=[]
+
+        for key in G_labels.keys():
+            data_info[key]=[]
+
+        f_spec=open(os.path.join(self.spec_path,self.spec_name))
+        spec_lines=f_spec.readlines()
+        scan_rows=[]
+        data_rows=[]
+        G0_rows=[]
+        G1_rows=[]
+        G3_rows=[]
+        G4_rows=[]
+        for i in range(len(spec_lines)):
+            if spec_lines[i].startswith("#S"):
+                scan_rows.append([i,int(spec_lines[i].rsplit()[1])])
+            elif spec_lines[i].startswith("#L"):
+                data_rows.append(i+1)
+            elif spec_lines[i].startswith("#G0"):
+                G0_rows.append(i)
+            elif spec_lines[i].startswith("#G1"):
+                G1_rows.append(i)
+            elif spec_lines[i].startswith("#G3"):
+                G3_rows.append(i)
+            elif spec_lines[i].startswith("#G4"):
+                G4_rows.append(i)
+
+        if self.scan_numbers==None:#if None, then take all rodscan and Escan existing in the spec file
+            data_info['scan_number']=[]
+            for i in range(len(scan_rows)):
+                scan=scan_rows[i]
+                data_start=data_rows[i]
+                r_index_temp,scan_number_temp=scan
+                scan_type_temp=spec_lines[r_index_temp].rsplit()[2]
+                if scan_type_temp=="raxr_ascan":
+                    scan_type_temp="Escan"
+                if scan_type_temp=='rodscan' or scan_type_temp=='Escan':
+                    j=0
+
+                    while (not spec_lines[data_start+j].startswith("#")) and (spec_lines[data_start+j]!="\n"):
+                        j+=1
+                    #print (scan_number_temp,j)
+                    row_number_range=[data_start,data_start+j]
+                    data_info['scan_type'].append(scan_type_temp)
+                    data_info['scan_number'].append(scan_number_temp)
+                    data_info['row_number_range'].append(row_number_range)
+                    data_item_labels=spec_lines[data_start-1].rstrip().rsplit()[1:]
+
+                    for key in general_labels.keys():
+                        try:
+                            data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(general_labels[key]),type=float))
+                        except:
+                            data_info[key].append([np.NaN]*j)#there is no energy column in rodscan data
+
+                    for key in correction_labels.keys():
+                        if key=="transmision" and self.beamline=="ESRF":
+                            data_info[key].append([1]*j)
+                        else:
+                            try:
+                                data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(correction_labels[key]),type=float))
+                            except:
+                                data_info[key].append([1]*j)
+                    for key in angle_labels.keys():#we only extract rodscan and Escan data info and skip ascan
+                        if scan_type_temp=='rodscan':
+                            data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(angle_labels[key]),type=float))
+                        if scan_type_temp=='Escan':
+                            data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(angle_labels_escan[key]),type=float))
+
+                    for key in G_labels.keys():
+                        G_type=G_labels[key][0]
+                        inxes=G_labels[key][1]
+                        #ff=lambda items,inxes:[float(item) for item in items[inxes[0]:inxes[1]]]
+                        ff=lambda items,inxes:[float(items[i]) for i in inxes]
+                        if G_type=='G0':
+                            data_info[key].append(ff(spec_lines[G0_rows[i]].rstrip().rsplit()[1:],inxes))
+                        if G_type=='G1':
+                            data_info[key].append(ff(spec_lines[G1_rows[i]].rstrip().rsplit()[1:],inxes))
+                        if G_type=='G3':
+                            data_info[key].append(ff(spec_lines[G3_rows[i]].rstrip().rsplit()[1:],inxes))
+                        if G_type=='G4':
+                            data_info[key].append(ff(spec_lines[G4_rows[i]].rstrip().rsplit()[1:],inxes))
+
+                    if scan_type_temp in col_label.keys():
+                        pass
+                    else:
+                        col_label[scan_type_temp]=spec_lines[data_start-1].rstrip().rsplit()[1:]
+                else:
+                    pass
+
+        elif self.scan_numbers==[]:#if no spec number is specfied, then do nothing
+            pass
+        else:
+            for ii in range(len(self.scan_numbers)):
+                _scan=self.scan_numbers[ii]
+                i=np.where(np.array(scan_rows)[:,1]==_scan)[0][0]
+                scan=scan_rows[i]
+                data_start=data_rows[i]
+                r_index_temp,scan_number_temp=scan
+                scan_type_temp=spec_lines[r_index_temp].rsplit()[2]
+                if scan_type_temp=="raxr_ascan":
+                    scan_type_temp="Escan"
+                j=0
+                while (not spec_lines[data_start+j].startswith("#")) and (spec_lines[data_start+j]!="\n"):#continue until you hit a blank line or '#'
+                    #print spec_lines[data_start+j].startswith(""),j,j+1
+                    j+=1
+                row_number_range=[data_start,data_start+j]
+                data_info['scan_type'].append(scan_type_temp)
+                #data_info['scan_number'].append(scan)
+                data_info['row_number_range'].append(row_number_range)
+                data_item_labels=spec_lines[data_start-1].rstrip().rsplit()[1:]
+
+                for key in self.general_labels.keys():
+                    try:
+                        data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(self.general_labels[key]),type=float))
+                    except:
+                        data_info[key].append([np.NaN]*j)
+                        #data_info[key].append([])
+                for key in self.correction_labels.keys():
+                    if key=="transmision" and beamline=="ESRF":
+                        data_info[key].append([1]*j)
+                    else:
+                        try:
+                            data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(self.correction_labels[key]),type=float))
+                        except:
+                            data_info[key].append([1]*j)
+                for key in self.angle_labels.keys():
+                    if scan_type_temp=='rodscan':
+                        data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(self.angle_labels[key]),type=float))
+                    if scan_type_temp=='Escan':
+                        data_info[key].append(self._get_col_from_file(lines=spec_lines,start_row=data_start,end_row=data_start+j,col=data_item_labels.index(self.angle_labels_escan[key]),type=float))
+                for key in G_labels.keys():
+                    G_type=G_labels[key][0]
+                    inxes=G_labels[key][1]
+                    #ff=lambda items,inxes:[float(item) for item in items[inxes[0]:inxes[1]]]
+                    ff=lambda items,inxes:[float(items[i]) for i in inxes]
+                    if G_type=='G0':
+                        data_info[key].append(ff(spec_lines[G0_rows[i]].rstrip().rsplit()[1:],inxes))
+                    if G_type=='G1':
+                        data_info[key].append(ff(spec_lines[G1_rows[i]].rstrip().rsplit()[1:],inxes))
+                    if G_type=='G3':
+                        data_info[key].append(ff(spec_lines[G3_rows[i]].rstrip().rsplit()[1:],inxes))
+                    if G_type=='G4':
+                        data_info[key].append(ff(spec_lines[G4_rows[i]].rstrip().rsplit()[1:],inxes))
+
+                #data_info['scan_type'].append(scan_type_temp)
+                #data_info['scan_number'].append(_scan)
+                #data_info['row_number_range'].append(row_number_range)
+                if scan_type_temp in col_label.keys():
+                    pass
+                else:
+                    col_label[scan_type_temp]=spec_lines[data_start-1].rstrip().rsplit()
+
+        data_info['col_label']=col_label
+        #print data_info['scan_number']
+        f_spec.close()
+        self.spec_info = data_info
+        return None
+
+    def update_scan_info(self,scan_number):
+        if scan_number not in self.scan_numbers:
+            return
+
+        self.scan_number = scan_number
+        print('\nRunning scan {} now...'.format(scan_number))
+        self.total_frame_number = len(self.spec_info['H'][self.scan_numbers.index(scan_number)])
+
+    def load_one_frame(self,frame_number,flip = False):
+        #if one frame one nxs file
+        #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #data=nxload(img_path)
+        #img=np.array(data.entry.instrument.detector.data.nxdata[0])
+        self.frame_number = frame_number
+        prefix_image = self.spec_name[0:self.spec_name.index('.')]
+        scan_folder = 'S{:0>3}'.format(self.scan_number)
+        img_name = '{}_S{:0>3}_{:0>5}.{}'.format(prefix_image,self.scan_number,frame_number,self.img_extention)
+        img_path = os.path.join(self.spec_path,'images',prefix_image,scan_folder,img_name)
+        img=misc.imread(img_path)
+        if flip:
+            img = np.flip(img.T,1)
+        img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
+                self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
+        #normalized the intensity by the monitor and trams counters
+        self.extract_motor_angles(frame_number)
+        self.extract_HKL(frame_number)
+        return img/self.extract_transm_and_mon(frame_number)
+
+    def load_frame(self,frame_number,flip=False):
+        #if one frame one nxs file
+        #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #data=nxload(img_path)
+        #img=np.array(data.entry.instrument.detector.data.nxdata[0])
+        while frame_number<self.total_frame_number:
+            self.frame_number = frame_number
+            prefix_image = self.spec_name[0:self.spec_name.index('.')]
+            scan_folder = 'S{:0>3}'.format(self.scan_number)
+            img_name = '{}_S{:0>3}_{:0>5}.{}'.format(prefix_image,self.scan_number,frame_number,self.img_extention)
+            img_path = os.path.join(self.spec_path,'images',prefix_image,scan_folder,img_name)
+            img=misc.imread(img_path)
+            if flip:
+                img = np.flip(img.T,1)
+            img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
+                    self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
+            #normalized the intensity by the monitor and trams counters
+            self.extract_motor_angles(frame_number)
+            # self.extract_pot_current(frame_number)
+            self.extract_HKL(frame_number)
+            yield img/self.extract_transm_and_mon(frame_number)
+            frame_number += 1
+
+    def extract_beam_mon_ct(self,mon_path = 'scan/data/eh_c01'):
+        return np.array(self.nexus_data['scan/data/eh_c01'])
+
+    def extract_motor_angles(self, frame_number):
+        #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #data=nxload(img_path)
+        motors={}
+        motor_names = ['phi', 'chi', 'del', 'nu', 'mu', 'eta','norm','transmission']
+        #for motor in self.constant_motors:
+        #    motors[motor] = self.constant_motors[motor]
+        scan_index = self.scan_numbers.index(self.scan_number)
+        for motor in motor_names:
+            motors[motor] = self.spec_info[motor][scan_index][frame_number]
+
+        self.motor_angles = motors
+        #self.motor_angles['transm'] = 1
+        #self.motor_angles['mon'] =1
+        return motors
+
+    def extract_transm_and_mon(self,frame_number):
+        scan_index = self.scan_numbers.index(self.scan_number)
+        return self.spec_info['norm'][scan_index][frame_number]*self.spec_info['transmission'][scan_index][frame_number]
+
+    def update_motor_angles_in_data(self,data):
+        for motor in self.motor_angles:
+            data[motor].append(self.motor_angles[motor])
+        return data
+
+    def extract_HKL(self, frame_number):
+        scan_index = self.scan_numbers.index(self.scan_number)
+        H,K,L = (self.spec_info['H'][scan_index][frame_number], self.spec_info['K'][scan_index][frame_number], self.spec_info['L'][scan_index][frame_number])
+        self.hkl = (H,K,L)
+        return H, K, L
+
+    def load_frame_from_path(self,img_path,flip=True):
+        img=misc.imread(img_path)
+        if flip:
+            return np.flip(img.T,1)
+        else:
+            return img
+
+    def show_frame(self,frame_number,flip=True):
+        img=self.load_frame(frame_number,flip)
+        fig,ax=pyplot.subplots()
+        pyplot.imshow(img,cmap='jet')
+        if flip:
+            pyplot.colorbar(extend='both',orientation='vertical')
+        else:
+            pyplot.colorbar(extend='both',orientation='horizontal')
+        pyplot.clim(0,205)
+        # pyplot.show()
+        return img
 
 class DetImage:
     def __init__(self, img, motors, counters, header=None):

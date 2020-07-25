@@ -1360,9 +1360,10 @@ class background_subtraction_single_img():
 
         for s in ss:
             for ord_cus in ord_cus_s:
+                # print(s)
                 # z,a,it,ord_cus,s,fct = backcor(n,y,ord_cus,s,fct)
                 z,a,it,ord_cus,s,fct = backcor_confined(n,y,ord_cus,s,fct,[peak_l,peak_r])
-                # I_container.append(np.sum(y[peak_l:peak_r][index]-z[peak_l:peak_r][index]))
+
                 I_container.append(np.sum(y[peak_l:peak_r]-z[peak_l:peak_r]))
                 # print(I_container[-1])
                 # print(peak_l,peak_r)
@@ -1384,7 +1385,11 @@ class background_subtraction_single_img():
                 #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
                 # print(peak_l,peak_r,len(y),std_I_bkg,noise_container[-1])
-                Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                try:
+                    Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                except:
+                    Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                # Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
 
                 z_container.append(z)
                 s_container.append(s)
@@ -1503,7 +1508,10 @@ class background_subtraction_single_img():
                 Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
                 FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
-                Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                try:
+                    Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                except:
+                    Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
                 z_container.append(z)
                 s_container.append(s)
                 ord_cus_container.append(ord_cus)
