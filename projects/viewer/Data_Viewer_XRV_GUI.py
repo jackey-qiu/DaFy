@@ -93,6 +93,11 @@ class MyMainWindow(QMainWindow):
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
         self.pot_ranges = {}
 
+    def reset_meta_data(self):
+        self.charge_info = {}
+        self.grain_size_info_all_scans = {}
+        self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
+
     def update_pot_offset(self):
         self.potential_offset = eval(self.lineEdit_pot_offset.text())/1000
 
@@ -696,9 +701,11 @@ class MyMainWindow(QMainWindow):
             pot_range2 = (p1, pot_range_specified[1])
             pot_range3 = pot_range_specified
             self.pot_ranges[scan] = [f(pot_range1),f(pot_range2),f(pot_range3)]
+        # print('now update potential range')
+        # print(self.pot_ranges)
 
     def plot_figure_xrv(self):
-
+        self.reset_meta_data()
         if self.checkBox_use_external_slope.isChecked():
             slope_info_temp = self.return_slope_values()
         else:

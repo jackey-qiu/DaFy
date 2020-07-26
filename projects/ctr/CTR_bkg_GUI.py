@@ -26,7 +26,7 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QCheckBox, QRadioButton
 from PyQt5.QtGui import QTransform
 from pyqtgraph.Qt import QtGui
-# pg.setConfigOption('background', 'w')
+pg.setConfigOption('background', (50,50,100))
 # pg.setConfigOption('foreground', 'k')
 
 class MyMainWindow(QMainWindow):
@@ -94,6 +94,8 @@ class MyMainWindow(QMainWindow):
         self.upShort.activated.connect(self.move_roi_up)
         self.downShort = QShortcut(QtGui.QKeySequence("Ctrl+Down"), self)
         self.downShort.activated.connect(self.move_roi_down)
+        self.switch_roi_adjustment_type_short = QShortcut(QtGui.QKeySequence("Ctrl+S"), self)
+        self.switch_roi_adjustment_type_short.activated.connect(self.switch_roi_adjustment_type)
 
         self.nextShort = QShortcut(QtGui.QKeySequence("Right"), self)
         self.nextShort.activated.connect(self.plot_)
@@ -115,6 +117,12 @@ class MyMainWindow(QMainWindow):
         setattr(self.app_ctr,'p3_data_source',self.comboBox_p3.currentText())
         setattr(self.app_ctr,'p4_data_source',self.comboBox_p4.currentText())
         self.timer_save_data = QtCore.QTimer(self)
+
+    def switch_roi_adjustment_type(self):
+        if self.radioButton_roi_position.isChecked():
+            self.radioButton_roi_size.setChecked(True)
+        else:
+            self.radioButton_roi_position.setChecked(True)
 
     def change_config_layout(self):
         self.widget_config.init_pars(data_type = self.comboBox_beamline.currentText())
