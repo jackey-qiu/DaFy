@@ -155,7 +155,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
         #pyqtgraph preference setting
-        pg.setConfigOptions(imageAxisOrder='row-major', background = 'k')
+        pg.setConfigOptions(imageAxisOrder='row-major', background = (50,50,100))
         pg.mkQApp()
         #load GUI ui file made by qt designer
         uic.loadUi(os.path.join(DaFy_path,'projects','SuperRod','superrod3.ui'),self)
@@ -1711,6 +1711,6 @@ if __name__ == "__main__":
     hightlight = syntax_pars.PythonHighlighter(myWin.plainTextEdit_script.document())
     myWin.plainTextEdit_script.show()
     myWin.plainTextEdit_script.setPlainText(myWin.plainTextEdit_script.toPlainText())
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())

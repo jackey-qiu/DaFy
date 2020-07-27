@@ -87,11 +87,24 @@ class MyMainWindow(QMainWindow):
         self.potential = []
         self.show_frame = True
         self.plot_lib = {}
-        self.grain_size_info = {'vertical':[],'horizontal':[]}
+        # self.grain_size_info = {'vertical':[],'horizontal':[]}
         self.charge_info = {}
         self.grain_size_info_all_scans = {}
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
         self.pot_ranges = {}
+
+    def set_grain_info_all_scan(self,grain_object, scan, pot_ranges, direction, cases):
+        pot_ranges = [tuple(each) for each in pot_ranges]
+        if scan not in grain_object:
+            grain_object[scan] = {}
+        if pot_ranges[0] not in grain_object[scan]:
+            for each_pot, case in zip(pot_ranges,cases):
+                grain_object[scan][each_pot] = {direction:case,'pH':self.phs[self.scans.index(scan)]}
+        else:
+            for each_pot, case in zip(pot_ranges,cases):
+                grain_object[scan][each_pot][direction] = case
+                grain_object[scan][each_pot]['pH'] = self.phs[self.scans.index(scan)]
+        return grain_object
 
     def reset_meta_data(self):
         self.charge_info = {}
@@ -255,8 +268,8 @@ class MyMainWindow(QMainWindow):
         print('Charge transfer between E {} and E {} is  {} mC based on skin layer thickness estimation'.format(pot_range[0], pot_range[1], charge_transfer*10**3))
         return charge_transfer*10**3
 
-    #return size change in vertical or horizontal direction, and the associated absolute size
-    def calculate_size_change(self, x0,x1,x2,y1,slope1,slope2,pot_range,roughness_factor = 1):
+    #return size/strain change from slope info in vertical or horizontal direction, and the associated absolute size
+    def calculate_size_strain_change(self, x0,x1,x2,y1,slope1,slope2,pot_range,roughness_factor = 1):
         y0 = slope1*(x0-x1)+y1
         y2 = slope2*(x2-x1)+y1
         pot_left, pot_right = pot_range
@@ -273,6 +286,15 @@ class MyMainWindow(QMainWindow):
             size_at_pot_right = slope2*(pot_right-x1)+y1
         return max([size_at_pot_left, size_at_pot_right]),abs(size_at_pot_left - size_at_pot_right)
 
+    def calculate_size_strain_change_from_plot_data(self, scan, label, data_range, pot_range, roughness_factor = 1):
+        pot_lf, pot_rt = pot_range
+        pots = self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]]
+        values = np.array(self.data_to_plot[scan][label][data_range[0]:data_range[1]])+self.data_to_plot[scan][label+'_max']
+        values_smooth = signal.savgol_filter(values,41,2)
+        index_lf = np.argmin(np.abs(pots - pot_lf))
+        index_rt = np.argmin(np.abs(pots - pot_rt))
+        return max([values_smooth[index_lf],values_smooth[index_rt]]), abs(values_smooth[index_lf]-values_smooth[index_rt])
+
     def estimate_charge_from_skin_layer_thickness_philippe_algorithm(self, size_info, q0 = 15.15):
         #q0 : number of electron transfered per nm^3 during redox chemistry(15.15 only for Co3O4 material)
         #check the document for details of this algorithm
@@ -286,12 +308,8 @@ class MyMainWindow(QMainWindow):
         return q_skin, q_film
 
     def print_data_summary(self):
-        # print(self.charge_info[221])
-        # print(self.strain_info_all_scans[221])
-        # print(self.grain_size_info_all_scans[221])
         header = "\t".join(["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain"])
         output_text = [header]
-        # print(self.grain_size_info_all_scans)
         for scan in self.scans:
             for pot_range in self.pot_ranges[scan]:
                 #scan = each_scan
@@ -306,6 +324,7 @@ class MyMainWindow(QMainWindow):
         self.widget_terminal.update_name_space('charge_info',self.charge_info)
         self.widget_terminal.update_name_space('size_info',self.grain_size_info_all_scans)
         self.widget_terminal.update_name_space('strain_info',self.strain_info_all_scans)
+        self.widget_terminal.update_name_space('main_win',self)
 
         output_text.append("*********Notes*********")
         output_text.append("*scan: scan number")
@@ -690,8 +709,8 @@ class MyMainWindow(QMainWindow):
         else:
             slope_info_temp = None
         if slope_info_temp == None:
-            pot_range = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
-            self.pot_ranges = [f((pot_range[0],sum(pot_range)/2)),f((sum(pot_range)/2,pot_range[1])),f(pot_range)]
+            # pot_range = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
+            self.pot_ranges[scan] = [f(each) for each in self.pot_range]
         else:
             p0,p1,p2,y1,a1,a2 = slope_info_temp[scan]["strain_ip"]
             pot_range_specified = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
@@ -804,85 +823,28 @@ class MyMainWindow(QMainWindow):
                                 p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
                                 y0 = a1*(p0-p1)+y1
                                 y2 = a2*(p2-p1)+y1
-                                #{(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
-                                #self.phs[self.scans.index(scan)]
-                                #pot_range1 = (float(self.lineEdit_pot_range.text().rstrip().rsplit(",")[0]), p1)
-                                #pot_range2 = (p1, float(self.lineEdit_pot_range.text().rstrip().rsplit(",")[1]))
-                                #pot_range3 = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
-
-                                pot_range1, pot_range2, pot_range3 = self.pot_ranges[scan]
-
-                                case_pot_range_1 = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = pot_range1)
-                                case_pot_range_2 = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = pot_range2)
-                                case_pot_range_3 = self.calculate_size_change(p0,p1,p2,y1,a1,a2,pot_range = pot_range3)
-
+                                cases = [self.calculate_size_strain_change(p0,p1,p2,y1,a1,a2,pot_range = each_pot) for each_pot in self.pot_ranges[scan]]
                                 if each=='grain_size_ip':
-                                    self.grain_size_info['horizontal'] = case_pot_range_3
-                                    if scan not in self.grain_size_info_all_scans:
-                                        self.grain_size_info_all_scans[scan] = {}
-                                    if pot_range1 not in self.grain_size_info_all_scans[scan]:
-                                        self.grain_size_info_all_scans[scan][pot_range1] = {"horizontal":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
-                                        self.grain_size_info_all_scans[scan][pot_range2] = {"horizontal":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
-                                        self.grain_size_info_all_scans[scan][pot_range3] = {"horizontal":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
-                                    else:
-                                        self.grain_size_info_all_scans[scan][pot_range1]['horizontal'] = case_pot_range_1
-                                        self.grain_size_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.grain_size_info_all_scans[scan][pot_range2]['horizontal'] = case_pot_range_2
-                                        self.grain_size_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.grain_size_info_all_scans[scan][pot_range3]['horizontal'] = case_pot_range_3
-                                        self.grain_size_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)]
-
+                                    self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_ranges[scan],'horizontal',cases)
                                 elif each == 'grain_size_oop':
-                                    self.grain_size_info['vertical'] = case_pot_range_3
-                                    if scan not in self.grain_size_info_all_scans:
-                                        self.grain_size_info_all_scans[scan] = {}
-                                    if pot_range1 not in self.grain_size_info_all_scans[scan]:
-                                        self.grain_size_info_all_scans[scan][pot_range1] = {"vertical":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
-                                        self.grain_size_info_all_scans[scan][pot_range2] = {"vertical":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
-                                        self.grain_size_info_all_scans[scan][pot_range3] = {"horizontal":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
-                                    else:
-                                        self.grain_size_info_all_scans[scan][pot_range1]['vertical'] = case_pot_range_1
-                                        self.grain_size_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.grain_size_info_all_scans[scan][pot_range2]['vertical'] = case_pot_range_2
-                                        self.grain_size_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.grain_size_info_all_scans[scan][pot_range3]['vertical'] = case_pot_range_3
-                                        self.grain_size_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)]
-
-                                elif each == "strain_ip":
-                                    if scan not in self.strain_info_all_scans:
-                                        self.strain_info_all_scans[scan] = {}
-                                    if pot_range1 not in self.strain_info_all_scans[scan]:
-                                        self.strain_info_all_scans[scan][pot_range1] = {"horizontal":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
-                                        self.strain_info_all_scans[scan][pot_range2] = {"horizontal":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
-                                        self.strain_info_all_scans[scan][pot_range3] = {"horizontal":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
-                                    else:
-                                        self.strain_info_all_scans[scan][pot_range1]['horizontal'] = case_pot_range_1
-                                        self.strain_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.strain_info_all_scans[scan][pot_range2]['horizontal'] = case_pot_range_2
-                                        self.strain_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.strain_info_all_scans[scan][pot_range3]['horizontal'] = case_pot_range_3
-                                        self.strain_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)] 
-                                elif each == "strain_oop":
-                                    if scan not in self.strain_info_all_scans:
-                                        self.strain_info_all_scans[scan] = {}
-                                    if pot_range1 not in self.strain_info_all_scans[scan]:
-                                        self.strain_info_all_scans[scan][pot_range1] = {"vertical":case_pot_range_1,"pH":self.phs[self.scans.index(scan)]}
-                                        self.strain_info_all_scans[scan][pot_range2] = {"vertical":case_pot_range_2,"pH":self.phs[self.scans.index(scan)]}
-                                        self.strain_info_all_scans[scan][pot_range3] = {"vertical":case_pot_range_3,"pH":self.phs[self.scans.index(scan)]}
-                                    else:
-                                        self.strain_info_all_scans[scan][pot_range1]['vertical'] = case_pot_range_1
-                                        self.strain_info_all_scans[scan][pot_range1]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.strain_info_all_scans[scan][pot_range2]['vertical'] = case_pot_range_2
-                                        self.strain_info_all_scans[scan][pot_range2]['pH'] = self.phs[self.scans.index(scan)]
-                                        self.strain_info_all_scans[scan][pot_range3]['vertical'] = case_pot_range_3
-                                        self.strain_info_all_scans[scan][pot_range3]['pH'] = self.phs[self.scans.index(scan)] 
-                                # if 'size' in each:
-                                    # print('scan{}'.format(scan))
-                                    # self.estimate_charge_from_skin_layer_thickness(slope=a1, transition_E=p1, pot_range = [1.0,p1],charge_per_unit_cell = 2, roughness_factor = 1)
-                                    # self.estimate_charge_from_skin_layer_thickness(slope=a2, transition_E=p1, pot_range = [p1,1.57],charge_per_unit_cell = 2, roughness_factor = 1)
+                                    self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_ranges[scan],'vertical',cases)
+                                elif each == 'strain_ip':
+                                    self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_ranges[scan],'horizontal',cases)
+                                elif each == 'strain_oop':
+                                    self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_ranges[scan],'vertical',cases)
                                 getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
-                            #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y_smooth_temp,'-')
-                        # for pot in np.arange(1.0,1.8,0.1):
+                        else:
+                            cases = [self.calculate_size_strain_change_from_plot_data(scan, each, self.data_range[self.scans.index(scan)], each_pot) for each_pot in self.pot_range]
+                            #cases = [self.calculate_size_strain_change(p0,p1,p2,y1,a1,a2,pot_range = each) for each in self.pot_ranges[scan]]
+                            if each=='grain_size_ip':
+                                self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_range,'horizontal',cases)
+                            elif each == 'grain_size_oop':
+                                self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_range,'vertical',cases)
+                            elif each == 'strain_ip':
+                                self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_range,'horizontal',cases)
+                            elif each == 'strain_oop':
+                                self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_range,'vertical',cases)
+                            #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
                         if self.checkBox_use_external_slope.isChecked():
                             try:
                                 for pot in seperators[scan][each]:
@@ -990,8 +952,9 @@ class MyMainWindow(QMainWindow):
                     self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
                     self.charge_info[scan][each_pot_range]['film_charge'] = q_film
             """
-            try:
-                for each_pot_range in self.pot_ranges[scan]:
+            for each_pot_range in self.pot_ranges[scan]:
+                # if self.checkBox_use_external_slope.isChecked():
+                try:
                     horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
                     vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
                     q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
@@ -1004,8 +967,10 @@ class MyMainWindow(QMainWindow):
                     else:
                         self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
                         self.charge_info[scan][each_pot_range]['film_charge'] = q_film
-            except:
-                print('charge calculation based on skin layer thickness failed. Check the grain_size_info!')
+                except:
+                    print('Fail to cal charge info. Check!')
+                # else:
+                    # pass
         # print(self.strain_info_all_scans[221])
 
         for scan in self.scans:
