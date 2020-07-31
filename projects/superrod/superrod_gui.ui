@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1440</width>
-    <height>830</height>
+    <width>1918</width>
+    <height>1035</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -40,7 +40,7 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>3</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tab_5">
         <attribute name="title">
@@ -282,6 +282,13 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_update_pars">
+             <property name="text">
+              <string>UpdatePars</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
          <item>
@@ -316,6 +323,16 @@
             </widget>
            </item>
           </layout>
+         </item>
+        </layout>
+       </widget>
+       <widget class="QWidget" name="tab_3">
+        <attribute name="title">
+         <string>Error</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_9">
+         <item>
+          <widget class="QTextBrowser" name="textBrowser_error_msg"/>
          </item>
         </layout>
        </widget>
@@ -399,7 +416,7 @@
             <enum>QTabWidget::South</enum>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>4</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -577,6 +594,64 @@
                 </widget>
                </item>
                <item>
+                <widget class="QPushButton" name="pushButton_pan">
+                 <property name="text">
+                  <string>pan</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QSpinBox" name="spinBox_pan_pixel">
+                 <property name="minimum">
+                  <number>-100</number>
+                 </property>
+                 <property name="maximum">
+                  <number>100</number>
+                 </property>
+                 <property name="value">
+                  <number>10</number>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_x">
+                 <property name="text">
+                  <string>x</string>
+                 </property>
+                 <property name="checked">
+                  <bool>true</bool>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_y">
+                 <property name="text">
+                  <string>y</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_z">
+                 <property name="text">
+                  <string>z</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_start_spin">
+                 <property name="text">
+                  <string>StartSpin</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QPushButton" name="pushButton_stop_spin">
+                 <property name="text">
+                  <string>StopSpin</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <spacer name="horizontalSpacer_5">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
@@ -599,16 +674,6 @@
                   <size>
                    <width>0</width>
                    <height>41</height>
-                  </size>
-                 </property>
-                </widget>
-               </item>
-               <item>
-                <widget class="GLViewWidget_cum" name="widget_msv_top" native="true">
-                 <property name="minimumSize">
-                  <size>
-                   <width>0</width>
-                   <height>39</height>
                   </size>
                  </property>
                 </widget>
@@ -643,8 +708,11 @@
               <widget class="QCodeEditor" name="plainTextEdit_script">
                <property name="font">
                 <font>
-                 <family>Menlo</family>
+                 <family>Andale Mono</family>
                 </font>
+               </property>
+               <property name="plainText">
+                <string/>
                </property>
               </widget>
              </item>
@@ -786,7 +854,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1440</width>
+     <width>1918</width>
      <height>22</height>
     </rect>
    </property>
@@ -1083,6 +1151,12 @@
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header>terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>QCodeEditor</class>
    <extends>QPlainTextEdit</extends>
    <header>code_editor.h</header>
@@ -1091,12 +1165,6 @@
    <class>GLViewWidget_cum</class>
    <extends>QWidget</extends>
    <header>glview.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>TerminalWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">terminal_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

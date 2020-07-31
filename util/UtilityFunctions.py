@@ -218,7 +218,7 @@ def image_generator_bkg_gsecars(scans,img_loader,mask_creator):
         img_loader.update_scan_info(scan)
         current_image_no = 0
         img_index_ver, img_index_hor = None, None
-        for image in img_loader.load_frame(frame_number=0, flip=False):
+        for image in img_loader.load_frame(frame_number=0, flip=True):
             if current_image_no==0:
                 img_index_hor, img_index_ver = np.meshgrid(range(image.shape[1]),range(image.shape[0]))
             else:
@@ -1421,7 +1421,7 @@ class gsecars_image_loader(object):
         print('\nRunning scan {} now...'.format(scan_number))
         self.total_frame_number = len(self.spec_info['H'][self.scan_numbers.index(scan_number)])
 
-    def load_one_frame(self,frame_number,flip = False):
+    def load_one_frame(self,frame_number,flip = True):
         #if one frame one nxs file
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
         #img_path=os.path.join(self.nexus_path,img_name)
@@ -1434,7 +1434,8 @@ class gsecars_image_loader(object):
         img_path = os.path.join(self.spec_path,'images',prefix_image,scan_folder,img_name)
         img=misc.imread(img_path)
         if flip:
-            img = np.flip(img.T,1)
+            # img = np.flip(img.T,1)
+            img = img.T
         img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                 self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
         #normalized the intensity by the monitor and trams counters
@@ -1442,7 +1443,7 @@ class gsecars_image_loader(object):
         self.extract_HKL(frame_number)
         return img/self.extract_transm_and_mon(frame_number)
 
-    def load_frame(self,frame_number,flip=False):
+    def load_frame(self,frame_number,flip=True):
         #if one frame one nxs file
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
         #img_path=os.path.join(self.nexus_path,img_name)
@@ -1456,7 +1457,8 @@ class gsecars_image_loader(object):
             img_path = os.path.join(self.spec_path,'images',prefix_image,scan_folder,img_name)
             img=misc.imread(img_path)
             if flip:
-                img = np.flip(img.T,1)
+                img = img.T
+                #img = np.flip(img.T,1)
             img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                     self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
             #normalized the intensity by the monitor and trams counters
@@ -1475,12 +1477,13 @@ class gsecars_image_loader(object):
         #data=nxload(img_path)
         motors={}
         motor_names = ['phi', 'chi', 'del', 'nu', 'mu', 'eta','norm','transmission']
+        if 'E' in self.spec_info:
+            motor_names.append('E')
         #for motor in self.constant_motors:
         #    motors[motor] = self.constant_motors[motor]
         scan_index = self.scan_numbers.index(self.scan_number)
         for motor in motor_names:
             motors[motor] = self.spec_info[motor][scan_index][frame_number]
-
         self.motor_angles = motors
         #self.motor_angles['transm'] = 1
         #self.motor_angles['mon'] =1

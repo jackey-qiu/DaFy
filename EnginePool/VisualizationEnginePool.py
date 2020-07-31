@@ -398,9 +398,10 @@ def plot_pxrd_fit_gui_pyqtgraph_old(ax_profile, ax_ctr, ax_pot,app_ctr):
         #ax_ctr.addLegend()
         ax_pot.plot(app_ctr.data[app_ctr.img_loader.scan_number]['frame_number'],app_ctr.data[app_ctr.img_loader.scan_number]['potential'])
 
-def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr, processed_frame_index = -1):
+def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr , processed_frame_index = -1):
     data = app_ctr.data
     fit_bkg_object = app_ctr.bkg_sub
+    plot_x_channel = fit_bkg_object.plot_x_channel
     try:
         z = fit_bkg_object.fit_data['y_bkg'][:,0]
     except:
@@ -448,6 +449,13 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr, processed_fra
 
     imge_no = [data['image_no'][i] for i in plot_index]
     L_list = [data['L'][i] for i in plot_index]
+    if plot_x_channel != None:
+        if plot_x_channel in data:
+            X_list = [data[plot_x_channel][i] for i in plot_index]
+        else:
+            raise Exception('Wrong channel label for X_list!')
+    else:
+        X_list = None
     """
     offset_L = 0
     L_list = []
@@ -483,35 +491,43 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr, processed_fra
             pass
         else:
             ax_pot.plot(imge_no,current,clear = True)
-    if 'L' in data:
-        #L_list, I_list, I_err_list = np.array(data['L'])[plot_index],np.array(data['peak_intensity'])[plot_index], np.array(data['peak_intensity_error'])[plot_index]
-        if not fit_bkg_object.rod_scan:
+    #L_list, I_list, I_err_list = np.array(data['L'])[plot_index],np.array(data['peak_intensity'])[plot_index], np.array(data['peak_intensity_error'])[plot_index]
+    if not fit_bkg_object.rod_scan:
+        if X_list==None:
             ax_ctr.setLabel('bottom','frame_number')
             if app_ctr.p3_data_source == 'peak_intensity':
-                ax_ctr.plot(imge_no, peak_intensity,pen={'color': 'y', 'width': 1}, clear = True)
+                ax_ctr.plot(imge_no, peak_intensity,pen={'color': 'y', 'width': 1}, symbolBrush=(255,0,0), symbolSize=5,symbolPen='w', clear = True)
                 ax_ctr.setLogMode(x=False,y=False)
             elif app_ctr.p3_data_source == 'bkg_intensity':
-                ax_ctr.plot(imge_no, bkg_intensity,pen={'color': 'g', 'width': 1}, clear = True)
+                ax_ctr.plot(imge_no, bkg_intensity,pen={'color': 'g', 'width': 1}, symbolBrush=(255,0,0), symbolSize=5,symbolPen='w', clear = True)
                 ax_ctr.setLogMode(x=False,y=False)
         else:
-            ax_ctr.setLabel('bottom','L')
+            ax_ctr.setLabel('bottom',plot_x_channel)
             if app_ctr.p3_data_source == 'peak_intensity':
-                ax_ctr.plot(L_list, peak_intensity,pen={'color': 'y', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
-                ax_ctr.plot([L_list[processed_frame_index]], [peak_intensity[processed_frame_index]],pen={'color': 'y', 'width': 1},  symbolBrush=(0,255,0), symbolSize=8,symbolPen='r',clear = False)
-                #draw error bars
-                """
-                x = np.append(L_list[:,np.newaxis],L_list[:,np.newaxis],axis = 1)
-                y_d = peak_intensity[:,np.newaxis]-peak_intensity_error[:,np.newaxis]/2
-                y_u = peak_intensity[:,np.newaxis]+peak_intensity_error[:,np.newaxis]/2
-                y = np.append(y_d,y_u,axis=1)
-                for ii in range(len(y)):
-                    ax_ctr.plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
-                """
-                ax_ctr.setLogMode(x=False,y=True)
-                ax_ctr.setTitle("{}{}L".format(*current_HK))
+                ax_ctr.plot(X_list, peak_intensity,pen={'color': 'y', 'width': 1}, symbolBrush=(255,0,0), symbolSize=5,symbolPen='w', clear = True)
+                ax_ctr.setLogMode(x=False,y=False)
             elif app_ctr.p3_data_source == 'bkg_intensity':
-                ax_ctr.plot(L_list, bkg_intensity,pen={'color': 'g', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
-                ax_ctr.setLogMode(x=False,y=True)
+                ax_ctr.plot(X_list, bkg_intensity,pen={'color': 'g', 'width': 1}, symbolBrush=(255,0,0), symbolSize=5,symbolPen='w', clear = True)
+                ax_ctr.setLogMode(x=False,y=False)
+    else:
+        ax_ctr.setLabel('bottom','L')
+        if app_ctr.p3_data_source == 'peak_intensity':
+            ax_ctr.plot(L_list, peak_intensity,pen={'color': 'y', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
+            ax_ctr.plot([L_list[processed_frame_index]], [peak_intensity[processed_frame_index]],pen={'color': 'y', 'width': 1},  symbolBrush=(0,255,0), symbolSize=8,symbolPen='r',clear = False)
+            #draw error bars
+            """
+            x = np.append(L_list[:,np.newaxis],L_list[:,np.newaxis],axis = 1)
+            y_d = peak_intensity[:,np.newaxis]-peak_intensity_error[:,np.newaxis]/2
+            y_u = peak_intensity[:,np.newaxis]+peak_intensity_error[:,np.newaxis]/2
+            y = np.append(y_d,y_u,axis=1)
+            for ii in range(len(y)):
+                ax_ctr.plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
+            """
+            ax_ctr.setLogMode(x=False,y=True)
+            ax_ctr.setTitle("{}{}L".format(*current_HK))
+        elif app_ctr.p3_data_source == 'bkg_intensity':
+            ax_ctr.plot(L_list, bkg_intensity,pen={'color': 'g', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
+            ax_ctr.setLogMode(x=False,y=True)
 
 def plot_bkg_fit_gui_pyqtgraph_old(ax_profile, ax_ctr, ax_pot,data, fit_bkg_object, plot_final = False):
     z = fit_bkg_object.fit_data['y_bkg'][:,0]

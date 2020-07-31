@@ -18,8 +18,6 @@ sys.path.append(os.path.join(DaFy_path,'util'))
 # import wx, traceback
 from io import StringIO
 # import  wx.lib.newevent
-from wx.lib.masked import NumCtrl
-
 import diffev, fom_funcs
 import filehandling as io
 import numpy as np

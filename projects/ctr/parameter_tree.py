@@ -60,6 +60,7 @@ params_petra3 = [
     ]},
     {'name': 'Background_Subtraction', 'type': 'group', 'children': [
         {"name":"rod_scan","type":"str","value":"False"},
+        {"name":"plot_x_channel","type":"str","value":"None"},
         {"name":"int_direct","type":"str","value":'x'},
     ]}
 ]
@@ -101,6 +102,7 @@ params_aps = [
     ]},
     {'name': 'Background_Subtraction', 'type': 'group', 'children': [
         {"name":"rod_scan","type":"str","value":"False"},
+        {"name":"plot_x_channel","type":"str","value":"None"},
         {"name":"int_direct","type":"str","value":'x'},
     ]}
 ]
@@ -123,8 +125,10 @@ p_esrf = Parameter.create(name='params', type='group', children=params_aps)
 class SolverParameters(ParameterTree):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.data_type = None
 
     def init_pars(self,data_type = 'PETRA3_P23'):
+        self.data_type = data_type
         if data_type == 'PETRA3_P23':
             self.setParameters(p_petra3, showTop=False)
             self.par = p_petra3
@@ -136,6 +140,9 @@ class SolverParameters(ParameterTree):
             self.par = p_esrf
 
     def update_parameter(self,config_file, sections = ['Global','Image_Loader','Mask','Background_Subtraction']):
+        beamline = extract_vars_from_config(config_file, section_var = 'Global')['beamline']
+        if  beamline!= self.data_type:
+            return 'Data formate does not match! Your par frame take {} format, while your config file has a {} format. Fix it first!'.format(self.data_type, beamline)
         for section in sections:
             kwarg_temp = extract_vars_from_config(config_file, section_var = section)
             for each in kwarg_temp:

@@ -135,6 +135,10 @@ def merge_data_image_loader_gsecars(data, object_image_loader):
                      }
     for key in key_map_rules:
         data[key].append(key_map_rules[key])
+    if 'E' in object_image_loader.motor_angles and (not np.isnan(object_image_loader.motor_angles['E'])):
+        data['E'].append(object_image_loader.motor_angles['E'])
+    else:
+        pass
     return data
 
 def merge_data_bkg(data, object_bkg):

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1882</width>
-    <height>1038</height>
+    <width>1878</width>
+    <height>1035</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -67,7 +67,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -340,7 +340,7 @@
                   <double>100.000000000000000</double>
                  </property>
                  <property name="singleStep">
-                  <double>1.000000000000000</double>
+                  <double>0.100000000000000</double>
                  </property>
                  <property name="value">
                   <double>1.000000000000000</double>
@@ -1143,6 +1143,26 @@
             </item>
            </layout>
           </widget>
+          <widget class="QWidget" name="tab_3">
+           <attribute name="title">
+            <string>Error_msg</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_7">
+            <item>
+             <widget class="QTextBrowser" name="textBrowser_error_msg"/>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_4">
+           <attribute name="title">
+            <string>Terminal</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_8">
+            <item>
+             <widget class="TerminalWidget" name="widget_terminal" native="true"/>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
@@ -1215,7 +1235,7 @@
        <property name="frameShadow">
         <enum>QFrame::Raised</enum>
        </property>
-       <layout class="QVBoxLayout" name="verticalLayout_3">
+       <layout class="QVBoxLayout" name="verticalLayout_9">
         <item>
          <layout class="QGridLayout" name="gridLayout_4">
           <item row="0" column="0">
@@ -1305,6 +1325,168 @@
          </widget>
         </item>
         <item>
+         <widget class="QGroupBox" name="groupBox_5">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
+          <property name="title">
+           <string>Peak tracking assistant</string>
+          </property>
+          <layout class="QVBoxLayout" name="verticalLayout_3">
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_15">
+             <item>
+              <widget class="QPushButton" name="pushButton_track_peak">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Track</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QPushButton" name="pushButton_set_peak">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Set</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QCheckBox" name="checkBox_auto_track">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Automatic</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_16">
+             <item>
+              <widget class="QLabel" name="label_28">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Loop</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="lineEdit_track_steps">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>100</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_27">
+               <property name="sizePolicy">
+                <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                 <horstretch>0</horstretch>
+                 <verstretch>0</verstretch>
+                </sizepolicy>
+               </property>
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>steps during tracking</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+           <item>
+            <layout class="QHBoxLayout" name="horizontalLayout_14">
+             <item>
+              <widget class="QLabel" name="label_29">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>Cutoff size in track is</string>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLineEdit" name="lineEdit_track_size">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>30</string>
+               </property>
+               <property name="alignment">
+                <set>Qt::AlignCenter</set>
+               </property>
+              </widget>
+             </item>
+             <item>
+              <widget class="QLabel" name="label_30">
+               <property name="font">
+                <font>
+                 <weight>50</weight>
+                 <bold>false</bold>
+                </font>
+               </property>
+               <property name="text">
+                <string>pixels</string>
+               </property>
+              </widget>
+             </item>
+            </layout>
+           </item>
+          </layout>
+         </widget>
+        </item>
+        <item>
          <widget class="QGroupBox" name="groupBox_4">
           <property name="font">
            <font>
@@ -1363,12 +1545,24 @@
         </item>
         <item>
          <widget class="QGroupBox" name="groupBox_2">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="title">
            <string>Polynormial order</string>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_8">
            <item>
             <widget class="QCheckBox" name="checkBox_order4">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>4</string>
              </property>
@@ -1376,6 +1570,12 @@
            </item>
            <item>
             <widget class="QCheckBox" name="checkBox_order3">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>3</string>
              </property>
@@ -1383,6 +1583,12 @@
            </item>
            <item>
             <widget class="QCheckBox" name="checkBox_order2">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>2</string>
              </property>
@@ -1390,6 +1596,12 @@
            </item>
            <item>
             <widget class="QCheckBox" name="checkBox_order1">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>1</string>
              </property>
@@ -1416,12 +1628,24 @@
         </item>
         <item>
          <widget class="QGroupBox" name="groupBox_cost_func">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="title">
            <string>Cost functions</string>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_9">
            <item>
             <widget class="QRadioButton" name="radioButton_atq">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>atq</string>
              </property>
@@ -1432,6 +1656,12 @@
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_stq">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>stq</string>
              </property>
@@ -1439,6 +1669,12 @@
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_sh">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>sh</string>
              </property>
@@ -1446,6 +1682,12 @@
            </item>
            <item>
             <widget class="QRadioButton" name="radioButton_ah">
+             <property name="font">
+              <font>
+               <weight>50</weight>
+               <bold>false</bold>
+              </font>
+             </property>
              <property name="text">
               <string>ah</string>
              </property>
@@ -1469,6 +1711,12 @@
         </item>
         <item>
          <widget class="QLabel" name="label_3">
+          <property name="font">
+           <font>
+            <weight>75</weight>
+            <bold>true</bold>
+           </font>
+          </property>
           <property name="text">
            <string>ss_factor</string>
           </property>
@@ -1796,7 +2044,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1882</width>
+     <width>1878</width>
      <height>22</height>
     </rect>
    </property>
@@ -1891,6 +2139,12 @@
    <class>SolverParameters</class>
    <extends>QWidget</extends>
    <header location="global">parameter_tree.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header>terminal_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

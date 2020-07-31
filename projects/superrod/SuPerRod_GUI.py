@@ -42,6 +42,26 @@ from PyQt5.QtGui import QTransform, QFont, QBrush, QColor, QIcon
 from pyqtgraph.Qt import QtGui
 import syntax_pars
 from models.structure_tools import sorbate_tool
+import logging
+
+#redirect the error stream to qt widget
+class QTextEditLogger(logging.Handler):
+    def __init__(self, textbrowser_widget):
+        super().__init__()
+        self.textBrowser_error_msg = textbrowser_widget
+        # self.widget.setReadOnly(True)
+
+    def emit(self, record):
+        error_msg = self.format(record)
+        separator = '-' * 80
+        notice = \
+        """An unhandled exception occurred. Please report the problem\n"""\
+        """using the error reporting dialog or via email to <%s>.\n"""%\
+        ("crqiu2@gmail.com")
+        self.textBrowser_error_msg.clear()
+        cursor = self.textBrowser_error_msg.textCursor()
+        cursor.insertHtml('''<p><span style="color: red;">{} <br></span>'''.format(" "))
+        self.textBrowser_error_msg.setText(notice + '\n' +separator+'\n'+error_msg)
 
 class RunFit(QtCore.QObject):
     """
@@ -158,10 +178,19 @@ class MyMainWindow(QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major', background = (50,50,100))
         pg.mkQApp()
         #load GUI ui file made by qt designer
-        uic.loadUi(os.path.join(DaFy_path,'projects','SuperRod','superrod3.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','SuperRod','superrod_gui.ui'),self)
         self.setWindowTitle('Data analysis factory: CTR data modeling')
-        icon = QIcon(os.path.join(script_path,"DAFY.png"))
+        icon = QIcon(os.path.join(script_path,"icons","DAFY.png"))
         self.setWindowIcon(icon)
+
+        #set redirection of error message to embeted text browser widget
+        logTextBox = QTextEditLogger(self.textBrowser_error_msg)
+        # You can format what is printed to text box
+        logTextBox.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(logTextBox)
+        # You can control the logging level
+        logging.getLogger().setLevel(logging.DEBUG)
+
         self.comboBox_all_motif.insertItems(0, sorbate_tool.ALL_MOTIF_COLLECTION)
         #self.stop = False
         self.show_checkBox_list = []
@@ -233,6 +262,9 @@ class MyMainWindow(QMainWindow):
         self.pushButton_elevation_90.clicked.connect(self.elevation_90)
         self.pushButton_parallel.clicked.connect(self.parallel_projection)
         self.pushButton_projective.clicked.connect(self.projective_projection)
+        self.pushButton_pan.clicked.connect(self.pan_msv_view)
+        self.pushButton_start_spin.clicked.connect(self.start_spin)
+        self.pushButton_stop_spin.clicked.connect(self.stop_spin)
 
         #spinBox to save the domain_tag
         self.spinBox_domain.valueChanged.connect(self.update_domain_index)
@@ -254,6 +286,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_fit_selected.clicked.connect(self.fit_selected)
         self.pushButton_fit_next_5.clicked.connect(self.fit_next_5)
         self.pushButton_invert_fit.clicked.connect(self.invert_fit)
+        self.pushButton_update_pars.clicked.connect(self.update_model_parameter)
 
         #pushButton to operate plots
         self.pushButton_update_plot.clicked.connect(self.update_structure_view)
@@ -267,10 +300,10 @@ class MyMainWindow(QMainWindow):
 
         #syntax highlight for script
         self.plainTextEdit_script.setStyleSheet("""QPlainTextEdit{
-	                            font-family:'Consolas';
+                                font-family:'Consolas';
                                 font-size:14pt;
-	                            color: #ccc;
-	                            background-color: #2b2b2b;}""")
+                                color: #ccc;
+                                background-color: #2b2b2b;}""")
         self.plainTextEdit_script.setTabStopWidth(self.plainTextEdit_script.fontMetrics().width(' ')*4)
 
         #table view for parameters set to selecting row basis
@@ -278,9 +311,11 @@ class MyMainWindow(QMainWindow):
         self.tableWidget_data.setSelectionBehavior(QAbstractItemView.SelectRows)
         self.timer_update_structure = QtCore.QTimer(self)
         self.timer_update_structure.timeout.connect(self.pushButton_update_plot.click)
+        self.timer_spin_msv = QtCore.QTimer(self)
+        self.timer_spin_msv.timeout.connect(self.spin_msv)
+        self.azimuth_angle = 0
         self.setup_plot()
-
-
+        self._load_par()
 
     def show_plots_on_next_screen(self):
         """
@@ -332,7 +367,7 @@ class MyMainWindow(QMainWindow):
         self.domain_tag = int(self.spinBox_domain.text())
         if self.model.compiled:
             self.widget_edp.items = []
-            self.widget_msv_top.items = []
+            # self.widget_msv_top.items = []
             self.init_structure_view()
         else:
             pass
@@ -340,16 +375,20 @@ class MyMainWindow(QMainWindow):
     def parallel_projection(self):
         self.widget_edp.opts['distance'] = 2000
         self.widget_edp.opts['fov'] = 1
-        self.widget_msv_top.opts['distance'] = 2000
-        self.widget_msv_top.opts['fov'] = 1
+        # self.widget_msv_top.opts['distance'] = 2000
+        # self.widget_msv_top.opts['fov'] = 1
         self.update_structure_view()
 
     def projective_projection(self):
         self.widget_edp.opts['distance'] = 25
         self.widget_edp.opts['fov'] = 60
-        self.widget_msv_top.opts['distance'] = 25
-        self.widget_msv_top.opts['fov'] = 60
+        # self.widget_msv_top.opts['distance'] = 25
+        # self.widget_msv_top.opts['fov'] = 60
         self.update_structure_view()
+
+    def pan_msv_view(self):
+        value = int(self.spinBox_pan_pixel.text())
+        self.widget_edp.pan(value*int(self.checkBox_x.isChecked()),value*int(self.checkBox_y.isChecked()),value*int(self.checkBox_z.isChecked()))
 
     def update_camera_position(self,widget_name = 'widget_edp', angle_type="azimuth", angle=0):
         getattr(self,widget_name).setCameraPosition(pos=None, distance=None, \
@@ -361,6 +400,19 @@ class MyMainWindow(QMainWindow):
 
     def azimuth_90(self):
         self.update_camera_position(angle_type="azimuth", angle=90)
+
+    def start_spin(self):
+        self.timer_spin_msv.start(100)
+
+    def stop_spin(self):
+        self.timer_spin_msv.stop()
+
+    def spin_msv(self):
+        #if self.azimuth > 360:
+            
+        self.update_camera_position(angle_type="azimuth", angle=self.azimuth_angle)
+        self.azimuth_angle = self.azimuth_angle + 1
+
 
     def elevation_0(self):
         self.update_camera_position(angle_type="elevation", angle=0)
@@ -594,6 +646,12 @@ class MyMainWindow(QMainWindow):
             
             self.update_par_upon_load()
         except diffev.ErrorBarError as e:
+
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to calculate error bar!')
+            logging.getLogger().exception('Fatal error encountered during error calculation!')
+            self.tabWidget_data.setCurrentIndex(4)
+
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
 
 
@@ -601,14 +659,21 @@ class MyMainWindow(QMainWindow):
         reply = QMessageBox.question(self, 'Message', 'Would you like to save the current model first?', QMessageBox.Yes | QMessageBox.No, QMessageBox.Yes)
         if reply == QMessageBox.Yes:
             self.save_model()
-        self.model = model.Model()
-        self.run_fit.solver.model = self.model
-        self.tableWidget_data.setRowCount(0)
-        self.tableWidget_pars.setRowCount(0)
-        self.plainTextEdit_script.setPlainText('')
-        self.comboBox_dataset.clear()
-        self.tabelWidget_data_view.setRowCount(0)
-        self.update_plot_data_view()
+        try:
+            self.model = model.Model()
+            self.run_fit.solver.model = self.model
+            self.tableWidget_data.setRowCount(0)
+            self.tableWidget_pars.setRowCount(0)
+            self.plainTextEdit_script.setPlainText('')
+            self.comboBox_dataset.clear()
+            self.tableWidget_data_view.setRowCount(0)
+            # self.update_plot_data_view()
+            self._load_par()
+        except Exception:
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to init a new model!')
+            logging.getLogger().exception('Fatal error encountered during model initiation!')
+            self.tabWidget_data.setCurrentIndex(4)
 
     def open_model(self):
         """open a saved model file(*.rod), which is a compressed file containing data, script and fit parameters in one place"""
@@ -618,47 +683,54 @@ class MyMainWindow(QMainWindow):
         load_add_ = 'success'
         self.rod_file = fileName
         if fileName:
-            self.setWindowTitle('Data analysis factory: CTR data modeling-->{}'.format(fileName))
-            self.model.load(fileName)
-            self.update_plot_dimension()
             try:
-                self.load_addition()
-            except:
-                load_add_ = 'failure'
-            #add a mask attribute to each dataset
-            for each in self.model.data_original:
-                if not hasattr(each,'mask'):
-                    each.mask = np.array([True]*len(each.x))
-            for each in self.model.data:
-                if not hasattr(each,'mask'):
-                    each.mask = np.array([True]*len(each.x))
-            #add model space to terminal
-            self.widget_terminal.update_name_space("model",self.model)
-            self.widget_terminal.update_name_space("solver",self.run_fit.solver)
-            self.widget_terminal.update_name_space("win",self)
+                self.setWindowTitle('Data analysis factory: CTR data modeling-->{}'.format(fileName))
+                self.model.load(fileName)
+                self.update_plot_dimension()
+                try:
+                    self.load_addition()
+                except:
+                    load_add_ = 'failure'
+                #add a mask attribute to each dataset
+                for each in self.model.data_original:
+                    if not hasattr(each,'mask'):
+                        each.mask = np.array([True]*len(each.x))
+                for each in self.model.data:
+                    if not hasattr(each,'mask'):
+                        each.mask = np.array([True]*len(each.x))
+                #add model space to terminal
+                self.widget_terminal.update_name_space("model",self.model)
+                self.widget_terminal.update_name_space("solver",self.run_fit.solver)
+                self.widget_terminal.update_name_space("win",self)
 
-            #remove items in the msv and re-initialize it
-            self.widget_edp.items = []
-            self.widget_msv_top.items = []
-            #update other pars
-            self.update_table_widget_data()
-            self.update_combo_box_dataset()
-            self.update_plot_data_view()
-            self.update_par_upon_load()
-            self.update_script_upon_load()
-            #model is simulated at the end of next step
-            self.init_mask_info_in_data_upon_loading_model()
-            #add name space for cal bond distance after simulation
-            try:
-                self.widget_terminal.update_name_space("report_distance",self.model.script_module.sample.inter_atom_distance_report)
-            except:
-                pass
-            #now set the comboBox for par set
-            self.update_combo_box_list_par_set()
+                #remove items in the msv and re-initialize it
+                self.widget_edp.items = []
+                # self.widget_msv_top.items = []
+                #update other pars
+                self.update_table_widget_data()
+                self.update_combo_box_dataset()
+                self.update_plot_data_view()
+                self.update_par_upon_load()
+                self.update_script_upon_load()
+                #model is simulated at the end of next step
+                self.init_mask_info_in_data_upon_loading_model()
+                #add name space for cal bond distance after simulation
+                try:
+                    self.widget_terminal.update_name_space("report_distance",self.model.script_module.sample.inter_atom_distance_report)
+                except:
+                    pass
+                #now set the comboBox for par set
+                self.update_combo_box_list_par_set()
 
-            self.statusbar.clearMessage()
-            self.statusbar.showMessage("Model is loaded, and {} in config loading".format(load_add_))
-            # self.update_mask_info_in_data()
+                self.statusbar.clearMessage()
+                self.statusbar.showMessage("Model is loaded, and {} in config loading".format(load_add_))
+                # self.update_mask_info_in_data()
+            except Exception:
+
+                self.statusbar.clearMessage()
+                self.statusbar.showMessage('Failure to open a model file!')
+                logging.getLogger().exception('Fatal error encountered during openning a model file!')
+                self.tabWidget_data.setCurrentIndex(4)
 
     def update_combo_box_list_par_set(self):
         """atomgroup and uservars instances defined in script will be colleced and displayed in this combo box"""
@@ -789,16 +861,22 @@ class MyMainWindow(QMainWindow):
     def save_model(self):
         """model will be saved automatically during fit, for which you need to set the interval generations for saving automatically"""
         #the model will be renamed this way
-        path = self.rod_file
-        self.model.script = (self.plainTextEdit_script.toPlainText())
-        self.model.save(path)
-        save_add_ = 'success'
         try:
-            self.save_addition()
-        except:
-            save_add_ = "failure"
-        self.statusbar.clearMessage()
-        self.statusbar.showMessage("Model is saved, and {} in config saving".format(save_add_))
+            path = self.rod_file
+            self.model.script = (self.plainTextEdit_script.toPlainText())
+            self.model.save(path)
+            save_add_ = 'success'
+            try:
+                self.save_addition()
+            except:
+                save_add_ = "failure"
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage("Model is saved, and {} in config saving".format(save_add_))
+        except Exception:
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to save model!')
+            logging.getLogger().exception('Fatal error encountered during model save!')
+            self.tabWidget_data.setCurrentIndex(4)
 
     def save_model_as(self):
         """save model file, promting a dialog widget to ask the file name to save model"""
@@ -887,17 +965,27 @@ class MyMainWindow(QMainWindow):
             self.update_combo_box_list_par_set()
             self.statusbar.showMessage("Model is simulated successfully!")
         except model.ModelError as e:
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to simulate model!')
+            logging.getLogger().exception('Fatal error encountered during model simulation!')
+            self.tabWidget_data.setCurrentIndex(4)
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
 
     def run_model(self):
         """start the model fit looping"""
         #button will be clicked every 2 second to update figures
-        self.stop_model()
-        self.simulate_model()
-        self.statusbar.showMessage("Initializing model running ...")
-        self.timer_update_structure.start(2000)
-        self.widget_solver.update_parameter_in_solver(self)
-        self.fit_thread.start()
+        try:
+            self.stop_model()
+            self.simulate_model()
+            self.statusbar.showMessage("Initializing model running ...")
+            self.timer_update_structure.start(2000)
+            self.widget_solver.update_parameter_in_solver(self)
+            self.fit_thread.start()
+        except:
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to launch a model fit!')
+            logging.getLogger().exception('Fatal error encountered during init model fitting!')
+            self.tabWidget_data.setCurrentIndex(4)
 
     def stop_model(self):
         self.run_fit.stop()
@@ -917,14 +1005,21 @@ class MyMainWindow(QMainWindow):
         """start the model fit looping in a batch mode
         To speed up the structure and plots are not to be updated!
         """
-        #self._stop_model()
-        self.simulate_model()
-        self.statusbar.clearMessage()
-        self.statusbar.showMessage("Initializing model running ...")
-        self.widget_solver.update_parameter_in_solver_batch(self)
-        self.statusbar.clearMessage()
-        self.statusbar.showMessage("Parameters in solver are updated!")
-        self.batch_thread.start()
+        try:
+            #self._stop_model()
+            self.simulate_model()
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage("Initializing model running ...")
+            self.widget_solver.update_parameter_in_solver_batch(self)
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage("Parameters in solver are updated!")
+            self.batch_thread.start()
+        except Exception:
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to batch run a model!')
+            logging.getLogger().exception('Fatal error encountered during batch run a model!')
+            self.tabWidget_data.setCurrentIndex(4)
+
 
     def stop_model_batch(self):
         self.run_batch.stop()
@@ -1231,16 +1326,17 @@ class MyMainWindow(QMainWindow):
         # self.widget_edp.items = []
         # self.widget_msv_top.items = []
         self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
-        self.widget_msv_top.abc = self.widget_edp.abc
+        # self.widget_msv_top.abc = self.widget_edp.abc
         xyz = self.model.script_module.sample.extract_xyz(domain_tag)
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
 
-        xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
-        self.widget_msv_top.show_structure(xyz)
-        self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
-        self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
+        # xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+        # self.widget_msv_top.show_structure(xyz)
+        # self.update_camera_position(widget_name = 'widget_msv_top', angle_type="azimuth", angle=0)
+        # self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
+        """
         try:
             xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
             self.widget_msv_top.show_structure(xyz)
@@ -1248,6 +1344,7 @@ class MyMainWindow(QMainWindow):
             self.update_camera_position(widget_name = 'widget_msv_top', angle_type = 'elevation', angle = 90)
         except:
             pass
+        """
 
     def update_structure_view(self):
         if hasattr(self.model.script_module,"model_type"):
@@ -1269,11 +1366,13 @@ class MyMainWindow(QMainWindow):
                 pass        
             xyz = self.model.script_module.sample.extract_xyz(domain_tag)
             self.widget_edp.update_structure(xyz)
+            """
             try:
                 xyz, _ = self.model.script_module.sample.extract_xyz_top(domain_tag)
                 self.widget_msv_top.update_structure(xyz)
             except:
                 pass
+            """
         except Exception as e:
             outp = StringIO()
             traceback.print_exc(200, outp)
@@ -1334,12 +1433,12 @@ class MyMainWindow(QMainWindow):
         if self.background_color == 'w':
             self.widget_data.getViewBox().setBackgroundColor('k')
             self.widget_edp.getViewBox().setBackgroundColor('k')
-            self.widget_msv_top.getViewBox().setBackgroundColor('k')
+            # self.widget_msv_top.getViewBox().setBackgroundColor('k')
             self.background_color = 'k'
         else:
             self.widget_data.getViewBox().setBackgroundColor('w')
             self.widget_edp.getViewBox().setBackgroundColor('w')
-            self.widget_msv_top.getViewBox().setBackgroundColor('w')
+            # self.widget_msv_top.getViewBox().setBackgroundColor('w')
             self.background_color = 'w'
 
     def load_script(self):
@@ -1428,19 +1527,19 @@ class MyMainWindow(QMainWindow):
             row_index = self.tableWidget_pars.rowCount()
         else:
             row_index = rows[-1].row()
-        self.tableWidget_pars.insertRow(row_index)
+        self.tableWidget_pars.insertRow(row_index+1)
         for i in range(6):
             if i==2:
                 check_box = QCheckBox()
                 check_box.setChecked(False)
-                self.tableWidget_pars.setCellWidget(row_index,2,check_box)
+                self.tableWidget_pars.setCellWidget(row_index+1,2,check_box)
             else:
                 qtablewidget = QTableWidgetItem('')
                 if i == 0:
                     qtablewidget.setFont(QFont('Times',10,QFont.Bold))
                 elif i == 1:
                     qtablewidget.setForeground(QBrush(QColor(255,0,255)))
-                self.tableWidget_pars.setItem(row_index,i,qtablewidget)
+                self.tableWidget_pars.setItem(row_index+1,i,qtablewidget)
         self.update_model_parameter()
 
     def append_one_row_at_the_end(self):
@@ -1596,11 +1695,61 @@ class MyMainWindow(QMainWindow):
                             qtablewidget.setForeground(QBrush(QColor(255,0,255)))
                         self.tableWidget_pars.setItem(i,j,qtablewidget)
                     j += 1
-        self.tableWidget_pars.resizeColumnsToContents()
-        self.tableWidget_pars.resizeRowsToContents()
+        # self.tableWidget_pars.resizeColumnsToContents()
+        # self.tableWidget_pars.resizeRowsToContents()
+        """
+        header = self.tableWidget_pars.horizontalHeader()       
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeToContents)
+        """
         self.tableWidget_pars.setShowGrid(True)
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_labels)
 
+    def _load_par(self):
+        vertical_labels = []
+        self.tableWidget_pars.setRowCount(1)
+        self.tableWidget_pars.setColumnCount(6)
+        self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error'])
+        items = ['par',0,'False',0,0,'-']
+        for i in [0]:
+            j = 0
+            if items[0] == '':
+                self.model.parameters.data.append([items[0],0,False,0, 0,'-'])
+                vertical_labels.append('')
+                j += 1
+            else:
+                #add items to parameter attr
+                self.model.parameters.data.append([items[0],float(items[1]),items[2]=='True',float(items[3]), float(items[4]),items[5]])
+                #add items to table view
+                if len(vertical_labels)==0:
+                    vertical_labels.append('1')
+                else:
+                    if vertical_labels[-1] != '':
+                        vertical_labels.append('{}'.format(int(vertical_labels[-1])+1))
+                    else:
+                        vertical_labels.append('{}'.format(int(vertical_labels[-2])+1))
+                for item in items:
+                    if j == 2:
+                        check_box = QCheckBox()
+                        check_box.setChecked(item=='True')
+                        self.tableWidget_pars.setCellWidget(i,2,check_box)
+                    else:
+                        qtablewidget = QTableWidgetItem(item)
+                        # qtablewidget.setTextAlignment(Qt.AlignCenter)
+                        if j == 0:
+                            qtablewidget.setFont(QFont('Times',10,QFont.Bold))
+                        elif j == 1:
+                            qtablewidget.setForeground(QBrush(QColor(255,0,255)))
+                        self.tableWidget_pars.setItem(i,j,qtablewidget)
+                    j += 1
+        # self.tableWidget_pars.resizeColumnsToContents()
+        # self.tableWidget_pars.resizeRowsToContents()
+        self.tableWidget_pars.setShowGrid(True)
+        self.tableWidget_pars.setVerticalHeaderLabels(vertical_labels)
 
     def load_par(self):
         options = QFileDialog.Options()
@@ -1648,9 +1797,18 @@ class MyMainWindow(QMainWindow):
                                     qtablewidget.setForeground(QBrush(QColor(255,0,255)))
                                 self.tableWidget_pars.setItem(i,j,qtablewidget)
                             j += 1
-        self.tableWidget_pars.resizeColumnsToContents()
-        self.tableWidget_pars.resizeRowsToContents()
-        self.tableWidget_pars.setShowGrid(False)
+        # self.tableWidget_pars.resizeColumnsToContents()
+        # self.tableWidget_pars.resizeRowsToContents()
+        """
+        header = self.tableWidget_pars.horizontalHeader()       
+        header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(1, QtWidgets.QHeaderView.Stretch)
+        header.setSectionResizeMode(2, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(3, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(4, QtWidgets.QHeaderView.ResizeToContents)
+        header.setSectionResizeMode(5, QtWidgets.QHeaderView.ResizeToContents)
+        """
+        self.tableWidget_pars.setShowGrid(True)
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_labels)
 
     def update_par_upon_change(self):

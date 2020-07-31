@@ -36,7 +36,7 @@ if not MPI_RUN:
         _cpu_count = processing.cpu_count()
     except:
         pass
-
+# __parallel_loaded__ = False
 # import model
 
 from Simplex import Simplex

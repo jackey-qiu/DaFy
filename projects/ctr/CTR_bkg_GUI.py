@@ -1,6 +1,6 @@
-import sys,os,qdarkstyle
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QShortcut
-from PyQt5 import uic
+import sys,os,qdarkstyle,io
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QShortcut,QMessageBox
+from PyQt5 import uic, QtWidgets
 import random
 import pandas as pd
 import numpy as np
@@ -26,8 +26,29 @@ from PyQt5 import QtCore
 from PyQt5.QtWidgets import QCheckBox, QRadioButton
 from PyQt5.QtGui import QTransform
 from pyqtgraph.Qt import QtGui
+import logging
+
 pg.setConfigOption('background', (50,50,100))
 # pg.setConfigOption('foreground', 'k')
+
+#redirect the error stream to qt widget
+class QTextEditLogger(logging.Handler):
+    def __init__(self, textbrowser_widget):
+        super().__init__()
+        self.textBrowser_error_msg = textbrowser_widget
+        # self.widget.setReadOnly(True)
+
+    def emit(self, record):
+        error_msg = self.format(record)
+        separator = '-' * 80
+        notice = \
+        """An unhandled exception occurred. Please report the problem\n"""\
+        """using the error reporting dialog or via email to <%s>.\n"""%\
+        ("crqiu2@gmail.com")
+        self.textBrowser_error_msg.clear()
+        cursor = self.textBrowser_error_msg.textCursor()
+        cursor.insertHtml('''<p><span style="color: red;">{} <br></span>'''.format(" "))
+        self.textBrowser_error_msg.setText(notice + '\n' +separator+'\n'+error_msg)
 
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
@@ -35,8 +56,18 @@ class MyMainWindow(QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
         pg.mkQApp()
         uic.loadUi(os.path.join(DaFy_path,'projects','ctr','CTR_bkg_pyqtgraph_new.ui'),self)
+        #super().setupUi(self)
         self.widget_config.init_pars(data_type = self.comboBox_beamline.currentText())
         self.setWindowTitle('Data analysis factory: CTR data analasis')
+        
+        #set redirection of error message to embeted text browser widget
+        logTextBox = QTextEditLogger(self.textBrowser_error_msg)
+        # You can format what is printed to text box
+        logTextBox.setFormatter(logging.Formatter('%(asctime)s - %(levelname)s - %(message)s'))
+        logging.getLogger().addHandler(logTextBox)
+        # You can control the logging level
+        logging.getLogger().setLevel(logging.DEBUG)
+
         self.app_ctr=run_app(beamline = self.comboBox_beamline.currentText())
         self.ref_data = None
         self.ref_fit_pars_current_point = {}
@@ -49,6 +80,8 @@ class MyMainWindow(QMainWindow):
         self.run_mode = False
         self.image_set_up = False
         self.tag_reprocess = False
+        self.roi_pos = None
+        self.roi_size = None
 
         #self.setupUi(self)
         self.stop = False
@@ -85,6 +118,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_down.clicked.connect(self.move_roi_down)
         self.pushButton_go.clicked.connect(self.reprocess_previous_frame)
         self.comboBox_beamline.currentTextChanged.connect(self.change_config_layout)
+        self.pushButton_track_peak.clicked.connect(self.track_peak)
+        self.pushButton_set_peak.clicked.connect(self.set_peak)
 
         self.leftShort = QShortcut(QtGui.QKeySequence("Ctrl+Left"), self)
         self.leftShort.activated.connect(self.move_roi_left)
@@ -192,6 +227,7 @@ class MyMainWindow(QMainWindow):
             self.statusbar.showMessage('Data file is saved as {}!'.format(data_file))
         except:
             self.statusbar.showMessage('Failure to save data file!')
+            logging.getLogger().exception('Fatal to save datafile:')
 
     def remove_data_point(self):
         self.app_ctr.data['mask_ctr'][-1]=False
@@ -406,11 +442,52 @@ class MyMainWindow(QMainWindow):
             pos_return,size_return =self._check_roi_boundary([pos[0], pos[1]-int(self.lineEdit_roi_offset.text())],[size[0],size[1]+int(self.lineEdit_roi_offset.text())*2])
             self.roi.setPos(pos = pos_return)
             self.roi.setSize(size=size_return)
+        
+    def maximize_roi(self):
+        self.roi_pos = self.roi.pos()#save the roi pos first before maximize it
+        self.roi_size = self.roi.size()#save the roi pos first before maximize it
+        try:
+            self.roi.setPos(pos = [int(self.roi.pos()[0]),0])
+            self.roi.setSize(size = [int(self.roi.size()[0]),self.app_ctr.bkg_sub.img.shape[0]])
+        except:
+            logging.getLogger().exception('Error during setting roi to maximum, check the dimension!')
+            self.tabWidget.setCurrentIndex(2)
+
+    def track_peak(self):
+        self.maximize_roi()
+        loop_steps = int(self.lineEdit_track_steps.text())
+        hist_range = self.hist.region.getRegion()
+        left, right = hist_range
+        for i in range(loop_steps):
+            iso_value_temp = ((right - left)/loop_steps)*i + left + (right - left)*0.3
+            self.isoLine.setValue(iso_value_temp)
+            self.iso.setLevel(iso_value_temp)
+            isocurve_center_x, iso_curve_center_y = self.iso.boundingRect().center().x(), self.iso.boundingRect().center().y()
+            isocurve_height, isocurve_width = self.iso.boundingRect().height(),self.iso.boundingRect().width()
+            if isocurve_height == 0 or isocurve_width==0:
+                pass
+            else:
+                if (isocurve_height<int(self.lineEdit_track_size.text())) or (isocurve_width<int(self.lineEdit_track_size.text())):
+                    break
+                else:
+                    pass
+
+    def set_peak(self):
+        arbitrary_size_offset = 10
+        arbitrary_recenter_cutoff = 50
+        isocurve_center_x, iso_curve_center_y = self.iso.boundingRect().center().x(), self.iso.boundingRect().center().y()
+        isocurve_height, isocurve_width = self.iso.boundingRect().height()+arbitrary_size_offset,self.iso.boundingRect().width()+arbitrary_size_offset
+        roi_new = [self.roi.pos()[0] + isocurve_center_x - self.roi.size()[0]/2,self.roi.pos()[1]+(iso_curve_center_y-self.roi.size()[1]/2)+self.roi.size()[1]/2-isocurve_height/2]
+        if abs(sum(roi_new) - sum(self.roi_pos))<arbitrary_recenter_cutoff:
+            self.roi.setPos(pos = roi_new)
+            self.roi.setSize(size = [self.roi.size()[0],isocurve_height])
+        else:#if too far away, probably the peak tracking failed to track the right peak. Then reset the roi to what it is before the track!
+            self.roi.setPos(pos = self.roi_pos)
+            self.roi.setSize(size = self.roi_size)
 
     def setup_image(self):
         # Interpret image data as row-major instead of col-major
         global img, roi, roi_bkg, data, p2, isoLine, iso
-
         win = self.widget_image
         # print(dir(win))
         win.setWindowTitle('pyqtgraph example: Image Analysis')
@@ -655,14 +732,12 @@ class MyMainWindow(QMainWindow):
         fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Conf Files (*.ini);;text Files (*.txt)", options=options)
         if fileName:
             self.lineEdit.setText(fileName)
-            #self.app_ctr.run(self.lineEdit.text())
-            #self.timer_save_data.start(self.spinBox_save_frequency.value()*1000)
-            #self.current_image_no = 0
-            #self.current_scan_number = self.app_ctr.img_loader.scan_number
-            #self.plot_()
-            self.widget_config.update_parameter(fileName)
-            #with open(fileName,'r') as f:
-            #    self.textEdit.setText(f.read())
+            error_msg = self.widget_config.update_parameter(fileName)
+            if error_msg!=None:
+                self.statusbar.clearMessage()
+                self.statusbar.showMessage('Error to load config file!')
+                logging.getLogger().exception(error_msg)
+                self.tabWidget.setCurrentIndex(2)
 
     def locate_data_folder(self):
         options = QFileDialog.Options()
@@ -684,29 +759,14 @@ class MyMainWindow(QMainWindow):
             self.statusbar.showMessage('Initialization failed!')
 
     def launch_file(self):
+        if not self.lineEdit.text().endswith('_temp.ini'):
+            self.lineEdit.setText(self.lineEdit.text().replace('.ini','_temp.ini'))
         self.save_file()
         self.timer_save_data.timeout.connect(self.save_data)
         self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
         #update the path to save data
         data_file = os.path.join(self.lineEdit_data_file_path.text(),self.lineEdit_data_file_name.text())
         self.app_ctr.data_path = data_file
-        self.image_set_up = True
-        """
-        self.app_ctr.run(self.lineEdit.text())
-        self.update_poly_order(init_step=True)
-        self.update_cost_func(init_step=True)
-        if self.launch.text()=='Launch':
-            self.setup_image()
-        else:
-            pass
-        self.timer_save_data.stop()
-        self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
-        self.plot_()
-        self.update_ss_factor()
-        self.image_set_up = False
-        self.launch.setText("Relaunch")
-        self.statusbar.showMessage('Initialization succeed!')
-        """
 
         try:
             self.app_ctr.run(self.lineEdit.text())
@@ -723,9 +783,22 @@ class MyMainWindow(QMainWindow):
             self.image_set_up = False
             self.launch.setText("Relaunch")
             self.statusbar.showMessage('Initialization succeed!')
-        except:
-            self.statusbar.showMessage('Initialization failed!')
+            self.image_set_up = True
 
+            self.widget_terminal.update_name_space('data',self.app_ctr.data)
+            self.widget_terminal.update_name_space('bkg_sub',self.app_ctr.bkg_sub)
+            self.widget_terminal.update_name_space('img_loader',self.app_ctr.img_loader)
+            self.widget_terminal.update_name_space('main_win',self)
+
+        except Exception:
+            self.image_set_up = False
+            try:
+                self.timer_save_data.stop()
+            except:
+                pass
+            self.statusbar.showMessage('Initialization failed!')
+            logging.getLogger().exception('Fatal error encounter during lauching config file! Check the config file for possible errors.')
+            self.tabWidget.setCurrentIndex(2)
 
     def save_file_as(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text documents (*.txt);All files (*.*)")
@@ -780,71 +853,60 @@ class MyMainWindow(QMainWindow):
             self.timer.stop()
             self.run_mode = False
         else:
-            #self.update_bkg_clip()
-            return_value = self.app_ctr.run_script(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
-            self.get_fit_pars_from_reference()
-            self.set_fit_pars_from_reference()
-            self.update_plot()
-            if self.app_ctr.bkg_sub.img is not None:
-                #if self.current_scan_number == None:
-                #    self.current_scan_number = self.app_ctr.img_loader.scan_number
-                self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
-                #trans_temp = QTransform()
-                #trans_temp.setMatrix(1,trans_temp.m12(),trans_temp.m13(),trans_temp.m21(),1,3,0.5,trans_temp.m32(),trans_temp.m33())
-                """
-                int_max,int_min = np.max(self.app_ctr.bkg_sub.img),np.min(self.app_ctr.bkg_sub.img)
-                if self.image_log_scale:
-                    self.img_pyqtgraph.setImage(np.log10(self.app_ctr.bkg_sub.img))
-                    int_max,int_min = np.log10(int_max),np.log10(int_min)
+            try:
+                if self.checkBox_auto_track.isChecked():
+                    self.track_peak()
+                    self.set_peak()
+                return_value = self.app_ctr.run_script(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
+                self.get_fit_pars_from_reference()
+                self.set_fit_pars_from_reference()
+                self.update_plot()
+                if self.app_ctr.bkg_sub.img is not None:
+                    self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
+                    self.update_image()
+                    if self.image_set_up:
+                        self.updatePlot(begin = False)
+                    else:
+                        self.updatePlot(begin = True)
+                if return_value:
+                    self.statusbar.clearMessage()
+                    self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1,self.app_ctr.img_loader.total_frame_number))
+                    self.progressBar.setValue((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100)
+                    self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
                 else:
-                    self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
-                if self.app_ctr.img_loader.frame_number == 0:
-                    self.p1.autoRange() 
-                # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
-                if self.radioButton_automatic.isChecked():
-                    offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)
-                    # print(int_min,int_max,offset_)
-                    self.hist.setLevels(int_min, int_min+offset_)
-                else:
-                    self.hist.setLevels(float(self.lineEdit_left.text()), float(self.lineEdit_right.text()))
-                """
-                self.update_image()
-                if self.image_set_up:
-                    self.updatePlot(begin = False)
-                else:
-                    self.updatePlot(begin = True)
-                #if you want to save the images, then uncomment the following three lines
-                #QtGui.QApplication.processEvents()
-                #exporter = pg.exporters.ImageExporter(self.widget_image.scene())
-                #exporter.export(os.path.join(DaFy_path,'temp','temp_frames','scan{}_frame{}.png'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1)))
+                    self.timer.stop()
+                    self.save_data()
+                    self.stop = False
+                    self.stopBtn.setText('Stop')
+                    self.statusbar.clearMessage()
+                    self.statusbar.showMessage('Run for scan{} is finished, {} frames in total have been processed!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.total_frame_number))
+                # """
+                    #if you want to save the images, then uncomment the following three lines
+                    #QtGui.QApplication.processEvents()
+                    #exporter = pg.exporters.ImageExporter(self.widget_image.scene())
+                    #exporter.export(os.path.join(DaFy_path,'temp','temp_frames','scan{}_frame{}.png'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1)))
+            except:
+                logging.getLogger().exception('Fatal error encounter during data analysis.')
+                self.tabWidget.setCurrentIndex(2)
 
-            if return_value:
-                self.statusbar.clearMessage()
-                self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1,self.app_ctr.img_loader.total_frame_number))
-                self.progressBar.setValue((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100)
-                self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
-                #self.app_ctr.img_loader.frame_number
-                #self.current_image_no += 1
-            else:
-                self.timer.stop()
-                self.save_data()
-                self.stop = False
-                self.stopBtn.setText('Stop')
-                self.statusbar.clearMessage()
-                self.statusbar.showMessage('Run for scan{} is finished, {} frames in total have been processed!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.total_frame_number))
+            # """
         try:
             self.lcdNumber_speed.display(int(1./(time.time()-t0)))
         except:
             pass
 
     def update_plot(self):
-        img = self.app_ctr.run_update(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
-        if self.tag_reprocess:
-            plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr, int(self.lineEdit_frame_index_offset.text()))
-        else:
-            plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
-        # self.MplWidget.canvas.figure.tight_layout()
-        # self.MplWidget.canvas.draw()
+        try:
+            img = self.app_ctr.run_update(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
+            if self.tag_reprocess:
+                plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr, int(self.lineEdit_frame_index_offset.text()))
+            else:
+                plot_bkg_fit_gui_pyqtgraph(self.p2, self.p3, self.p4,self.app_ctr)
+            # self.MplWidget.canvas.figure.tight_layout()
+            # self.MplWidget.canvas.draw()
+        except:
+            logging.getLogger().exception('Fatal error encounter during data analysis.')
+            self.tabWidget.setCurrentIndex(2)
 
     def reset_peak_center_and_width(self):
         roi_size = [int(each/2) for each in self.roi.size()][::-1]
