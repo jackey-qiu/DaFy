@@ -138,8 +138,14 @@ class MyMainWindow(QMainWindow):
         self.deleteShort.activated.connect(self.remove_data_point)
 
         # self.checkBox_use_log_scale.stateChanged.connect(self.set_log_image)
-        self.radioButton_automatic.toggled.connect(self.update_image)
+        self.radioButton_fixed_percent.toggled.connect(self.update_image)
         self.radioButton_fixed_between.toggled.connect(self.update_image)
+        self.radioButton_automatic_set_hist.toggled.connect(self.update_image)
+        self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
+        self.doubleSpinBox_tailing_factor.valueChanged.connect(self.update_image)
+        self.lineEdit_left.returnPressed.connect(self.update_image)
+        self.lineEdit_right.returnPressed.connect(self.update_image)
+
         self.radioButton_traditional.toggled.connect(self.update_ss_factor)
         self.radioButton_vincent.toggled.connect(self.update_ss_factor)
         self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
@@ -443,6 +449,21 @@ class MyMainWindow(QMainWindow):
             self.roi.setPos(pos = pos_return)
             self.roi.setSize(size=size_return)
         
+    def find_bounds_of_hist(self):
+        bins = 200
+        hist, bin_edges = np.histogram(self.app_ctr.bkg_sub.img, bins=bins)
+        bin_centers = 0.5*(bin_edges[:-1] + bin_edges[1:])
+        max_index = np.argmax(hist)
+        mean_value = hist.mean()
+        index_right = max_index
+        for i in range(max_index,bins):
+            if abs(hist[i]-mean_value)<mean_value*0.8:
+                index_right = i
+                break
+        index_left = [max_index - (index_right - max_index),0][int((max_index - (index_right - max_index))<0)]
+        index_right = min([index_right + (index_right - index_left)*int(self.doubleSpinBox_tailing_factor.value()),bins-1])
+        return bin_centers[index_left], bin_centers[index_right]
+
     def maximize_roi(self):
         self.roi_pos = self.roi.pos()#save the roi pos first before maximize it
         self.roi_size = self.roi.size()#save the roi pos first before maximize it
@@ -455,6 +476,7 @@ class MyMainWindow(QMainWindow):
 
     def track_peak(self):
         self.maximize_roi()
+        self.hist.setLevels(*self.find_bounds_of_hist())
         loop_steps = int(self.lineEdit_track_steps.text())
         hist_range = self.hist.region.getRegion()
         left, right = hist_range
@@ -478,7 +500,7 @@ class MyMainWindow(QMainWindow):
         isocurve_center_x, iso_curve_center_y = self.iso.boundingRect().center().x(), self.iso.boundingRect().center().y()
         isocurve_height, isocurve_width = self.iso.boundingRect().height()+arbitrary_size_offset,self.iso.boundingRect().width()+arbitrary_size_offset
         roi_new = [self.roi.pos()[0] + isocurve_center_x - self.roi.size()[0]/2,self.roi.pos()[1]+(iso_curve_center_y-self.roi.size()[1]/2)+self.roi.size()[1]/2-isocurve_height/2]
-        if abs(sum(roi_new) - sum(self.roi_pos))<arbitrary_recenter_cutoff:
+        if abs(sum(roi_new) - sum(self.roi_pos))<arbitrary_recenter_cutoff or (self.app_ctr.img_loader.frame_number == 0):
             self.roi.setPos(pos = roi_new)
             self.roi.setSize(size = [self.roi.size()[0],isocurve_height])
         else:#if too far away, probably the peak tracking failed to track the right peak. Then reset the roi to what it is before the track!
@@ -839,12 +861,14 @@ class MyMainWindow(QMainWindow):
         self.p1.autoRange() 
         # self.hist.setImageItem(self.img_pyqtgraph)
         # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
-        if self.radioButton_automatic.isChecked():
+        if self.radioButton_fixed_percent.isChecked():
             offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)
             # print(int_min,int_max,offset_)
             self.hist.setLevels(int_min, int_min+offset_)
-        else:
+        elif self.radioButton_fixed_between.isChecked():
             self.hist.setLevels(max([int_min,float(self.lineEdit_left.text())]), float(self.lineEdit_right.text()))
+        elif self.radioButton_automatic_set_hist.isChecked(): 
+            self.hist.setLevels(*self.find_bounds_of_hist())
 
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)

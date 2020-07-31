@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1878</width>
-    <height>1035</height>
+    <height>1064</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -246,14 +246,8 @@
                <string>Color_bar_setting</string>
               </property>
               <layout class="QGridLayout" name="gridLayout_6">
-               <item row="1" column="1">
-                <widget class="QLabel" name="label_24">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
+               <item row="1" column="0">
+                <widget class="QRadioButton" name="radioButton_fixed_between">
                  <property name="font">
                   <font>
                    <weight>50</weight>
@@ -261,30 +255,11 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>up to (%)</string>
+                  <string>Fixed range bw</string>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="1">
-                <widget class="QLineEdit" name="lineEdit_left">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="maximumSize">
-                  <size>
-                   <width>50</width>
-                   <height>16777215</height>
-                  </size>
-                 </property>
-                 <property name="text">
-                  <string>0</string>
-                 </property>
-                </widget>
-               </item>
-               <item row="4" column="3">
+               <item row="1" column="3">
                 <widget class="QLineEdit" name="lineEdit_right">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -303,20 +278,39 @@
                  </property>
                 </widget>
                </item>
-               <item row="4" column="0">
-                <widget class="QRadioButton" name="radioButton_fixed_between">
-                 <property name="font">
-                  <font>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
+               <item row="1" column="2">
+                <widget class="QLabel" name="label_23">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
                  </property>
                  <property name="text">
-                  <string>Fixed between</string>
+                  <string>and</string>
                  </property>
                 </widget>
                </item>
-               <item row="1" column="3">
+               <item row="1" column="1">
+                <widget class="QLineEdit" name="lineEdit_left">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>0</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="3">
                 <widget class="QDoubleSpinBox" name="doubleSpinBox_scale_factor">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
@@ -347,8 +341,27 @@
                  </property>
                 </widget>
                </item>
-               <item row="1" column="0">
-                <widget class="QRadioButton" name="radioButton_automatic">
+               <item row="0" column="1">
+                <widget class="QLabel" name="label_24">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="font">
+                  <font>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>up to (%)</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="0" column="0">
+                <widget class="QRadioButton" name="radioButton_fixed_percent">
                  <property name="sizePolicy">
                   <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
                    <horstretch>0</horstretch>
@@ -362,23 +375,46 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>Automatic</string>
+                  <string>Fixed percent</string>
                  </property>
                  <property name="checked">
                   <bool>true</bool>
                  </property>
                 </widget>
                </item>
-               <item row="4" column="2">
-                <widget class="QLabel" name="label_23">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
+               <item row="2" column="0">
+                <widget class="QRadioButton" name="radioButton_automatic_set_hist">
                  <property name="text">
-                  <string>and</string>
+                  <string>Automatic</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="1">
+                <widget class="QLabel" name="label_31">
+                 <property name="text">
+                  <string>tailing_factor</string>
+                 </property>
+                </widget>
+               </item>
+               <item row="2" column="3">
+                <widget class="QDoubleSpinBox" name="doubleSpinBox_tailing_factor">
+                 <property name="font">
+                  <font>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="minimum">
+                  <double>1.000000000000000</double>
+                 </property>
+                 <property name="maximum">
+                  <double>50.000000000000000</double>
+                 </property>
+                 <property name="singleStep">
+                  <double>0.200000000000000</double>
+                 </property>
+                 <property name="value">
+                  <double>2.000000000000000</double>
                  </property>
                 </widget>
                </item>
