@@ -138,11 +138,12 @@ class MyMainWindow(QMainWindow):
         self.deleteShort.activated.connect(self.remove_data_point)
 
         # self.checkBox_use_log_scale.stateChanged.connect(self.set_log_image)
-        self.radioButton_fixed_percent.toggled.connect(self.update_image)
-        self.radioButton_fixed_between.toggled.connect(self.update_image)
-        self.radioButton_automatic_set_hist.toggled.connect(self.update_image)
+        self.radioButton_fixed_percent.clicked.connect(self.update_image)
+        self.radioButton_fixed_between.clicked.connect(self.update_image)
+        self.radioButton_automatic_set_hist.clicked.connect(self.update_image)
         self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
         self.doubleSpinBox_tailing_factor.valueChanged.connect(self.update_image)
+        self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
         self.lineEdit_left.returnPressed.connect(self.update_image)
         self.lineEdit_right.returnPressed.connect(self.update_image)
 
@@ -476,7 +477,8 @@ class MyMainWindow(QMainWindow):
 
     def track_peak(self):
         self.maximize_roi()
-        self.hist.setLevels(*self.find_bounds_of_hist())
+        if self.radioButton_automatic_set_hist.isChecked():
+            self.hist.setLevels(*self.find_bounds_of_hist())
         loop_steps = int(self.lineEdit_track_steps.text())
         hist_range = self.hist.region.getRegion()
         left, right = hist_range
