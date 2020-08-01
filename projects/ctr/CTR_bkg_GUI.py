@@ -141,16 +141,14 @@ class MyMainWindow(QMainWindow):
         self.radioButton_fixed_percent.clicked.connect(self.update_image)
         self.radioButton_fixed_between.clicked.connect(self.update_image)
         self.radioButton_automatic_set_hist.clicked.connect(self.update_image)
-        self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
-        self.doubleSpinBox_tailing_factor.valueChanged.connect(self.update_image)
-        self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
+        self.lineEdit_scale_factor.returnPressed.connect(self.update_image)
+        self.lineEdit_tailing_factor.returnPressed.connect(self.update_image)
         self.lineEdit_left.returnPressed.connect(self.update_image)
         self.lineEdit_right.returnPressed.connect(self.update_image)
 
         self.radioButton_traditional.toggled.connect(self.update_ss_factor)
         self.radioButton_vincent.toggled.connect(self.update_ss_factor)
         self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
-        self.doubleSpinBox_scale_factor.valueChanged.connect(self.update_image)
 
         self.comboBox_p3.activated.connect(self.select_source_for_plot_p3)
         self.comboBox_p4.activated.connect(self.select_source_for_plot_p4)
@@ -462,7 +460,7 @@ class MyMainWindow(QMainWindow):
                 index_right = i
                 break
         index_left = [max_index - (index_right - max_index),0][int((max_index - (index_right - max_index))<0)]
-        index_right = min([index_right + (index_right - index_left)*int(self.doubleSpinBox_tailing_factor.value()),bins-1])
+        index_right = min([index_right + int((index_right - index_left)*float(self.lineEdit_tailing_factor.text())),bins-1])
         return bin_centers[index_left], bin_centers[index_right]
 
     def maximize_roi(self):
@@ -864,7 +862,7 @@ class MyMainWindow(QMainWindow):
         # self.hist.setImageItem(self.img_pyqtgraph)
         # self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
         if self.radioButton_fixed_percent.isChecked():
-            offset_ = self.doubleSpinBox_scale_factor.value()/100*(int_max-int_min)
+            offset_ = float(self.lineEdit_scale_factor.text())/100*(int_max-int_min)
             # print(int_min,int_max,offset_)
             self.hist.setLevels(int_min, int_min+offset_)
         elif self.radioButton_fixed_between.isChecked():
@@ -880,9 +878,6 @@ class MyMainWindow(QMainWindow):
             self.run_mode = False
         else:
             try:
-                if self.checkBox_auto_track.isChecked():
-                    self.track_peak()
-                    self.set_peak()
                 return_value = self.app_ctr.run_script(poly_func=['Vincent','traditional'][int(self.radioButton_traditional.isChecked())])
                 self.get_fit_pars_from_reference()
                 self.set_fit_pars_from_reference()
@@ -894,6 +889,9 @@ class MyMainWindow(QMainWindow):
                         self.updatePlot(begin = False)
                     else:
                         self.updatePlot(begin = True)
+                if self.checkBox_auto_track.isChecked():
+                    self.track_peak()
+                    self.set_peak()
                 if return_value:
                     self.statusbar.clearMessage()
                     self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1,self.app_ctr.img_loader.total_frame_number))

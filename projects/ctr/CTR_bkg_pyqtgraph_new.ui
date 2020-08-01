@@ -310,37 +310,6 @@
                  </property>
                 </widget>
                </item>
-               <item row="0" column="3">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_scale_factor">
-                 <property name="sizePolicy">
-                  <sizepolicy hsizetype="Maximum" vsizetype="Fixed">
-                   <horstretch>0</horstretch>
-                   <verstretch>0</verstretch>
-                  </sizepolicy>
-                 </property>
-                 <property name="font">
-                  <font>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
-                 </property>
-                 <property name="decimals">
-                  <number>5</number>
-                 </property>
-                 <property name="minimum">
-                  <double>0.000000000000000</double>
-                 </property>
-                 <property name="maximum">
-                  <double>100.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.100000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>1.000000000000000</double>
-                 </property>
-                </widget>
-               </item>
                <item row="0" column="1">
                 <widget class="QLabel" name="label_24">
                  <property name="sizePolicy">
@@ -396,25 +365,41 @@
                  </property>
                 </widget>
                </item>
+               <item row="0" column="3">
+                <widget class="QLineEdit" name="lineEdit_scale_factor">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
+                 </property>
+                 <property name="text">
+                  <string>1</string>
+                 </property>
+                </widget>
+               </item>
                <item row="2" column="3">
-                <widget class="QDoubleSpinBox" name="doubleSpinBox_tailing_factor">
-                 <property name="font">
-                  <font>
-                   <weight>50</weight>
-                   <bold>false</bold>
-                  </font>
+                <widget class="QLineEdit" name="lineEdit_tailing_factor">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
                  </property>
-                 <property name="minimum">
-                  <double>1.000000000000000</double>
+                 <property name="maximumSize">
+                  <size>
+                   <width>50</width>
+                   <height>16777215</height>
+                  </size>
                  </property>
-                 <property name="maximum">
-                  <double>50.000000000000000</double>
-                 </property>
-                 <property name="singleStep">
-                  <double>0.200000000000000</double>
-                 </property>
-                 <property name="value">
-                  <double>2.000000000000000</double>
+                 <property name="text">
+                  <string>2</string>
                  </property>
                 </widget>
                </item>
