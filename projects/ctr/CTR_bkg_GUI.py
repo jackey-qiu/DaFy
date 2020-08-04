@@ -489,7 +489,7 @@ class MyMainWindow(QMainWindow):
             if isocurve_height == 0 or isocurve_width==0:
                 pass
             else:
-                if (isocurve_height<int(self.lineEdit_track_size.text())) or (isocurve_width<int(self.lineEdit_track_size.text())):
+                if (isocurve_height<int(self.lineEdit_track_size.text())) and (isocurve_width<int(self.lineEdit_track_size.text())):
                     break
                 else:
                     pass
@@ -811,6 +811,7 @@ class MyMainWindow(QMainWindow):
             self.widget_terminal.update_name_space('bkg_sub',self.app_ctr.bkg_sub)
             self.widget_terminal.update_name_space('img_loader',self.app_ctr.img_loader)
             self.widget_terminal.update_name_space('main_win',self)
+            self.hist.sigLevelsChanged.connect(self.update_hist_levels)
 
         except Exception:
             self.image_set_up = False
@@ -869,6 +870,11 @@ class MyMainWindow(QMainWindow):
             self.hist.setLevels(max([int_min,float(self.lineEdit_left.text())]), float(self.lineEdit_right.text()))
         elif self.radioButton_automatic_set_hist.isChecked(): 
             self.hist.setLevels(*self.find_bounds_of_hist())
+
+    def update_hist_levels(self):
+        left,right = self.hist.getLevels()
+        self.lineEdit_left.setText(str(round(left,6)))
+        self.lineEdit_right.setText(str(round(right,6)))
 
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)
