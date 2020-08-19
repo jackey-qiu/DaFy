@@ -10,6 +10,30 @@ import os
 from numpy.linalg import inv
 from copy import deepcopy
 from random import uniform
+import math
+
+def rotation_matrix(axis, theta):
+    """
+    Return the rotation matrix associated with counterclockwise rotation about
+    the given axis by theta degrees.
+    example 1
+    rotate coordianate v [1,2,3] about z axis [0, 0, 1] by 10 degrees with m [1,2,2] as the rotation center
+    Note the rotation center is not the origin
+    R = rotation_matrix([0,0,1], 10)
+    v [1, 2, 3] will become np.dot(R, v-m) + m after rotation
+
+    """
+    theta = np.deg2rad(theta)
+    axis = np.asarray(axis)
+    axis = axis / math.sqrt(np.dot(axis, axis))
+    a = math.cos(theta / 2.0)
+    b, c, d = -axis * math.sin(theta / 2.0)
+    aa, bb, cc, dd = a * a, b * b, c * c, d * d
+    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
+
 # from coordinate_system import CoordinateSystem
 
 ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO']
@@ -106,6 +130,8 @@ class CarbonOxygenMotif(object):
                 gamma_list_names.append("gamma_{}_{}".format(ids_all[i],ids_all[each]))
         rgh = UserVars()
         rgh.new_var('gamma',0)
+        rgh.new_var('rot_ang_x',0)
+        rgh.new_var('rot_ang_y',0)
         for r in r_list_names:
             rgh.new_var(r, 1.5)
         for i in range(len(delta_list_names)):
@@ -125,16 +151,26 @@ class CarbonOxygenMotif(object):
         instance.gamma_list_names = gamma_list_names
         instance.gamma_handedness = [1]*anchor_index_list.index(None)+[0]*(len(anchor_index_list)-anchor_index_list.index(None)-1)
         instance.new_anchor_list = [ids_all[i] for i in anchor_index_list if i!=None]
+        instance.rot_ang_x_list = [0] * len(instance.ids)
+        instance.rot_ang_y_list = [0] * len(instance.ids)
         return instance
 
     def set_coordinate_all_rgh(self):
         r_list = [getattr(self.rgh, each) for each in self.r_list_names]
         delta_list = [getattr(self.rgh, each) for each in self.delta_list_names]
         gamma_list = [self.rgh.gamma+180*each for each in self.gamma_handedness]
-        self.set_coordinate_all(r_list, delta_list, gamma_list, self.new_anchor_list)
+        if hasattr(self.rgh, 'rot_ang_x'):
+            rot_ang_x_list = [self.rgh.rot_ang_x]*len(self.r_list_names)
+        else:
+            rot_ang_x_list = [0]*len(self.r_list_names)
+        if hasattr(self.rgh, 'rot_ang_y'):
+            rot_ang_y_list = [self.rgh.rot_ang_y]*len(self.r_list_names)
+        else:
+            rot_ang_y_list = [0]*len(self.r_list_names)
+        self.set_coordinate_all(r_list, delta_list, gamma_list, rot_ang_x_list, rot_ang_y_list, self.new_anchor_list)
 
 
-    def set_coordinate_all(self, r_list = None, delta_list = None, gamma_list = None, new_anchor_list = None):
+    def set_coordinate_all(self, r_list = None, delta_list = None, gamma_list = None, rot_ang_x_list = None, rot_ang_y_list = None, new_anchor_list = None):
         if r_list!=None:
             assert len(r_list) == len(self.r_list), 'Dimensions of r_list must match!'
             self.r_list = r_list
@@ -148,6 +184,12 @@ class CarbonOxygenMotif(object):
             new_anchor_list = [None]*len(self.gamma_list)
         else:
             assert len(new_anchor_list) == len(self.gamma_list), 'Dimensions of new_anchor_list must match!'
+        if rot_ang_x_list!=None:
+            assert len(rot_ang_x_list) == len(self.rot_ang_x_list), 'Dimensions of rot_ang_x_list must match!'
+            self.rot_ang_x_list = rot_ang_x_list
+        if rot_ang_y_list!=None:
+            assert len(rot_ang_y_list) == len(self.rot_ang_y_list), 'Dimensions of rot_ang_y_list must match!'
+            self.rot_ang_y_list = rot_ang_y_list
 
         self.bond_index = []
         for i in range(len(new_anchor_list)):
@@ -170,18 +212,25 @@ class CarbonOxygenMotif(object):
             index = list(self.ids).index(id)
             #print(id)
             #print(self.cal_coordinate(id, self.r_list[index], self.delta_list[index], self.gamma_list[index]))
-            self.set_coordinate(id, self.cal_coordinate(id, self.r_list[index], self.delta_list[index], self.gamma_list[index], new_anchor_list[index]))
+            self.set_coordinate(id, self.cal_coordinate(id, self.r_list[index], self.delta_list[index], self.gamma_list[index], self.rot_ang_x_list[index],self.rot_ang_y_list[index], new_anchor_list[index]))
 
-    def cal_coordinate(self, id, r, delta, gamma, new_anchor_id = None):
+    def cal_coordinate(self, id, r, delta, gamma, rot_ang_x = 0, rot_ang_y =0, new_anchor_id = None):
         if id in self.ids_flat_down:
             delta = 0
+        anchor_atom_coords = self.extract_coord(self.anchor_id)*self.lat_abc
         z_temp_cart = r*np.sin(np.deg2rad(delta))
         y_temp_cart = r*np.cos(np.deg2rad(delta))*np.sin(np.deg2rad(gamma))
         x_temp_cart = r*np.cos(np.deg2rad(delta))*np.cos(np.deg2rad(gamma))
+
+        #now rotate the atom about x and y axis
+        if rot_ang_x != 0:
+            x_temp_cart, y_temp_cart, z_temp_cart = np.dot(rotation_matrix([1,0,0], rot_ang_x), [x_temp_cart, y_temp_cart, z_temp_cart])
+        if rot_ang_y != 0:
+            x_temp_cart, y_temp_cart, z_temp_cart = np.dot(rotation_matrix([0,1,0], rot_ang_y), [x_temp_cart, y_temp_cart, z_temp_cart])
         if new_anchor_id == None:
-            return self.extract_coord(self.anchor_id) + [x_temp_cart, y_temp_cart, z_temp_cart]/self.lat_abc
+            return (anchor_atom_coords + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
         else:
-            return self.extract_coord(new_anchor_id) + [x_temp_cart, y_temp_cart, z_temp_cart]/self.lat_abc
+            return (anchor_atom_coords + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
 
 
     def set_coordinate(self, id, coords):
