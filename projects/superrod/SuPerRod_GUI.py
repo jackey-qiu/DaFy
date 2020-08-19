@@ -79,7 +79,7 @@ class RunFit(QtCore.QObject):
 
     """
     updateplot = QtCore.pyqtSignal(str,object,bool)
-    fitended = QtCore.pyqtSignal()
+    fitended = QtCore.pyqtSignal(str)
     def __init__(self,solver):
         super(RunFit, self).__init__()
         self.solver = solver
@@ -206,7 +206,7 @@ class MyMainWindow(QMainWindow):
         #signal-slot connection
         self.run_fit.updateplot.connect(self.update_par_during_fit)
         self.run_fit.updateplot.connect(self.update_status)
-        self.run_fit.fitended.connect(self.stop_model)
+        self.run_fit.fitended.connect(self.stop_model_slot)
         self.fit_thread.started.connect(self.run_fit.run)
 
         #init run_batch
@@ -947,6 +947,7 @@ class MyMainWindow(QMainWindow):
         self.widget_solver.update_parameter_in_solver(self)
         try:
             self.model.simulate()
+            self.update_structure_view()
             try:
                 self.calc_f_ideal()
             except:
@@ -975,7 +976,7 @@ class MyMainWindow(QMainWindow):
         """start the model fit looping"""
         #button will be clicked every 2 second to update figures
         try:
-            self.stop_model()
+            # self.stop_model()
             self.simulate_model()
             self.statusbar.showMessage("Initializing model running ...")
             self.timer_update_structure.start(2000)
@@ -993,6 +994,12 @@ class MyMainWindow(QMainWindow):
         self.timer_update_structure.stop()
         self.statusbar.clearMessage()
         self.statusbar.showMessage("Model run is aborted!")
+        
+    @QtCore.pyqtSlot(str)
+    def stop_model_slot(self,message):
+        self.stop_model()
+        logging.getLogger().exception(message)
+        self.tabWidget_data.setCurrentIndex(4)
 
     def _stop_model(self):
         self.run_batch.stop()
@@ -1327,7 +1334,7 @@ class MyMainWindow(QMainWindow):
         # self.widget_msv_top.items = []
         self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
         # self.widget_msv_top.abc = self.widget_edp.abc
-        xyz = self.model.script_module.sample.extract_xyz(domain_tag)
+        xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
@@ -1364,8 +1371,15 @@ class MyMainWindow(QMainWindow):
                 domain_tag = size_domain -1
             else:
                 pass        
-            xyz = self.model.script_module.sample.extract_xyz(domain_tag)
-            self.widget_edp.update_structure(xyz)
+            xyz, _ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+            if self.run_fit.running: 
+                self.widget_edp.update_structure(xyz)
+            else:
+                self.widget_edp.clear()
+                #self.widget_edp.items = []
+                self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
+                self.widget_edp.show_structure(xyz)
+
             """
             try:
                 xyz, _ = self.model.script_module.sample.extract_xyz_top(domain_tag)

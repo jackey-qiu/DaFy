@@ -17,7 +17,7 @@ sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 from charge_calculation import calculate_charge
-from PlotSetup import data_viewer_plot_cv, RHE
+from PlotSetup import data_viewer_plot_cv, RHE, plot_tafel_from_formatted_cv_info
 import pandas as pd
 import time
 import matplotlib
@@ -42,13 +42,13 @@ class MyMainWindow(QMainWindow):
         #you need some calibration step to figure out this value not necessarily always 0.055 V
         #the correction will be real_pot = spock_value + pot_offset
         self.potential_offset = 0.055
-        plt.style.use('ggplot')
+        # plt.style.use('ggplot')
         matplotlib.rc('xtick', labelsize=10)
         matplotlib.rc('ytick', labelsize=10)
         plt.rcParams.update({'axes.labelsize': 10})
         plt.rc('font',size = 10)
         plt.rcParams['axes.linewidth'] = 1.5
-        plt.rcParams['axes.grid'] = True
+        # plt.rcParams['axes.grid'] = True
         plt.rcParams['xtick.major.size'] = 6
         plt.rcParams['xtick.major.width'] = 2
         plt.rcParams['xtick.minor.size'] = 4
@@ -56,7 +56,7 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.major.size'] = 6
         plt.rcParams['ytick.major.width'] = 2
         plt.rcParams['ytick.minor.size'] = 4
-        plt.rcParams['axes.facecolor']='0.7'
+        # plt.rcParams['axes.facecolor']='0.7'
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot')
@@ -92,6 +92,8 @@ class MyMainWindow(QMainWindow):
         self.grain_size_info_all_scans = {}
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
         self.pot_ranges = {}
+        self.cv_info = {}
+        self.plot_tafel = plot_tafel_from_formatted_cv_info
 
     def set_grain_info_all_scan(self,grain_object, scan, pot_ranges, direction, cases):
         pot_ranges = [tuple(each) for each in pot_ranges]
@@ -188,6 +190,9 @@ class MyMainWindow(QMainWindow):
         ax.plot(pot_filtered,current_filtered*8*cv_scale_factor,label='',color = color)
         ax.plot(RHE(pot,pH=ph),current*8,label='',color = color)
         ax.text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
+        #store the cv data
+        self.cv_info[scan_no] = {'current_density':current*8,'potential':RHE(pot,pH = ph),'pH':ph, 'color':color}
+
         for each in marker_pos:
             ax.plot([each,each],[-100,100],':k')
         #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
@@ -325,6 +330,7 @@ class MyMainWindow(QMainWindow):
         self.widget_terminal.update_name_space('size_info',self.grain_size_info_all_scans)
         self.widget_terminal.update_name_space('strain_info',self.strain_info_all_scans)
         self.widget_terminal.update_name_space('main_win',self)
+        self.widget_terminal.update_name_space('cv_info', self.cv_info)
 
         output_text.append("*********Notes*********")
         output_text.append("*scan: scan number")

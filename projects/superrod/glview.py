@@ -156,6 +156,15 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.grid_num = 15
         self.abc = np.array([5.038,5.434,7.3707])
 
+    def clear(self):
+        """
+        Remove all items from the scene.
+        """
+        for item in self.items:
+            item._setView(None)
+        self.items = []
+        self.update()
+        
     def draw_chemical_bond(self,v1, v2, color = (1,0,0,0.8),mesh_item = None):
         dist = np.linalg.norm(np.array(v1)-np.array(v2))
         c = np.dot([0,0,1],v2-v1)/np.linalg.norm(v2-v1)

@@ -448,6 +448,87 @@ def plot_tafel(file_head='/Users/canrong/Documents/I20180835_Jul_2019_CVs', cv_f
     plt.show()
     fig.savefig('Tafel.png', dpi=300, bbox_inches='tight')
 
+def plot_tafel_from_formatted_cv_info(cv_info, resistance = [80,70,40,50,90,50], pot_starts= [1.62,1.6,1.72,1.6,1.75,1.6], pot_ends =[1.75,1.65,1.85,1.65,1.83,1.65], potential_for_reaction_order = 1.65, forward_cycle = True):
+    #half = 0, first half cycle E scan from low to high values
+    if forward_cycle:
+        half = 0
+    else:
+        half = 1
+    if type(pot_starts)!=list:
+        pot_starts = [pot_starts]*len(cv_info)
+    else:
+        pass
+    if type(pot_ends)!=list:
+        pot_ends = [pot_ends]*len(cv_info)
+    else:
+        pass
+    fig = plt.figure(figsize=(8,6))
+    ax = fig.add_subplot(121)
+    ax2 = fig.add_subplot(122)
+    ax.set_yscale('log')
+    ax.set_xlabel(r'E / V$_{RHE}$')
+    ax.set_ylabel(r'j / mAcm$^{-2}$')
+    ax2.set_xlabel(r'pH')
+    over_E = round(potential_for_reaction_order-1.23,2)
+    
+    ax2.set_ylabel(r'log(j / mAcm$^{-2}$)'+r',$\eta$= {}V'.format(over_E))
+    # ax2 = fig.add_subplot(212)
+    #labels = ['pH {}'.format(ph) for ph in phs]
+    scans = list(cv_info.keys())
+    scans = sorted(scans)
+    log_current_density = []
+    pHs = []
+    for i in range(len(scans)):
+        #ph = phs[i]
+        pHs.append(cv_info[scans[i]]['pH'])
+        label = 'scan {}_pH {}'.format(scans[i],cv_info[scans[i]]['pH'])
+        color = cv_info[scans[i]]['color']
+        pot_start=pot_starts[i]
+        pot_end=pot_ends[i]
+        print(label,': resistance ={};pot_range between {} and {}'.format(resistance[i],pot_start, pot_end))
+        current = cv_info[scans[i]]['current_density']
+        pot = cv_info[scans[i]]['potential']
+        # ax2.plot(pot)
+        if half==1:
+            pot_fit = pot[0:int(len(pot)/2)]
+            current_fit = current[0:int(len(pot)/2)]
+        else:
+            pot_fit = pot[int(len(pot)/2):len(pot)][::-1]
+            current_fit = current[int(len(pot)/2):len(pot)][::-1]
+        indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
+        ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
+        ax.legend()
+        #linear regression
+        slope,intercept,r_value, *others =stats.linregress(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),np.log10(current_fit[indx1:indx2]))
+        print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
+        log_current_density.append(potential_for_reaction_order*slope+intercept)
+    ax2.plot(pHs, log_current_density, 'og')
+    slope_, intercept_, r_value_, *_ = stats.linregress(pHs, log_current_density)
+    f = lambda x: slope_*x + intercept_
+    x_min, x_max = min(pHs), max(pHs)
+    ax2.plot([x_min,x_max],[f(x_min),f(x_max)],'-r')
+    text_label = 'y = {}x{}, R2 = {}'.format(round(slope_,3), round(intercept_,3), round(r_value_**2,3))
+    ax2.text(x_min,f(x_min),text_label)
+    print('Reaction order fit: log(current) = {}pH + {}, R2 = {}'.format(slope_, intercept_, r_value_**2))
+    #plt.legend()
+    plt.show()
+    #fig.savefig('Tafel.png', dpi=300, bbox_inches='tight')
+
+def overplot_ctr_temp(data,scans=[217,222,233,239],colors=['r','g','b','m']):
+    #data in pandas.DataFrame format
+    fig = plt.figure(figsize=(6,6))
+    ax = fig.add_subplot(111)
+    ax.set_yscale('log')
+    ax.set_xlabel(r'L')
+    ax.set_ylabel(r'F')
+    for i in range(len(scans)):
+        condition = data['scan_no']==scans[i]
+        L = data['L'][condition]
+        intensity = data['peak_intensity'][condition]
+        ax.plot(L,intensity,color = colors[i],label = 'scan'+str(scans[i]))
+    ax.legend()
+    plt.show()
+
 #temp to test different resistance for one cv file
 def plot_tafel_temp(file_head='D:\\processed_data\\P23_I20180835\\ids', cv_file = 'x064_S243_CV',ph=7,pot_start=1.7, color = 'm',label='pH 7',half = 1, resistances = [0,0,0,0,0]):
     fig = plt.figure(figsize=(6,6))

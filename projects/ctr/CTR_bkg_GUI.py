@@ -17,6 +17,7 @@ sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 from VisualizationEnginePool import plot_bkg_fit_gui_pyqtgraph,replot_bkg_profile
+from PlotSetup import overplot_ctr_temp
 import time
 import matplotlib
 matplotlib.use("Qt5Agg")
@@ -811,6 +812,7 @@ class MyMainWindow(QMainWindow):
             self.widget_terminal.update_name_space('bkg_sub',self.app_ctr.bkg_sub)
             self.widget_terminal.update_name_space('img_loader',self.app_ctr.img_loader)
             self.widget_terminal.update_name_space('main_win',self)
+            self.widget_terminal.update_name_space('overplot_ctr',overplot_ctr_temp)
             self.hist.sigLevelsChanged.connect(self.update_hist_levels)
 
         except Exception:

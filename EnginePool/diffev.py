@@ -45,7 +45,6 @@ from Simplex import Simplex
 # just in case some user make a directory change
 sys.path.append(os.getcwd())
 
-#==============================================================================
 # class: DiffEv
 class DiffEv:
     '''
@@ -486,7 +485,8 @@ class DiffEv:
             for gen in range(int(self.fom_log[-1,0]) + 1, self.max_gen\
                                     + int(self.fom_log[-1,0]) + 1):
                 if self.stop:
-                    signal_fitended.emit()
+                    #print('stop here!')
+                    signal_fitended.emit('The model run is forced to stop by the user!')
                     break
 
                 t_start = time.time()
@@ -525,6 +525,7 @@ class DiffEv:
                                   'evaluations is larger than %s. Check the '
                                   'model for circular assignments.'
                                   %self.fom_allowed_dis)
+                    signal_fitended.emit(self.error)
                     break
 
                 # Update the plot data for any gui or other output
@@ -569,7 +570,7 @@ class DiffEv:
                 # print('pop_vec',type(self.pop_vec),len(self.pop_vec))
                 if signal!=None:
                     signal.emit(outputtext, self.model, save_tag)
-            signal_fitended.emit()
+            # signal_fitended.emit('The model run is finished!')
 
             if not self.error:
                 self.text_output('Stopped at Generation: %d after %d fom evaluations...'%(gen, self.n_fom))

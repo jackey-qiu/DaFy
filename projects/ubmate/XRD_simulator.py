@@ -171,7 +171,7 @@ if len(engine.scenes) == 0:
     engine.new_scene(size=(600, 800))
 scene = engine.scenes[0]
 fig = mlab.gcf(engine)
-figure = mlab.figure(figure=fig, bgcolor=(0.0, 0.0, 0.0), fgcolor=(0.0, 0.0, 0.0), engine=engine)
+figure = mlab.figure(figure=fig, bgcolor=(1, 1, 1), fgcolor=(0.0, 0.0, 0.0), engine=engine)
 visual.set_viewer(fig)
 fig.scene.disable_render = True
 
