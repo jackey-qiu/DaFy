@@ -1508,10 +1508,14 @@ class background_subtraction_single_img():
                 Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
                 FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
-                try:
-                    Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
-                except:
-                    Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                # Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                if data != None:
+                    try:
+                        Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                    except:
+                        Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                else:
+                    Ierr_container.append(np.sum(y))
                 z_container.append(z)
                 s_container.append(s)
                 ord_cus_container.append(ord_cus)

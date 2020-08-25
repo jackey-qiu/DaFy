@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1918</width>
+    <width>1920</width>
     <height>1035</height>
    </rect>
   </property>
@@ -40,7 +40,7 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="tab_5">
         <attribute name="title">
@@ -251,6 +251,23 @@
             </sizepolicy>
            </property>
           </widget>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_9">
+           <property name="text">
+            <string>Scan selected parameter</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QSlider" name="horizontalSlider_par">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QLineEdit" name="lineEdit_scan_par"/>
          </item>
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_14">
@@ -652,6 +669,13 @@
                 </widget>
                </item>
                <item>
+                <widget class="QPushButton" name="pushButton_xyz">
+                 <property name="text">
+                  <string>xyz</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <spacer name="horizontalSpacer_5">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
@@ -854,7 +878,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1918</width>
+     <width>1920</width>
      <height>22</height>
     </rect>
    </property>
@@ -1139,6 +1163,12 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header>terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QWidget</extends>
    <header location="global">pyqtgraph.h</header>
@@ -1148,12 +1178,6 @@
    <class>SolverParameters</class>
    <extends>QWidget</extends>
    <header location="global">parameter_tree.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>TerminalWidget</class>
-   <extends>QWidget</extends>
-   <header>terminal_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

@@ -315,6 +315,16 @@ class Sample:
                 pass
         return xyz_list
 
+    def make_xyz_file(self, which_domain = 0, save_file = 'xyz.xyz'):
+        xyz_list = self.extract_xyz(which_domain)
+        with open(save_file,'w') as f:
+            f=open(save_file,'w')
+            f.write('{}\n#\n'.format(len(xyz_list)))
+            for each in xyz_list:
+                el, x, y, z = each
+                s = '%-5s   %7.5e   %7.5e   %7.5e\n' % (el, x, y, z)
+                f.write(s)
+
     #only substrate atoms at the top layer for top view show
     def extract_xyz_top(self, which_domain = 0):
         xyz_list = []

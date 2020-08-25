@@ -230,7 +230,7 @@ class CarbonOxygenMotif(object):
         if new_anchor_id == None:
             return (anchor_atom_coords + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
         else:
-            return (anchor_atom_coords + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
+            return (self.extract_coord(new_anchor_id)*self.lat_abc + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
 
 
     def set_coordinate(self, id, coords):

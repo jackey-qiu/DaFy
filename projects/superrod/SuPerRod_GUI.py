@@ -265,6 +265,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_pan.clicked.connect(self.pan_msv_view)
         self.pushButton_start_spin.clicked.connect(self.start_spin)
         self.pushButton_stop_spin.clicked.connect(self.stop_spin)
+        self.pushButton_xyz.clicked.connect(self.save_structure_file)
 
         #spinBox to save the domain_tag
         self.spinBox_domain.valueChanged.connect(self.update_domain_index)
@@ -287,6 +288,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_fit_next_5.clicked.connect(self.fit_next_5)
         self.pushButton_invert_fit.clicked.connect(self.invert_fit)
         self.pushButton_update_pars.clicked.connect(self.update_model_parameter)
+        self.horizontalSlider_par.valueChanged.connect(self.play_with_one_par)
 
         #pushButton to operate plots
         self.pushButton_update_plot.clicked.connect(self.update_structure_view)
@@ -972,6 +974,34 @@ class MyMainWindow(QMainWindow):
             self.tabWidget_data.setCurrentIndex(4)
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
 
+    #execution when you move the slide bar to change only one parameter
+    def simulate_model_light(self):
+        try:
+            self.model.simulate()
+            self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,self.model.fom))
+            self.update_plot_data_view_upon_simulation()
+            self.statusbar.showMessage("Model is simulated now!")
+        except model.ModelError as e:
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to simulate model!')
+            logging.getLogger().exception('Fatal error encountered during model simulation!')
+            self.tabWidget_data.setCurrentIndex(4)
+            _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
+
+    def play_with_one_par(self):
+        selected_rows = self.tableWidget_pars.selectionModel().selectedRows()
+        if len(selected_rows)>0:
+            #only get the first selected item
+            par_set = self.model.parameters.data[selected_rows[0].row()]
+            par_min, par_max = par_set[-3], par_set[-2]
+            value = (par_max - par_min)*self.horizontalSlider_par.value()/100 + par_min
+            self.model.parameters.set_value(selected_rows[0].row(), 1, value)
+            self.lineEdit_scan_par.setText('{}:{}'.format(par_set[0],value))
+            self.simulate_model_light()
+        else:
+            print('Doing nothing!')
+            pass
+
     def run_model(self):
         """start the model fit looping"""
         #button will be clicked every 2 second to update figures
@@ -1393,6 +1423,15 @@ class MyMainWindow(QMainWindow):
             val = outp.getvalue()
             outp.close()
             _ = QMessageBox.question(self, "",'Runtime error message:\n{}'.format(str(val)), QMessageBox.Ok)
+
+    def save_structure_file(self):
+        domain_tag, done = QInputDialog.getInt(self, 'Domain tag', 'Enter the domain index for the structure you want to save eg 0:')
+        if not done:
+            domain_tag = 0
+        path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "xyz file (*.xyz)")
+        self.model.script_module.sample.make_xyz_file(which_domain = int(domain_tag), save_file = path)
+        self.statusbar.clearMessage()
+        self.statusbar.showMessage('The data file is saved at {}'.format(path))
 
     #save data plus best fit profile
     def save_data(self):

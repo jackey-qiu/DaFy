@@ -1,0 +1,23 @@
+data_global
+_chemical_name_mineral 'Copper'
+_chemical_formula_sum 'Cu'
+_cell_length_a 3.615
+_cell_length_b 3.615
+_cell_length_c 3.615
+_cell_angle_alpha 90
+_cell_angle_beta 90
+_cell_angle_gamma 90
+_cell_volume 47.241633375000006
+_symmetry_space_group_name_H-M 'P 1'
+loop_
+_space_group_symop_operation_xyz
+  'x,y,z'
+loop_
+_atom_site_label
+_atom_site_fract_x
+_atom_site_fract_y
+_atom_site_fract_z
+O       -1.61576e-01   4.97503e-01   2.30550e+00
+C       8.72800e-02   5.64800e-01   2.10854e+00
+C       4.34079e-01   6.58583e-01   2.10854e+00
+O       7.33471e-01   7.39547e-01   2.00446e+00
