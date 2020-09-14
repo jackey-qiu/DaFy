@@ -36,7 +36,7 @@ def rotation_matrix(axis, theta):
 
 # from coordinate_system import CoordinateSystem
 
-ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO']
+ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO', 'CO3','CO2']
 
 #sorbate structure motifs
 ##OCCO##
@@ -53,6 +53,22 @@ OCCO = {
         "structure":structure_OCCO
         }
 
+##CO3##
+structure_CO3="""
+#       O1    O2
+#        \   /
+#          C1
+#           |   
+#           O3
+#===================
+"""
+CO3 = {
+        "els_sorbate":['O','C','O', 'O'],
+        "anchor_index_list":[1, None, 1, 1 ],
+        "flat_down_index": [],
+        "structure":structure_CO3
+        }
+
 ##CCO#
 structure_CCO="""
 #       C2
@@ -65,6 +81,18 @@ CCO = {
         "anchor_index_list":[None, 0, 1 ],
         "flat_down_index": [2],
         "structure":structure_CCO
+        }
+
+##CO2#
+structure_CO2="""
+#       O1=C1=O2
+#====================
+"""
+CO2 = {
+        "els_sorbate":['O','C', 'O'],
+        "anchor_index_list":[1, None, 1 ],
+        "flat_down_index": [0,2],
+        "structure":structure_CO2
         }
 
 ##CO##

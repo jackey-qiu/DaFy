@@ -304,13 +304,23 @@ class Sample:
                     for each in translation_offsets:
                         x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
                         xyz_list.append((el, x, y, z))
-                for i in range(len(self.domain[key]['sorbate'].id)):
-                    el = self.domain[key]['sorbate'].el[i]
-                    x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
-                    translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
-                    for each in translation_offsets:
-                        x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                        xyz_list.append((el, x, y, z))
+                if type(self.domain[key]['sorbate'])!=list:
+                    for i in range(len(self.domain[key]['sorbate'].id)):
+                        el = self.domain[key]['sorbate'].el[i]
+                        x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                        translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                        for each in translation_offsets:
+                            x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                            xyz_list.append((el, x, y, z))
+                else:
+                    for sorbate_temp in self.domain[key]['sorbate']:
+                        for i in range(len(sorbate_temp.id)):
+                            el = sorbate_temp.el[i]
+                            x_, y_, z_ = self._extract_coord(sorbate_temp, sorbate_temp.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                            translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                            for each in translation_offsets:
+                                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                xyz_list.append((el, x, y, z))
             else:
                 pass
         return xyz_list
@@ -347,15 +357,28 @@ class Sample:
                     else:
                         pass
                 number_items_slab = len(xyz_list)
-                bond_index = self.domain[key]['sorbate'].bond_index
-                for i in range(len(self.domain[key]['sorbate'].id)):
-                    el = self.domain[key]['sorbate'].el[i]
-                    x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
-                    # translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
-                    translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
-                    for each in translation_offsets:
-                        x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                        xyz_list.append((el, x, y, z))
+                if type(self.domain[key]['sorbate'])!=list:
+                    bond_index = self.domain[key]['sorbate'].bond_index
+                    for i in range(len(self.domain[key]['sorbate'].id)):
+                        el = self.domain[key]['sorbate'].el[i]
+                        x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                        # translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                        translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
+                        for each in translation_offsets:
+                            x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                            xyz_list.append((el, x, y, z))
+                else:
+                    for sorbate_temp in self.domain[key]['sorbate']:
+                        bond_index = sorbate_temp.bond_index
+                        for i in range(len(sorbate_temp.id)):
+                            el = sorbate_temp.el[i]
+                            x_, y_, z_ = self._extract_coord(sorbate_temp, sorbate_temp.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                            # translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                            translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
+                            for each in translation_offsets:
+                                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                xyz_list.append((el, x, y, z))
+
             else:
                 pass
         bond_index = [np.array(each) + number_items_slab for each in bond_index]
@@ -381,9 +404,15 @@ class Sample:
                             xyz_substrate.append([x,y,z])
                     else:
                         pass
-                for i in range(len(self.domain[key]['sorbate'].id)):
-                    x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
-                    xyz_sorbate.append([x_,y_,z_])
+                if type(self.domain[key]['sorbate']) == list:
+                    for i in range(len(self.domain[key]['sorbate'])):
+                        for j in range(len(self.domain[key]['sorbate'][i].id)):
+                            x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'][i], self.domain[key]['sorbate'][i].id[j])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                            xyz_sorbate.append([x_,y_,z_])
+                else:
+                    for j in range(len(self.domain[key]['sorbate'].id)):
+                        x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[j])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                        xyz_sorbate.append([x_,y_,z_])
             else:
                 pass
         for each in xyz_sorbate:
