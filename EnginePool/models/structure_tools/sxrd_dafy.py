@@ -263,7 +263,7 @@ class Sample:
         z = domain.z[index] + domain.dz1[index] + domain.dz2[index] + domain.dz3[index] + domain.dz4[index]
         return np.array([x, y, z])
 
-    def make_xyz_file(self, save_file='xyz.xyz'):
+    def make_xyz_file_(self, save_file='xyz.xyz',use_sym = True, trans_opt = [0.5,0.5]):
         for key in self.domain.keys():
             #print(key)
             save_file_temp = save_file
@@ -273,7 +273,10 @@ class Sample:
                 save_file_temp = save_file_temp + '_{}.xyz'.format(key)
             #print(save_file_temp)
             with open(save_file_temp,'w') as f:
-                f.write('{}\n#\n'.format(len(self.domain[key]['slab'].id)*9 + len(self.domain[key]['sorbate'].id)*9))
+                if use_sym:
+                    f.write('{}\n#\n'.format(len(self.domain[key]['slab'].id)*9 + len(self.domain[key]['sorbate'].id)*9*2))
+                else:
+                    f.write('{}\n#\n'.format(len(self.domain[key]['slab'].id)*9 + len(self.domain[key]['sorbate'].id)*9))
                 for i in range(len(self.domain[key]['slab'].id)):
                     el = self.domain[key]['slab'].el[i]
                     x_, y_, z_ = self._extract_coord(self.domain[key]['slab'], self.domain[key]['slab'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
@@ -290,8 +293,12 @@ class Sample:
                         x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
                         s = '%-5s   %7.5e   %7.5e   %7.5e\n' % (el, x, y, z)
                         f.write(s)
+                        if use_sym:
+                            x, y, z = np.array([x_+trans_opt[0]*self.unit_cell.a, y_+trans_opt[1]*self.unit_cell.b, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                            s = '%-5s   %7.5e   %7.5e   %7.5e\n' % (el, x, y, z)
+                            f.write(s)
 
-    def extract_xyz(self, which_domain = 0):
+    def extract_xyz(self, which_domain = 0, use_sym = False, trans_opt = [0.5,0.5]):
         xyz_list = []
         which_key = list(self.domain.keys())[which_domain]
         for key in self.domain.keys():
@@ -310,8 +317,13 @@ class Sample:
                         x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
                         translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
                         for each in translation_offsets:
-                            x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                            xyz_list.append((el, x, y, z))
+                            if use_sym:
+                                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                xyz_list.append((el, x, y, z))
+                                xyz_list.append((el, x+trans_opt[0]*self.unit_cell.a, y+trans_opt[1]*self.unit_cell.b, z))
+                            else:
+                                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                xyz_list.append((el, x, y, z))
                 else:
                     for sorbate_temp in self.domain[key]['sorbate']:
                         for i in range(len(sorbate_temp.id)):
@@ -319,8 +331,15 @@ class Sample:
                             x_, y_, z_ = self._extract_coord(sorbate_temp, sorbate_temp.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
                             translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
                             for each in translation_offsets:
-                                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                                xyz_list.append((el, x, y, z))
+                                #x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                #xyz_list.append((el, x, y, z))
+                                if use_sym:
+                                    x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                    xyz_list.append((el, x, y, z))
+                                    xyz_list.append((el, x+trans_opt[0]*self.unit_cell.a, y+trans_opt[1]*self.unit_cell.b, z))
+                                else:
+                                    x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                                    xyz_list.append((el, x, y, z))
             else:
                 pass
         return xyz_list
@@ -2181,6 +2200,76 @@ class Sample:
             eden_plot.append(eden)
             eden_domain_plot.append(eden_domains)
         return z_plot,eden_plot,eden_domain_plot
+
+    def plot_electron_density_superrod(self,el_lib={'C':6,'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\"):
+        #print dinv
+        slabs = self.domain
+        e_data=[]
+        labels=[]
+        e_total=np.zeros(resolution)
+        keys_sorted=list(slabs.keys())
+        keys_sorted.sort()
+        for key in keys_sorted:
+            slab=[slabs[key]['slab']]
+            if type(slabs[key]['sorbate'])==list:
+                sorbate = slabs[key]['sorbate']
+            else:
+                sorbate = [slabs[key]['sorbate']]
+            x, y, z, u, oc, el = self._surf_pars(slab)
+            x_, y_, z_, u_, oc_, el_ = self._surf_pars(sorbate)
+            x = np.concatenate((x,x_))
+            y = np.concatenate((y,y_))
+            z = np.concatenate((z,z_))
+            u = np.concatenate((u,u_))
+            oc = np.concatenate((oc,oc_))
+            el = np.concatenate((el,el_))
+            z=(z+1.)*self.unit_cell.c#z is offseted by 1 unit since such offset is explicitly considered in the calculatino of structure factor
+            f=np.array([el_lib[each] for each in el])
+            Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
+            z_min,z_max=z_min,z_max
+            eden=[]
+            z_plot=[]
+            layered_water,z_layered_water,sigma_layered_water,d_w,water_density=None,[],[],None,None
+            if 'layered_water' in slabs[key].keys():
+                #the items for the layered water is [u0,ubar,d_w(in A),first_layer_height(in fractional),density_w (in # of waters/A^3)]
+                layered_water=slabs[key]['layered_water']
+                d_w=layered_water[2]
+                water_density=layered_water[-1]
+                for i in range(N_layered_water):
+                    z_layered_water.append((layered_water[3]+1.)*self.unit_cell.c+i*layered_water[2])#first layer is offseted by 1 accordingly
+                    sigma_layered_water.append((layered_water[0]**2+i*layered_water[1]**2)**0.5)
+            #consider the e density of layered sorbate
+            layered_sorbate,z_layered_sorbate,sigma_layered_sorbate,d_s,sorbate_density=None,[],[],None,None
+            if 'layered_sorbate' in slabs[key].keys():
+                if slabs[key]['layered_sorbate']!=[]:
+                    #the items for the layered sorbate is [el,u0,ubar,d_s(in A),first_layer_height(in fractional),density_s (in # of waters/A^3)]
+                    layered_sorbate=slabs[key]['layered_sorbate']
+                    d_s=layered_sorbate[3]
+                    sorbate_density=layered_sorbate[-2]
+                    for i in range(N_layered_water):#assume the number of sorbate layer equal to that for water layers
+                        z_layered_sorbate.append((layered_sorbate[4]+1.)*self.unit_cell.c+i*layered_sorbate[3])#first layer is offseted by 1 accordingly
+                        sigma_layered_sorbate.append((layered_sorbate[1]**2+i*layered_sorbate[2]**2)**0.5)
+            #print u,f,z
+            for i in range(resolution):
+                z_each=float(z_max-z_min)/resolution*i+z_min
+                z_plot.append(z_each)
+                #normalized with occupancy and weight factor (manually scaled by a factor 2 to consider the half half of domainA and domainB)
+                #here considering the e density for each atom layer will be distributed within a volume of Auc*1, so the unit here is e/A3
+                eden.append(np.sum(slabs[key]['wt']*oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
+                if 'layered_water' in slabs[key].keys():
+                    #eden[-1]=eden[-1]+np.sum(8*slabs[key]['wt']*2*Auc*d_w*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                    eden[-1]=eden[-1]+np.sum(8*slabs[key]['wt']*2*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                if 'layered_sorbate' in slabs[key].keys():
+                    if slabs[key]['layered_sorbate']!=[]:
+                        eden[-1]=eden[-1]+np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*slabs[key]['wt']*2*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
+
+            labels.append(key)
+            e_data.append(np.array([z_plot,eden]))
+            e_total=e_total+np.array(eden)
+        labels.append('Total electron density')
+        e_data.append(np.array([list(e_data[0])[0],e_total]))
+        #pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
+        return labels, e_data
 
     def plot_electron_density(self,slabs,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\"):
         #print dinv

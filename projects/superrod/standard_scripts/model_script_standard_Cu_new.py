@@ -123,9 +123,16 @@ for i in range(num_surface_slabs):
 #/atmgroup/end#
 
 #/sorbatesym/begin#
-n_sym = 1
+n_sym = 16
 for i in range(num_sorbate_slabs):
-    globals()['sorbate_syms_{}'.format(i+1)] =  [model.SymTrans([[1,0],[0,1]]), model.SymTrans([[0,1],[-1,0]]), model.SymTrans([[1,0],[0,1]]), model.SymTrans([[0,-1],[1,0]])][0:n_sym]
+    globals()['sorbate_syms_{}'.format(i+1)] =  [model.SymTrans([[1,0],[0,1]]), model.SymTrans([[1,0],[0,1]],t=[0.5,0.5]),\
+                                                 model.SymTrans([[0,1],[1,0]]), model.SymTrans([[0,1],[1,0]],t=[0.5,0.5]), \
+                                                 model.SymTrans([[0,1],[-1,0]]), model.SymTrans([[0,1],[-1,0]],t=[0.5,0.5]),\
+                                                 model.SymTrans([[-1,0],[0,1]]),model.SymTrans([[-1,0],[0,1]],t=[0.5,0.5]),\
+                                                 model.SymTrans([[-1,0],[0,-1]]),model.SymTrans([[-1,0],[0,-1]],t=[0.5,0.5]),\
+                                                 model.SymTrans([[0,-1],[-1,0]]),model.SymTrans([[0,-1],[-1,0]],t=[0.5,0.5]),\
+                                                 model.SymTrans([[0,-1],[1,0]]),model.SymTrans([[0,-1],[1,0]],t=[0.5,0.5]),\
+                                                 model.SymTrans([[1,0],[0,-1]]),model.SymTrans([[1,0],[0,-1]],t=[0.5,0.5])][0:n_sym]
 #/sorbatesym/end#
 
 #/sample/begin#
@@ -155,11 +162,13 @@ def Sim(data,VARS=vars()):
     for i in range(num_surface_slabs):
         sample.domain['domain{}'.format(i+1)]['wt']=wt_list[i]/total_wt
     
-    #update sorbate symmetry
+    #update sorbate symmetry(not necessary)
+    '''
     for i in range(num_sorbate_slabs):
         for each in VARS['sorbate_syms_{}'.format(i+1)]:
             for n in range(num_surface_slabs):
                 each.set_t([VARS['atm_gp_surface_1st_layer_{}'.format(n+1)].getdx(),VARS['atm_gp_surface_1st_layer_{}'.format(n+1)].getdy()]) # models.structure_tools.sxrd_dafy.AtomGroup
+    '''
 
     for data_set in data:
         f=np.array([])

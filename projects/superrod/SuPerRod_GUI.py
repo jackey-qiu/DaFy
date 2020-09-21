@@ -551,19 +551,27 @@ class MyMainWindow(QMainWindow):
                 HKL_raxs_list[2].append(each.extra_data['Y'][0])
         try:
             if self.run_fit.running or self.run_batch.running:
-                edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
-                z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
+                # edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
+                # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
+                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200)
+                #z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
             else:
-                edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
-                z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
-            eden_plot = [each*int(each>0) for each in eden_plot]
-            self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][1],pen = {'color': "w", 'width': 1},clear = True)
-            self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][2],fillLevel=0, brush = (0,200,0,100),clear = False)
-            self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
-            self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
+                # edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
+                # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
+                #edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
+                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000)
+                # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
+            #eden_plot = [each*int(each>0) for each in eden_plot]
+            self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],pen = {'color': "w", 'width': 1},clear = True)
+            self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],fillLevel=0, brush = (0,200,0,100),clear = False)
+            #self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
+            #self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
             self.fom_scan_profile.autoRange()
         except:
-            pass
+            self.statusbar.clearMessage()
+            self.statusbar.showMessage('Failure to draw e density profile!')
+            logging.getLogger().exception('Fatal error encountered during drawing e density profile!')
+            self.tabWidget_data.setCurrentIndex(4)
 
     def update_plot_data_view_upon_simulation(self):
         offset = self.max_num_plots_per_screen*self.current_index_plot_screen
@@ -1470,8 +1478,9 @@ class MyMainWindow(QMainWindow):
                 export_data['potential'] = np.append(export_data['potential'],[float(potential)]*len(each.x))
                 beta = self.model.script_module.rgh.beta
                 #rough = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(each.x-each.extra_data['LB'])/each.extra_data['dL'])**2)**0.5
+                scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in each.name)]
                 rough = 1
-                export_data['I_bulk'] = np.append(export_data['I_bulk'],rough**2*np.array(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2))
+                export_data['I_bulk'] = np.append(export_data['I_bulk'],rough**2*np.array(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2*scale_factor**2))
             df_export_data = pd.DataFrame(export_data)
             writer_temp = pd.ExcelWriter([path+'.xlsx',path][int(path.endswith('.xlsx'))])
             df_export_data.to_excel(writer_temp, columns =['potential']+[lib_map[each_] for each_ in ['x','h','k','y','y_sim','error']]+['I_bulk','use'])
