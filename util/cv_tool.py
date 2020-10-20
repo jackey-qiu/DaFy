@@ -268,7 +268,7 @@ class cvAnalysis(object):
         pot_bounds = [1000, -1000]
         current_bounds = [1000, -1000]
         # fig, axes1= plt.subplots(len(self.info['sequence_id']), 1)
-        fig2, axes2= plt.subplots(2, int(len(self.info['sequence_id'])/2+len(self.info['sequence_id'])%2))
+        fig2, axes2= plt.subplots(2, int(len(self.info['sequence_id'])/2+len(self.info['sequence_id'])%2),figsize=(8,4))
         axes2 = axes2.flatten()
         for i in range(len(self.info['sequence_id'])):
             t, pot_origin, current_origin = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
@@ -293,12 +293,12 @@ class cvAnalysis(object):
                 axes1[i].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
                 axes1[i].legend()
             '''
-            if i in [0,3]:
+            if i in [0,4]:
                 axes2[i].set_ylabel(r'j / mAcm$^{-2}$')
+                # axes2[i].set_xlabel(r'E / V$_{RHE}$')
+            if i in [4,5,6]:
                 axes2[i].set_xlabel(r'E / V$_{RHE}$')
-            else:
-                axes2[i].set_xlabel(r'E / V$_{RHE}$')
-                axes2[i].set_yticklabels([])
+                #axes2[i].set_yticklabels([])
             '''
             if i == len(self.info['sequence_id'])-1:
                 axes1[i].set_xlabel(r'E / V$_{RHE}$')
@@ -383,8 +383,17 @@ class cvAnalysis(object):
             print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
             print('Tafel slope = {} mV/decade'.format(1/slope*1000))
             log_current_density.append(potential_for_reaction_order*slope+intercept)
-        ax2.plot(pHs, log_current_density, 'og')
-        slope_, intercept_, r_value_, *_ = stats.linregress(pHs, log_current_density)
+        #pHs_ = sorted(list(set(pHs)))
+        #log_current_density_ = [log_current_density[pHs.index(each)] for each in pHs_]
+        # print(pHs)
+        pHs_, log_current_density_ = [], []
+        for i in range(len(pHs)):
+            if pHs[i] not in pHs_:
+                pHs_.append(pHs[i])
+                log_current_density_.append(log_current_density[i])
+
+        ax2.plot(pHs_, log_current_density_, 'og')
+        slope_, intercept_, r_value_, *_ = stats.linregress(pHs_, log_current_density_)
         f = lambda x: slope_*x + intercept_
         x_min, x_max = min(pHs), max(pHs)
         ax2.plot([x_min,x_max],[f(x_min),f(x_max)],'-r')
@@ -398,6 +407,7 @@ class cvAnalysis(object):
 
 if __name__ == '__main__':
     cv = cvAnalysis(config_file = '/Users/canrong/apps/DaFy/util/cv_config_I20180835.ini')
+    # cv = cvAnalysis(config_file = '/Users/canrong/apps/DaFy/util/cv_config.ini')
     cv.calc_charge_all()
     cv.plot_cv_files()
     cv.plot_tafel_from_formatted_cv_info()

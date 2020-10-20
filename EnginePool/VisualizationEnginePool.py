@@ -305,7 +305,6 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr):
     p7.plot(list(app_ctr.bkg_sub.fit_data['x']),list(app_ctr.bkg_sub.fit_data['y_total']),pen='w',clear = True)
     p7.plot(list(app_ctr.bkg_sub.fit_data['x']),list(app_ctr.bkg_sub.fit_data['y_bkg']),pen='r')
 
-
 def plot_pxrd_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_strain, ax_pot,app_ctr):
 
     ax_profile_mon,ax_profile = ax_profile

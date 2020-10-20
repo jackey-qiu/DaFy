@@ -157,13 +157,37 @@
          </widget>
         </item>
         <item>
-         <widget class="SolverParameters" name="widget_config" native="true">
-          <property name="sizePolicy">
-           <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
-            <horstretch>0</horstretch>
-            <verstretch>0</verstretch>
-           </sizepolicy>
+         <widget class="QTabWidget" name="tabWidget">
+          <property name="currentIndex">
+           <number>1</number>
           </property>
+          <widget class="QWidget" name="tab">
+           <attribute name="title">
+            <string>config</string>
+           </attribute>
+           <layout class="QHBoxLayout" name="horizontalLayout_9">
+            <item>
+             <widget class="SolverParameters" name="widget_config" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+             </widget>
+            </item>
+           </layout>
+          </widget>
+          <widget class="QWidget" name="tab_2">
+           <attribute name="title">
+            <string>terminal</string>
+           </attribute>
+           <layout class="QHBoxLayout" name="horizontalLayout_11">
+            <item>
+             <widget class="TerminalWidget" name="widget_terminal" native="true"/>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
         <item>
@@ -1076,6 +1100,12 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header>terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QWidget</extends>

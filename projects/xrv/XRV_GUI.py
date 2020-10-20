@@ -61,6 +61,8 @@ class MyMainWindow(QMainWindow):
         self.bkg_intensity = 0
         self.bkg_clip_image = None
         self.stop = False
+        self.widget_terminal.update_name_space('xrv',self.app_ctr)
+        self.widget_terminal.update_name_space('main_gui',self)
 
         #pre-set the data path and data name
         self.lineEdit_data_file_name.setText('temp_data_xrv.xlsx')

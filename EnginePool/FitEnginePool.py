@@ -920,8 +920,6 @@ class Reciprocal_Space_Mapping():
 import copy
 class background_subtraction_single_img():
     def __init__(self,cen, config_file = '../config/config_bkg_sub.ini',sections = ['Integration_setup','Correction_pars','Spec_info']):
-        self.config_file = config_file
-        self.config_file_parser(config_file, sections)
         self.img = None
         self.center_pix = cen
         self.center_pix_origin = copy.copy(cen)
@@ -949,6 +947,8 @@ class background_subtraction_single_img():
         self.peak_width = 15
         self.bkg_win_cen_offset_lr = 10
         self.bkg_win_cen_offset_ud = 10
+        self.config_file = config_file
+        self.config_file_parser(config_file, sections)
 
     def config_file_parser(self, config_file, sections):
         config = configparser.ConfigParser()
