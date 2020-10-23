@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1440</width>
-    <height>851</height>
+    <width>1920</width>
+    <height>1035</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,7 +49,7 @@
            </font>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -898,6 +898,85 @@ p, li { white-space: pre-wrap; }
             </item>
            </layout>
           </widget>
+          <widget class="QWidget" name="tab_9">
+           <attribute name="title">
+            <string>CV setup</string>
+           </attribute>
+           <layout class="QVBoxLayout" name="verticalLayout_8">
+            <item>
+             <widget class="QLabel" name="label_27">
+              <property name="text">
+               <string>Config file path</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QLineEdit" name="lineEdit_cv_config_path"/>
+            </item>
+            <item>
+             <widget class="QLabel" name="label_28">
+              <property name="text">
+               <string>Config file content</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <widget class="QPlainTextEdit" name="plainTextEdit_cv_config">
+              <property name="plainText">
+               <string>[Global]
+sequence_id = [216, 221,229, 231, 236, 243, 244]
+ph = [13, 10,13,8,13,7,13]
+fmt = ['-']*7
+which_cycle = [1,1,2,2,2,2,2]
+color = ['r', 'g','r','blue','r','m','r']
+method = ['extract_cv_file_fouad']*7
+pot_range = [[1,1.57],[1,1.57],[1,1.57],[1,1.57],[1,1.57],[1,1.57],[1,1.57]]
+cv_scale_factor = [30,30,30,30,30,30,30]
+cv_spike_cut = [0.002]*7
+scan_rate = [0.005]*7
+resistance = [70,80,70,40,50,90,50]
+pot_starts_tafel = [1.6,1.62,1.6,1.72,1.6,1.75,1.6]
+pot_ends_tafel = [1.65,1.75,1.65,1.85,1.65,1.83,1.65]
+potential_reaction_order = 1.65
+cv_folder = '/Users/canrong/Documents/I20180835_Jul_2019_CVs'
+path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','065_S244_CV']</string>
+              </property>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_20">
+              <item>
+               <widget class="QPushButton" name="pushButton_load_cv_config">
+                <property name="text">
+                 <string>LoadConfig</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_update_cv_config">
+                <property name="text">
+                 <string>UpdateConfig</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_cal_charge_2">
+                <property name="text">
+                 <string>CalCharge</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_plot_cv">
+                <property name="text">
+                 <string>PlotCV</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+           </layout>
+          </widget>
          </widget>
         </item>
        </layout>
@@ -944,7 +1023,7 @@ p, li { white-space: pre-wrap; }
             </widget>
             <widget class="QWidget" name="tab_2">
              <attribute name="title">
-              <string>DataSummary</string>
+              <string>BarChartView</string>
              </attribute>
              <layout class="QHBoxLayout" name="horizontalLayout_11">
               <item>
@@ -954,11 +1033,31 @@ p, li { white-space: pre-wrap; }
             </widget>
             <widget class="QWidget" name="tab_5">
              <attribute name="title">
-              <string>summary</string>
+              <string>DataSummary</string>
              </attribute>
              <layout class="QHBoxLayout" name="horizontalLayout_17">
               <item>
                <widget class="QPlainTextEdit" name="plainTextEdit_summary"/>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="tab_7">
+             <attribute name="title">
+              <string>CVView</string>
+             </attribute>
+             <layout class="QHBoxLayout" name="horizontalLayout_18">
+              <item>
+               <widget class="MplWidget" name="widget_cv_view" native="true"/>
+              </item>
+             </layout>
+            </widget>
+            <widget class="QWidget" name="tab_8">
+             <attribute name="title">
+              <string>CVSummary</string>
+             </attribute>
+             <layout class="QHBoxLayout" name="horizontalLayout_19">
+              <item>
+               <widget class="QPlainTextEdit" name="plainTextEdit_cv_summary"/>
               </item>
              </layout>
             </widget>
@@ -987,7 +1086,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1440</width>
+     <width>1920</width>
      <height>22</height>
     </rect>
    </property>
@@ -1081,15 +1180,15 @@ p, li { white-space: pre-wrap; }
  </widget>
  <customwidgets>
   <customwidget>
-   <class>MplWidget</class>
+   <class>TerminalWidget</class>
    <extends>QWidget</extends>
-   <header location="global">mplwidget.h</header>
+   <header>terminal_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
-   <class>TerminalWidget</class>
+   <class>MplWidget</class>
    <extends>QWidget</extends>
-   <header location="global">terminal_widget.h</header>
+   <header location="global">mplwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

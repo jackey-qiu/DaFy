@@ -1,3 +1,5 @@
+#p0: left bound of pot, p2: right bound of pot, p1: pot at the cross point, y1: the item value at p1
+#Two items without subfix are slopes for the second and first segment respectively
 scan221	scan229	scan231	scan236	scan243	scan244
 strain_oop_p0	1.1125	0.9573125	1.100125	0.971609375	1.0539375	0.95028125
 strain_oop_p2	1.64703125	1.598796875	1.602234375	1.61121875	1.787296875	1.577703125
