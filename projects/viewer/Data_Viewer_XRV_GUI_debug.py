@@ -97,6 +97,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update_cv_config.clicked.connect(self.update_cv_config_file)
         self.pushButton_plot_cv.clicked.connect(self.plot_cv_data)
         self.pushButton_cal_charge_2.clicked.connect(self.calculate_charge_2)
+        self.pushButton_plot_reaction_order.clicked.connect(self.cv_tool.plot_reaction_order_with_pH)
         #self.pushButton_save_data.clicked.connect(self.save_data_method)
         #self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
         #self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
@@ -814,6 +815,8 @@ class MyMainWindow(QMainWindow):
         # print(self.pot_ranges)
 
     def plot_cv_data(self):
+        
+        self.widget_cv_view.canvas.figure.clear()
         col_num = 4
         axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
         self.cv_tool.plot_cv_files(axs = axs)
@@ -825,6 +828,7 @@ class MyMainWindow(QMainWindow):
 
         for i in range(len(scans)):
             min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[i])
+            # print(min_x_, max_x_, min_y_, max_y_)
             if min_x_<min_x:
                 min_x = min_x_
             if min_y_<min_y:
@@ -837,11 +841,11 @@ class MyMainWindow(QMainWindow):
             each.set_xlim(min_x, max_x)
             each.set_ylim(min_y, max_y)
             # each.yaxis.tick_right()
-            # each.yaxis.set_label_position("right")
+            each.yaxis.set_label_position("right")
 
         #self.widget_cv_view.fig.tight_layout()
         # print(self.data_summary)
-        self.widget_cv_view.fig.subplots_adjust(wspace=0.14,hspace=0.04)
+        self.widget_cv_view.fig.subplots_adjust(wspace=0.24,hspace=0.04)
         self.widget_cv_view.canvas.draw()
 
     #plot the master figure
@@ -974,10 +978,11 @@ class MyMainWindow(QMainWindow):
                             except:
                                 pass
                         else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
-                            for each_index in seperators:
-                                pot = self.data_to_plot[scan][self.plot_label_x][each_index]
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
+                            if self.checkBox_show_marker.isChecked():
+                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
+                                for each_index in seperators:
+                                    pot = self.data_to_plot[scan][self.plot_label_x][each_index]
+                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                     else:
                         if self.checkBox_use_external_cv.isChecked():
                             try:
@@ -998,9 +1003,10 @@ class MyMainWindow(QMainWindow):
                             getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                             if not self.checkBox_use_external_slope.isChecked():
-                                for each_index in seperators:
-                                    pot = self.data_to_plot[scan][self.plot_label_x][each_index]
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
+                                if self.checkBox_show_marker.isChecked():
+                                    for each_index in seperators:
+                                        pot = self.data_to_plot[scan][self.plot_label_x][each_index]
+                                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                             else:
                                 for each_item in seperators[scan][each]:
                                     try:

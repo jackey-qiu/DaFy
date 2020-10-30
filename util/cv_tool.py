@@ -56,15 +56,15 @@ class cvAnalysis(object):
         self.cv_info = {}
         keys = ['sequence_id','ph','fmt','which_cycle','color','method','pot_range','cv_scale_factor',
                 'cv_spike_cut','scan_rate','resistance','pot_starts_tafel','pot_ends_tafel','potential_reaction_order',
-                'cv_folder','path']
+                'cv_folder','path','current_filter_length','current_filter_order','reaction_order_mode','current_reaction_order']
         for section in sections:
             kwarg_temp = extract_vars_from_config(config_file, section_var = section)
             for each in kwarg_temp:
                 print('Extracting {} now'.format(each))
-                if each == 'cv_folder':
-                    self.info[each] = kwarg_temp[each]
-                else:
-                    self.info[each] = kwarg_temp[each]
+                # if each == 'cv_folder':
+                    # self.info[each] = kwarg_temp[each]
+                # else:
+                self.info[each] = kwarg_temp[each]
         item_missing = []
         for key in keys:
             if key not in self.info:
@@ -107,7 +107,7 @@ class cvAnalysis(object):
     def extract_cv_info(self):
         self.cv_info = {}
         for i in range(len(self.info['sequence_id'])):
-            t, pot, current = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
+            pot, current = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
             ph = self.info['ph'][i]
             color = self.info['color'][i]
             self.cv_info[self.info['sequence_id'][i]] = {'current_density':current*8, 'potential':RHE(pot,pH=ph), 'pH':ph, 'color':color}
@@ -116,7 +116,7 @@ class cvAnalysis(object):
         self.info['charge'] = []
         outputs = []
         for i in range(len(self.info['sequence_id'])):
-            t, pot, current = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
+            pot, current = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
             ph = self.info['ph'][i]
             cv_spike_cut = self.info['cv_spike_cut'][i]
             cv_scale_factor = self.info['cv_scale_factor'][i]
@@ -124,21 +124,25 @@ class cvAnalysis(object):
             pot_range = self.info['pot_range'][i]
             print('Processing sequence {} now ... '.format(self.info['sequence_id'][i]))
             outputs.append('Processing sequence {} now ... '.format(self.info['sequence_id'][i]))
-            charge, _output = self.calculate_pseudocap_charge(t, pot, current, ph, cv_spike_cut, cv_scale_factor, scan_rate, pot_range)
+            charge, _output = self.calculate_pseudocap_charge(pot, current, ph, cv_spike_cut, cv_scale_factor, scan_rate, pot_range)
             self.info['charge'].append(charge)
             outputs.append(_output)
         return '\n'.join(outputs)
 
     #filter out the spikes on CV due to beam shutter on/off
-    def filter_current(self, t, pot, current, cv_spike_cut, times = 4):
-        t_filtered, pot_filtered, current_filtered = t, pot, current
+    def filter_current_(self, pot, current, cv_spike_cut, times = 4):
+        pot_filtered, current_filtered = pot, current
         for ii in range(times):
             filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
             filter_index = filter_index+1#index offset by 1
-            t_filtered = t_filtered[(filter_index,)]
+            #t_filtered = t_filtered[(filter_index,)]
             pot_filtered = pot_filtered[(filter_index,)]
             current_filtered = current_filtered[(filter_index,)]
-        return t_filtered, pot_filtered, current_filtered
+        return pot_filtered, current_filtered
+
+    #filter out the spikes on CV due to beam shutter on/off using smoothing func
+    def filter_current(self, pot, current, cv_spike_cut=None, times = 1):
+        return pot, signal.savgol_filter(current,self.info['current_filter_length'],self.info['current_filter_order'])
 
     #assuming symmetrical potential for one sweep
     #The original pot starts in between pot_min and pot_max
@@ -151,7 +155,7 @@ class cvAnalysis(object):
         f = lambda pot, id_min, id_max:list(pot[(id_min+1):])+list(pot[0:id_max]) + list(pot[id_max:(id_min+1)])
         return np.array(f(pot, idx_min_pot, idx_max_pot)), np.array(f(current, idx_min_pot, idx_max_pot))
 
-    def calculate_pseudocap_charge(self, t, pot, current, ph=10, cv_spike_cut=0.002, cv_scale_factor=30, scan_rate = 0.005, pot_range = [0.98,1.6]):
+    def calculate_pseudocap_charge(self, pot, current, ph=10, cv_spike_cut=0.002, cv_scale_factor=30, scan_rate = 0.005, pot_range = [0.98,1.6]):
         def compute_area_under_a_curve(x, y):
             area = 0
             for i in range(len(x)-1):
@@ -170,13 +174,15 @@ class cvAnalysis(object):
 
         pot_left, pot_right = pot_range
         #t, pot,current = extract_cv_file(file_name, which_cycle)
-        t_filtered, pot_filtered, current_filtered = t, pot, current
+        pot_filtered, current_filtered = self.filter_current(pot, current)
+        '''
         for ii in range(4):
             filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
             filter_index = filter_index+1#index offset by 1
-            t_filtered = t_filtered[(filter_index,)]
+            # t_filtered = t_filtered[(filter_index,)]
             pot_filtered = pot_filtered[(filter_index,)]
             current_filtered = current_filtered[(filter_index,)]
+        '''
         pot_filtered = RHE(pot_filtered,pH=ph)
         current_smooth = signal.savgol_filter(current_filtered*8*cv_scale_factor,5,3)
         # plt.plot(pot_filtered)
@@ -188,8 +194,8 @@ class cvAnalysis(object):
         index_bottom_left = np.argmin(np.abs(pot_filtered[index_max:]-pot_right))+index_max
         charge_top = metrics.auc(pot_filtered[index_top_left:index_top_right],current_smooth[index_top_left:index_top_right])
         charge_bottom = metrics.auc(pot_filtered[index_bottom_left:index_bottom_right],current_smooth[index_bottom_left:index_bottom_right])
-        charge_top_2 = compute_area_under_a_curve(t_filtered[index_top_left:index_top_right],current_smooth[index_top_left:index_top_right])
-        charge_bottom_2 = compute_area_under_a_curve(t_filtered[index_bottom_left:index_bottom_right],current_smooth[index_bottom_left:index_bottom_right])
+        # charge_top_2 = compute_area_under_a_curve(t_filtered[index_top_left:index_top_right],current_smooth[index_top_left:index_top_right])
+        # charge_bottom_2 = compute_area_under_a_curve(t_filtered[index_bottom_left:index_bottom_right],current_smooth[index_bottom_left:index_bottom_right])
         # self.locate_OER_onset(current_filtered[index_top_left:index_top_right],pot_filtered[index_top_left:index_top_right])
         # charge_top_np = np.trapz(current_smooth[index_top_left:index_top_right],pot_filtered[index_top_left:index_top_right])
         # charge_bottom_np = np.trapz(current_smooth[index_bottom_left:index_bottom_right],pot_filtered[index_bottom_left:index_bottom_right])
@@ -220,7 +226,10 @@ class cvAnalysis(object):
         return pot[cross_point_x]
 
     #data format based on the output of IVIUM potentiostat
+    #note first cycle corresponds to which_cycle = 1
     def extract_cv_file_ivium(self,file_path,which_cycle=3):
+        if which_cycle == 0:
+            which_cycle = 1
         data = []
         current_cycle = 0
         with open(file_path,encoding="ISO-8859-1") as f:
@@ -238,12 +247,18 @@ class cvAnalysis(object):
                         pass
                 else:
                     pass
+        #one more step to format the data so that the starting point is at the lowest potential
+        data = np.array(data)
+        index_min_pot = np.argmin(data[:,0])
+        pot, current_density = list(data[:,0]), list(data[:,1]*1000)
+        pot = pot[index_min_pot:]+pot[0:index_min_pot]
+        current_density = current_density[index_min_pot:]+current_density[0:index_min_pot]
         #return (pot: V, current: mA)
-        return np.array(data)[:,0], np.array(data)[:,1]*1000
+        return np.array(pot),np.array(current_density)
 
     #data format based on Fouad's potentiostat
     def extract_cv_file_fouad(self,file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
-        #return:time(s), pot(V), current (mA)
+        #return: pot(V), current (mA)
         skiprows = 0
         with open(file_path,'r') as f:
             for each in f.readlines():
@@ -262,9 +277,11 @@ class cvAnalysis(object):
         nodes.append(len(data[:,1]))
         if which_cycle>len(nodes):
             print('Cycle number lager than the total cycles! Use the first cycle instead!')
-            return data[nodes[1]:nodes[2],0], data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
+            # return data[nodes[1]:nodes[2],0], data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
+            return data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
         else:
-            return data[nodes[which_cycle]:nodes[which_cycle+1],0],data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
+            # return data[nodes[which_cycle]:nodes[which_cycle+1],0],data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
+            return data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
 
     #only one cycle, which can be manually exported from BioLogic software
     def extract_cv_file_biologic(self, file_path ='', which_cycle =1):
@@ -273,7 +290,7 @@ class cvAnalysis(object):
         data = np.loadtxt(file_path,skiprows = 3)
         pot, current = self.format_pot_current(data[:,1], data[:,2])
         # return data[:,0], data[:,1], data[:,2]
-        return data[:,0], pot, current
+        return pot, current
 
     def _update_bounds(self, current_bounds, data):
         min_, max_ = min(data), max(data)
@@ -292,21 +309,22 @@ class cvAnalysis(object):
             fig2, axes2= plt.subplots(2, int(len(self.info['sequence_id'])/2+len(self.info['sequence_id'])%2),figsize=(8,4))
             axes2 = axes2.flatten()
         for i in range(len(self.info['sequence_id'])):
-            t, pot_origin, current_origin = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
+            pot_origin, current_origin = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
             ph = self.info['ph'][i]
             color = self.info['color'][i]
             cv_spike_cut = self.info['cv_spike_cut'][i]
             cv_scale_factor = self.info['cv_scale_factor'][i]
-            t, pot, current = self.filter_current(t, pot_origin, current_origin, cv_spike_cut)
+            pot, current = self.filter_current(pot_origin, current_origin, cv_spike_cut)
             pot_bounds = self._update_bounds(pot_bounds, RHE(pot_origin,pH=ph))
             current_bounds = self._update_bounds(current_bounds, current*8)
             current_bounds_ = self._update_bounds(current_bounds, current*8*cv_scale_factor)
             current_bounds[0] = current_bounds_[0]
             axes2[i].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
             axes2[i].plot(RHE(pot_origin,pH=ph),current_origin*8,label='',color = color)
-            axes2[i].text(1.1,1,'x{}'.format(cv_scale_factor),color=color)
+            # axes2[i].plot(RHE(pot,pH=ph),current*8,label='',color = color)
+            axes2[i].text(1.1,5,'x{}'.format(cv_scale_factor),color=color)
             # axes2[i].legend()
-            axes2[i].set_title('seq{}_pH {}'.format(self.info['sequence_id'][i],ph),fontsize=9)
+            # axes2[i].set_title('seq{}_pH {}'.format(self.info['sequence_id'][i],ph),fontsize=9)
             '''
             if i!=0:
                 axes1[i].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
@@ -314,11 +332,16 @@ class cvAnalysis(object):
                 axes1[i].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
                 axes1[i].legend()
             '''
-            if i in [0,4]:
+            if len(axs)==0:
+                if i in [0,4]:
+                    axes2[i].set_ylabel(r'j / mAcm$^{-2}$')
+                    # axes2[i].set_xlabel(r'E / V$_{RHE}$')
+                if i in [4,5,6]:
+                    axes2[i].set_xlabel(r'E / V$_{RHE}$')
+            else:
                 axes2[i].set_ylabel(r'j / mAcm$^{-2}$')
-                # axes2[i].set_xlabel(r'E / V$_{RHE}$')
-            if i in [4,5,6]:
-                axes2[i].set_xlabel(r'E / V$_{RHE}$')
+                if i == 6:
+                    axes2[i].set_xlabel(r'E / V$_{RHE}$')
                 #axes2[i].set_yticklabels([])
             '''
             if i == len(self.info['sequence_id'])-1:
@@ -333,7 +356,7 @@ class cvAnalysis(object):
             #axes1[i].set_xlim(*pot_bounds)
             #axes1[i].set_ylim(*current_bounds)
             axes2[i].set_xlim(*pot_bounds)
-            axes2[i].set_ylim(-1, 4.)
+            axes2[i].set_ylim(-1.5, 8.)
         # plt.tight_layout()
         if fig2!=None:
             fig2.tight_layout()
@@ -344,9 +367,12 @@ class cvAnalysis(object):
     #plot tafel slope for one scan
     def plot_tafel_from_formatted_cv_info_one_scan(self,scan, ax, forward_cycle = True):
         #half = 0, first half cycle E scan from low to high values
-        resistance = self.info['resistance']
-        pot_starts = self.info['pot_starts_tafel']
-        pot_ends = self.info['pot_ends_tafel']
+        #how many points to be extended beyond the Tafel E range
+        offset = 0
+        which = self.info['sequence_id'].index(scan)
+        resistance = [self.info['resistance'][which]]
+        pot_start = self.info['pot_starts_tafel'][which]
+        pot_end = self.info['pot_ends_tafel'][which]
         potential_for_reaction_order = self.info['potential_reaction_order']
         if len(self.cv_info)==0:
             self.extract_cv_info()
@@ -355,17 +381,13 @@ class cvAnalysis(object):
             half = 0
         else:
             half = 1
-        if type(pot_starts)!=list:
-            pot_starts = [pot_starts]*len(cv_info)
-        else:
-            pass
-        if type(pot_ends)!=list:
-            pot_ends = [pot_ends]*len(cv_info)
-        else:
-            pass
+
         ax.set_yscale('log')
         ax.set_xlabel(r'E / V$_{RHE}$')
-        ax.set_ylabel(r'j / mAcm$^{-2}$')
+        ax.set_ylabel(f"pH {cv_info[scan]['pH']}")
+        # ax.set_ylabel(r'j / mAcm$^{-2}$')
+        # ax.yaxis.tick_right()
+        # ax.yaxis.set_label_position("right")
         over_E = round(potential_for_reaction_order-1.23,2)
         
         # ax2 = fig.add_subplot(212)
@@ -379,10 +401,10 @@ class cvAnalysis(object):
             pHs.append(cv_info[scans[i]]['pH'])
             label = 'scan {}_pH {}'.format(scans[i],cv_info[scans[i]]['pH'])
             color = cv_info[scans[i]]['color']
-            pot_start=pot_starts[i]
-            pot_end=pot_ends[i]
+            #pot_start=pot_starts[i]
+            #pot_end=pot_ends[i]
             print(label,': resistance ={};pot_range between {} and {}'.format(resistance[i],pot_start, pot_end))
-            current = cv_info[scans[i]]['current_density']
+            current = signal.savgol_filter(cv_info[scans[i]]['current_density'],21,0)
             pot = cv_info[scans[i]]['potential']
             # ax2.plot(pot)
             if half==1:
@@ -392,39 +414,98 @@ class cvAnalysis(object):
                 pot_fit = pot[int(len(pot)/2):len(pot)][::-1]
                 current_fit = current[int(len(pot)/2):len(pot)][::-1]
             indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
-            ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
-            ax.plot(pot_fit[indx1-50:indx1]-resistance[i]*(current_fit[indx1-50:indx1]/8*0.001),current_fit[indx1-50:indx1],':',color = color)
-            min_x, max_x = min(pot_fit[indx1-50:indx2]-resistance[i]*(current_fit[indx1-50:indx2]/8*0.001)),max(pot_fit[indx1-50:indx2]-resistance[i]*(current_fit[indx1-50:indx2]/8*0.001))
-            min_y, max_y = min(current_fit[indx1-50:indx2]),max(current_fit[indx1-50:indx2])
-            ax.legend()
+            ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],color = color)
+            # ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
+            ax.plot(pot_fit[indx1-offset:indx1]-resistance[i]*(current_fit[indx1-offset:indx1]/8*0.001),current_fit[indx1-offset:indx1],':',color = color)
+            min_x, max_x = min(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001)),max(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001))
+            min_y, max_y = min(current_fit[indx1-offset:indx2]),max(current_fit[indx1-offset:indx2])
+            # ax.legend()
             #linear regression
-            slope,intercept,r_value, *others =stats.linregress(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),np.log10(current_fit[indx1:indx2]))
-            print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
-            print('Tafel slope = {} mV/decade'.format(1/slope*1000))
-            log_current_density.append(potential_for_reaction_order*slope+intercept)
-        #pHs_ = sorted(list(set(pHs)))
-        #log_current_density_ = [log_current_density[pHs.index(each)] for each in pHs_]
-        # print(pHs)
-        pHs_, log_current_density_ = [], []
-        for i in range(len(pHs)):
-            if pHs[i] not in pHs_:
-                pHs_.append(pHs[i])
-                log_current_density_.append(log_current_density[i])
-
-        #ax2.plot(pHs_, log_current_density_, 'og')
-        #slope_, intercept_, r_value_, *_ = stats.linregress(pHs_, log_current_density_)
-        #f = lambda x: slope_*x + intercept_
-        #x_min, x_max = min(pHs), max(pHs)
-        #ax2.plot([x_min,x_max],[f(x_min),f(x_max)],'-r')
-        #text_label = 'y = {}x{}, R2 = {}'.format(round(slope_,3), round(intercept_,3), round(r_value_**2,3))
-        #ax2.text(x_min,f(x_min),text_label)
-        #print('Reaction order fit: log(current) = {}pH + {}, R2 = {}'.format(slope_, intercept_, r_value_**2))
-        #plt.legend()
-        #fig.tight_layout()
-        #plt.show()
-        #fig.savefig('Tafel.png', dpi=300, bbox_inches='tight')
+            try:
+                slope,intercept,r_value, *others =stats.linregress(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),np.log10(current_fit[indx1:indx2]))
+                print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
+                print('Tafel slope = {} mV/decade'.format(1/slope*1000))
+                # ax.text(min_x,min_y+0.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
+                ax.text(1.65,0.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
+                log_current_density.append(potential_for_reaction_order*slope+intercept)
+            except:
+                pass
         return min_x, max_x, min_y, max_y
     
+    #plot reaction order with pH
+    #two modes: 
+    # constant_current: current density at the same potential
+    # constant_potential: potential at the same current density
+    def plot_reaction_order_with_pH(self, constant_value = 1, ax = None, mode = 'constant_current', forward_cycle = True):
+        if forward_cycle:
+            half = 0
+        else:
+            half = 1
+        if ax == None:
+            fig = plt.figure(figsize=(4,4))
+            ax = fig.add_subplot(111)
+        else:
+            pass
+        ax.set_xlabel(r'pH')
+        pHs = []
+        values = [] #either pot values or current density values depending on the mode 
+        mode = self.info['reaction_order_mode']
+        if mode == 'constant_current':
+            constant_value = self.info['current_reaction_order']
+        elif mode == 'constant_potential':
+            constant_value = self.info['potential_reaction_order']
+        def _get_pot_current(scan, resistance, half):
+            current = self.cv_info[scan]['current_density']
+            #ir corrected potential
+            pot = self.cv_info[scan]['potential'] - self.cv_info[scan]['current_density']/8*0.001*resistance
+            if half==1:
+                pot_fit = pot[0:int(len(pot)/2)]
+                current_fit = current[0:int(len(pot)/2)]
+            else:
+                pot_fit = pot[int(len(pot)/2):len(pot)][::-1]
+                current_fit = current[int(len(pot)/2):len(pot)][::-1]
+            return pot_fit, current_fit
+
+        if mode == 'constant_potential':
+            #potential_for_reaction_order = self.info['potential_reaction_order']
+            over_E = round(constant_value-1.23,2)
+            ax.set_ylabel(r'log(j / mAcm$^{-2}$)'+r',$\eta$= {}V'.format(over_E))
+        elif mode == 'constant_current':
+            ax.set_ylabel(r'E / V$_{RHE}$' + f'at j = {constant_value}'+r'mAcm$^{-2}$')
+        for i, scan in enumerate(self.info['sequence_id']):
+            pot_fit, current_fit = _get_pot_current(scan, self.info['resistance'][i], half)
+            pHs.append(self.cv_info[scan]['pH'])
+            if mode == 'constant_potential':
+                pot_start = self.info['pot_starts_tafel'][i]
+                pot_end = self.info['pot_ends_tafel'][i]
+                potential_for_reaction_order = constant_value
+                indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
+                #linear regression
+                slope,intercept,r_value, *others =stats.linregress(pot_fit[indx1:indx2],np.log10(current_fit[indx1:indx2]))
+                print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
+                #ax.text(1.65,.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
+                values.append(potential_for_reaction_order*slope+intercept)
+            elif mode == 'constant_current':
+                which = np.argmin(np.abs(current_fit - constant_value))
+                values.append(pot_fit[which])
+        pHs_unique = list(set(pHs))
+        values_unique = [values[pHs.index(each)] for each in pHs_unique]
+        pHs, values = pHs_unique, values_unique
+        ax.plot(pHs, values, 'og')
+        slope_, intercept_, r_value_, *_ = stats.linregress(pHs, values)
+        f = lambda x: slope_*x + intercept_
+        x_min, x_max = min(pHs), max(pHs)
+        ax.plot([x_min,x_max],[f(x_min),f(x_max)],'-r')
+        text_label = 'y = {}x + {}, R2 = {}'.format(round(slope_,3), round(intercept_,3), round(r_value_**2,3))
+        ax.text(x_min,f(x_max),text_label)
+        print('Reaction order fit: log(current) = {}pH + {}, R2 = {}'.format(slope_, intercept_, r_value_**2))
+        #plt.legend()
+        try:
+            fig.tight_layout()
+        except:
+            pass
+        plt.show()
+
     #plot tafel slopes for all in one panel
     def plot_tafel_from_formatted_cv_info(self,forward_cycle = True):
         #half = 0, first half cycle E scan from low to high values

@@ -69,6 +69,38 @@ class space_plot():
 
         return np.logical_not(in_lims) 
 
+    # Get Bragg peaks positions in Cartisian coordinate, with point size proportional to scattering intensity
+    def get_peaks(self, HKL_lims=[-10, 10], qx_lims=None, qy_lims=None,
+                   q_inplane_lim=None, qz_lims=None, mag_q_lims=None, color=(0, 0, 0), scale_factor=1, scale_q=[1., 1., 1.]):
+        HKL_range = np.arange(HKL_lims[0], HKL_lims[1] + 1)
+        HKLs = np.array(list(itertools.product(HKL_range, repeat=3)))
+        I0 = self.lattice.I([0,0,0])
+        print('I0 =', I0)
+        qs = self.lattice.q_many(HKLs)
+        in_limits = self.is_in_limits_many(qs, qx_lims, qy_lims, q_inplane_lim, qz_lims, mag_q_lims)
+        HKLs = HKLs[in_limits == True]
+        qs = qs[in_limits == True]
+        
+        F = self.lattice.F_many(HKLs, qs)
+        I = (F*F.conjugate()).real/I0
+
+        indx = np.where(I > 1e-10)
+        Is = I[indx]
+        qs = qs[indx]
+        HKLs = HKLs[indx]
+        # print('HKLs',HKLs)
+        # print('qs',qs)
+        # print('qs_calculated',np.dot(self.lattice.RecTM, HKLs.transpose()).transpose())
+        #extract the unique HK tuples
+        # print('length of HKLs:{} and length of Is:{}'.format(len(HKLs),len(Is)))
+        HKs =list(set([tuple(each) for each in HKLs[:,[0,1]]]))
+        # print(HKs)
+
+        qs = np.swapaxes(qs, 0, 1)
+        if(len(Is) > 0):
+            return [[[qs[0][i]*scale_q[0], qs[1][i]*scale_q[1], qs[2][i]*scale_q[2]], list(color)+[0.9],  np.sqrt(Is)[i]/2] for i in range(len(Is))],HKs          
+        return [], []
+
     # Plot Bragg peaks, with point size proportional to scattering intensity
     def plot_peaks(self, HKL_lims=[-10, 10], qx_lims=None, qy_lims=None,
                    q_inplane_lim=None, qz_lims=None, mag_q_lims=None, color=(0, 0, 0), scale_factor=1, scale_q=[1., 1., 1.]):
@@ -93,6 +125,7 @@ class space_plot():
         if(len(Is) > 0):
             return (mlab.points3d(qs[0]*scale_q[0], qs[1]*scale_q[1], qs[2]*scale_q[2], np.sqrt(Is), scale_factor=scale_factor, color=color, opacity=1), qs, Is, self.lattice)                
         return None
+
     # For each CTR (within given limits), returns one (arbitrary)
     # Bragg peak that is on the CTR
     def get_rod_positions(self, HKL_lims=[-10, 10], qx_lims=None, qy_lims=None,
@@ -110,26 +143,31 @@ class space_plot():
         indx = np.where(I > 1e-10)
         Is = I[indx]
         qs = qs[indx]
+        HKLs = HKLs[indx]
 
         qIs = np.array([qs.T[0], qs.T[1], qs.T[2], Is]).T
 
         # We only need one point per (qx, qy) coordinate
         qIs_filtered = []
-        for qI in qIs:
+        HKLs_filtered = []
+        for i in range(len(qIs)):
+            qI = qIs[i]
             add_qI = True
             for qI_filtered in qIs_filtered:
-                if((abs(qI[0]-qI_filtered[0]) < 0.001) and
-                   (abs(qI[1]-qI_filtered[1]) < 0.001)):
+                if((abs(qI[0]-qI_filtered[0]) < 0.000001) and
+                   (abs(qI[1]-qI_filtered[1]) < 0.000001)):
                     add_qI = False
                     break
             if(add_qI):
                 qIs_filtered.append(qI)
-        return qIs_filtered
+                HKLs_filtered.append(HKLs[i])
+        # print(len(qIs_filtered),HKLs_filtered)
+        return qIs_filtered, HKLs_filtered
 
     # Plot CTRs
     def plot_rods(self, HKL_lims=[-10, 10], qx_lims=None, qy_lims=None,
                   q_inplane_lim=None, qz_lims=[-10, 10], color=(0, 0, 0), plot00rod=True, scale_q=[1., 1., 1.], line_width=4):
-        qIs = self.get_rod_positions(HKL_lims=HKL_lims, qx_lims=qx_lims,
+        qIs, _ = self.get_rod_positions(HKL_lims=HKL_lims, qx_lims=qx_lims,
                                      qy_lims=qy_lims,
                                      q_inplane_lim=q_inplane_lim,
                                      qz_lims=qz_lims, color=color, ignore00rod=(not plot00rod))
@@ -157,14 +195,24 @@ class space_plot():
         mlab.pipeline.surface(lines, color=color, line_width=line_width)
         
         #mlab.plot3d(qx, qy, qz, color=color)
- 
+    def get_rods(self, HKL_lims=[-10, 10], qx_lims=None, qy_lims=None,
+                  q_inplane_lim=None, qz_lims=[-10, 10], color=(0, 0, 0), plot00rod=True, scale_q=[1., 1., 1.], line_width=4):
+        qIs, HKLs = self.get_rod_positions(HKL_lims=HKL_lims, qx_lims=qx_lims,
+                                     qy_lims=qy_lims,
+                                     q_inplane_lim=q_inplane_lim,
+                                     qz_lims=qz_lims, color=color, ignore00rod=(not plot00rod))
+        scaled_qz_lims = [qz_lims[0]*scale_q[2], qz_lims[1]*scale_q[2]]
+        lines = []
+        for qI in qIs:
+            lines.append([[qI[0]*scale_q[0],qI[1]*scale_q[1],scaled_qz_lims[0]],[qI[0]*scale_q[0],qI[1]*scale_q[1],scaled_qz_lims[1]],list(color)+[0.8]])
+        return lines, [tuple(each) for each in HKLs]
 
     # Plot a grid at a specified qz value
     def plot_grid(self, HKL_lims=[-10, 10], grid_qz=0, qx_lims=None,
                   qy_lims=None, q_inplane_lim=None, qz_lims=None,
                   color=(0, 0, 0), scale_q=[1., 1., 1.]):
         # Get lateral positions of all CTRs
-        qIs = self.get_rod_positions(HKL_lims=HKL_lims, qx_lims=qx_lims,
+        qIs,_ = self.get_rod_positions(HKL_lims=HKL_lims, qx_lims=qx_lims,
                                      qy_lims=qy_lims,
                                      q_inplane_lim=q_inplane_lim,
                                      qz_lims=qz_lims, color=color)
@@ -206,6 +254,40 @@ class space_plot():
         # except:
         lines = mlab.pipeline.surface(src)
         mlab.pipeline.surface(lines, color=color, line_width=4)
+
+    def get_grids(self, HKL_lims=[-10, 10], grid_qz=0, qx_lims=None,
+                  qy_lims=None, q_inplane_lim=None, qz_lims=None,
+                  color=(0, 0, 0), scale_q=[1., 1., 1.]):
+        # Get lateral positions of all CTRs
+        qIs,_ = self.get_rod_positions(HKL_lims=HKL_lims, qx_lims=qx_lims,
+                                     qy_lims=qy_lims,
+                                     q_inplane_lim=q_inplane_lim,
+                                     qz_lims=qz_lims, color=color)
+
+        # Calculate the distances between every point and every other point
+        pos_pairs = []
+        for i in range(len(qIs)):
+            for j in range(i+1, len(qIs)):
+                distance = np.sqrt((qIs[i][0] - qIs[j][0])**2 +
+                                   (qIs[i][1] - qIs[j][1])**2)
+                pos_pairs.append([qIs[i][0], qIs[i][1], qIs[j][0], qIs[j][1],
+                                  distance])
+
+        # Find the minimum in-plane distance between to CTR positions
+        pos_pairs = np.array(pos_pairs)
+        distance_min = np.min(np.swapaxes(pos_pairs, 0, 1)[4])
+
+        # Draw lines between CTR positions that have the minimum distance
+        rows = np.where(pos_pairs[:, 4] < 1.1*distance_min)
+        pos_pairs = pos_pairs[rows]
+        grids = []
+        for pos_pair in pos_pairs:
+            grids.append([
+                          [pos_pair[0]*scale_q[0],pos_pair[1]*scale_q[1],grid_qz*scale_q[2]],
+                          [pos_pair[2]*scale_q[0],pos_pair[3]*scale_q[1],grid_qz*scale_q[2]],
+                          list(color)+[0.8]
+                         ])
+        return grids
 
     # Plot the unit cell
     def plot_unit_cell(self, color=(0, 0, 0), scale_q=[1., 1., 1.]):

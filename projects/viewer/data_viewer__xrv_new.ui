@@ -564,6 +564,13 @@
                  </property>
                 </widget>
                </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_show_marker">
+                 <property name="text">
+                  <string>plot_pot_seperator_on_profiles</string>
+                 </property>
+                </widget>
+               </item>
               </layout>
              </widget>
             </item>
@@ -948,28 +955,35 @@ path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','0
               <item>
                <widget class="QPushButton" name="pushButton_load_cv_config">
                 <property name="text">
-                 <string>LoadConfig</string>
+                 <string>Load</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QPushButton" name="pushButton_update_cv_config">
                 <property name="text">
-                 <string>UpdateConfig</string>
+                 <string>Update</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QPushButton" name="pushButton_cal_charge_2">
                 <property name="text">
-                 <string>CalCharge</string>
+                 <string>Charge</string>
                 </property>
                </widget>
               </item>
               <item>
                <widget class="QPushButton" name="pushButton_plot_cv">
                 <property name="text">
-                 <string>PlotCV</string>
+                 <string>PltCV</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_plot_reaction_order">
+                <property name="text">
+                 <string>PltOrder</string>
                 </property>
                </widget>
               </item>
@@ -1009,7 +1023,7 @@ path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','0
           <item>
            <widget class="QTabWidget" name="tabWidget">
             <property name="currentIndex">
-             <number>3</number>
+             <number>4</number>
             </property>
             <widget class="QWidget" name="tab">
              <attribute name="title">
