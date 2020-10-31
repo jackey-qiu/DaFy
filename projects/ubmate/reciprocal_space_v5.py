@@ -474,5 +474,41 @@ class lattice():
 
         return (Q_sorted, I_sorted)
 
+    def calculate_diffr_angles(self, HKL, mu=0):
+        #mu is tilt angle or incidence angle
+        q = self.q(HKL)
+        qx,qy,qz = q
+        q_par = (qx**2 + qy**2)**0.5
+        Q = self.Q(HKL)
+        k02 = self.k0**2
+        r_par = (k02-qz**2)**0.5
+        # longitude_ang_after_phi_rotation = np.rad2deg(np.arccos((k02+q_par**2-r_par**2)/(2*self.k0*q_par)))
+        longitude_ang_after_phi_rotation = np.rad2deg(np.arccos((k02+r_par**2-q_par**2)/(2*self.k0*r_par)))
+        # longitude_ang_before_phi_rotation = np.rad2deg(self.angle_between([qx,qy,0],[1,0,0]))
+        r_par_vector = np.array([qx,qy,0]) - np.array([self.k0,0,0])
+        longitude_ang_before_phi_rotation=self.angle_between(r_par_vector,[-1,0,0])
+        longitude_ang_before_phi_rotation = np.rad2deg(self.angle_between([qx,qy,0],[1,0,0]))
+        phi = longitude_ang_after_phi_rotation - longitude_ang_before_phi_rotation
+        gamma = longitude_ang_after_phi_rotation
+        delta = np.rad2deg(np.arcsin(qz/self.k0))
+        return phi, gamma, delta
 
+    @staticmethod
+    def angle_between(v1, v2):
+        def unit_vector(vector):
+            """ Returns the unit vector of the vector.  """
+            return vector / np.linalg.norm(vector)
+
+        """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+                >>> angle_between((1, 0, 0), (0, 1, 0))
+                1.5707963267948966
+                >>> angle_between((1, 0, 0), (1, 0, 0))
+                0.0
+                >>> angle_between((1, 0, 0), (-1, 0, 0))
+                3.141592653589793
+        """
+        v1_u = unit_vector(v1)
+        v2_u = unit_vector(v2)
+        return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
 

@@ -190,7 +190,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.opts['fov'] = 1
         #self.setConfigOption('background', 'w')
         #self.setConfigOption('foreground', 'k')
-        self.setBackgroundColor((100,100,100))
+        self.setBackgroundColor((50,50,50))
 
         self.lines = []
         self.spheres = [

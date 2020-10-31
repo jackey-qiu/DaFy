@@ -65,51 +65,155 @@ class MyMainWindow(QMainWindow):
         self.pushButton_panup.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,-0.5))
         self.pushButton_pandown.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,0.5))
         self.pushButton_plot_XRD_profiles.clicked.connect(self.draw_ctrs)
+        self.comboBox_working_substrate.currentIndexChanged.connect(self.fill_matrix)
+        self.pushButton_convert_hkl.clicked.connect(self.cal_qxqyqz)
+        self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
+        self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
+        self.pushButton_compute.clicked.connect(self.compute_angles)
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
+        ##set style for matplotlib figures
+        plt.style.use('ggplot')
+        matplotlib.rc('xtick', labelsize=10)
+        matplotlib.rc('ytick', labelsize=10)
+        plt.rcParams.update({'axes.labelsize': 10})
+        plt.rc('font',size = 10)
+        plt.rcParams['axes.linewidth'] = 1.5
+        plt.rcParams['axes.grid'] = True
+        plt.rcParams['xtick.major.size'] = 6
+        plt.rcParams['xtick.major.width'] = 2
+        plt.rcParams['xtick.minor.size'] = 4
+        plt.rcParams['xtick.minor.width'] = 1
+        plt.rcParams['ytick.major.size'] = 6
+        plt.rcParams['ytick.major.width'] = 2
+        plt.rcParams['ytick.minor.size'] = 4
+        plt.rcParams['axes.facecolor']='0.7'
+        plt.rcParams['ytick.minor.width'] = 1
+        plt.rcParams['mathtext.default']='regular'
+        #style.use('ggplot','regular')
 
+    def compute_angles(self):
+        if self.lineEdit_H.text()=='' or self.lineEdit_K.text()=='' or self.lineEdit_L.text()=='':
+            error_pop_up('You must fill all qx qy qz blocks for this calculation!')
+            return
+        hkl = [float(self.lineEdit_H.text()),float(self.lineEdit_K.text()),float(self.lineEdit_L.text())]
+        name = self.comboBox_working_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        phi, gamma, delta = structure.lattice.calculate_diffr_angles(hkl)
+        self.lineEdit_phi.setText(str(round(phi,3)))
+        self.lineEdit_gamma.setText(str(round(gamma,3)))
+        self.lineEdit_delta.setText(str(round(delta,3)))
+
+    def fill_matrix(self):
+        name = self.comboBox_working_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        RecTM = structure.lattice.RecTM.flatten()
+        RealTM = structure.lattice.RealTM.flatten()
+        for i in range(1,10):
+            exec(f'self.lineEdit_reaTM_{i}.setText(str(round(RealTM[i-1],3)))')
+            exec(f'self.lineEdit_recTM_{i}.setText(str(round(RecTM[i-1],3)))')
+
+    def cal_qxqyqz(self):
+        if self.lineEdit_H.text()=='' or self.lineEdit_K.text()=='' or self.lineEdit_L.text()=='':
+            error_pop_up('You must fill all qx qy qz blocks for this calculation!')
+            return
+        hkl = [float(self.lineEdit_H.text()),float(self.lineEdit_K.text()),float(self.lineEdit_L.text())]
+        name = self.comboBox_working_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        qx,qy,qz = structure.lattice.q(hkl)
+        self.lineEdit_qx.setText(str(round(qx,4)))
+        self.lineEdit_qy.setText(str(round(qy,4)))
+        self.lineEdit_qz.setText(str(round(qz,4)))
+        self.cal_q_and_2theta()
+
+    def cal_hkl(self):
+        if self.lineEdit_qx.text()=='' or self.lineEdit_qy.text()=='' or self.lineEdit_qz.text()=='':
+            error_pop_up('You must fill all qx qy qz blocks for this calculation!')
+            return
+        qx_qy_qz = [float(self.lineEdit_qx.text()),float(self.lineEdit_qy.text()),float(self.lineEdit_qz.text())]
+        name = self.comboBox_working_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        H,K,L = structure.lattice.HKL(qx_qy_qz)
+        self.lineEdit_H.setText(str(round(H,3)))
+        self.lineEdit_K.setText(str(round(K,3)))
+        self.lineEdit_L.setText(str(round(L,3)))
+        self.cal_q_and_2theta()
+
+    def cal_hkl_in_reference(self):
+        #name_work = self.comboBox_working_substrate.currentText()
+        #structure_work = [each for each in self.structures if each.name == name_work][0]
+        name_reference = self.comboBox_reference_substrate.currentText()
+        structure_reference = [each for each in self.structures if each.name == name_reference][0]
+        self.cal_qxqyqz()
+        qx_qy_qz = np.array([float(self.lineEdit_qx.text()),float(self.lineEdit_qy.text()),float(self.lineEdit_qz.text())])
+        hkl = [round(each,3) for each in structure_reference.lattice.HKL(qx_qy_qz)]
+        self.lineEdit_hkl_reference.setText('[{},{},{}]'.format(*hkl))
+
+    def cal_q_and_2theta(self):
+        qx_qy_qz = [float(self.lineEdit_qx.text()),float(self.lineEdit_qy.text()),float(self.lineEdit_qz.text())]
+        q = self._cal_q(qx_qy_qz)
+        energy_anstrom = float(self.lineEdit_energy.text())
+        if self.comboBox_unit.currentText() == 'KeV':
+            energy_anstrom = energy_anstrom/12.398
+        _2theta = self._cal_2theta(q,energy_anstrom)
+        self.lineEdit_q.setText(str(round(q,4)))
+        self.lineEdit_2theta.setText(str(round(_2theta,2)))
+
+    def _cal_q(self,q):
+        q = np.array(q)
+        return np.sqrt(q.dot(q))
+
+    def _cal_2theta(self,q,wl):
+        return np.rad2deg(np.arcsin(q*wl/4/np.pi))*2
+        
 
     def draw_ctrs(self):
         self.widget.canvas.figure.clear()
         num_plot = len(self.peaks_in_zoomin_viewer)
         resolution = 300
         l = np.linspace(0,self.qz_lim_high,resolution)
-        intensity_dict = {'total':[self.widget.canvas.figure.add_subplot(num_plot+1,1,num_plot+1),l,np.zeros(resolution)]}
+        intensity_dict = {'total':[self.widget.canvas.figure.add_subplot(num_plot+1,1,num_plot+1),l,np.zeros(resolution),[],[],[]]}
         for i in range(num_plot):
             name = list(self.peaks_in_zoomin_viewer.keys())[i]
             ax = self.widget.canvas.figure.add_subplot(num_plot+1,1,i+1)
             # ax.set_yscale('log')
             intensity_dict[name] = [ax]
-            '''
-            if name == self.structures[0].name:#main substrate then calculate ctr
-                l = np.linspace(0,self.qz_lim_high,100)
-                hk = self.structures[0].lattice.HKL(self.peaks_in_zoomin_viewer[name][0])
-                I = np.array([self.structures[0].lattice.I([hk[0],hk[1],each]) for each in l])
-                intensity_dict[name].append(l)
-                intensity_dict[name].append(I)
-            else:
-            '''
             structure = [each_structure for each_structure in self.structures if each_structure.name == name][0]
             I = np.zeros(resolution)
             #l = np.linspace(0,self.qz_lim_high,300)
+            l_text = []
+            I_text = []
+            text = []
             for each_peak in self.peaks_in_zoomin_viewer[name]:
                 hkl = structure.lattice.HKL(each_peak)
+                text.append([int(round(each,0)) for each in hkl])
                 if structure.name != self.structures[0].name:
                     I_this_point = structure.lattice.I(hkl)/10#scaled by 100 to consider for thin film
                 else:
                     I_this_point = structure.lattice.I(hkl)
                 l_wrt_main_substrate = self.structures[0].lattice.HKL(each_peak)[-1]
+                l_text.append(l_wrt_main_substrate)
                 # print(name, hkl, I_this_point)
                 #Gaussian expansion, assume sigma = 0.2
                 sigma = 0.06
                 I_ = I_this_point/(sigma*(2*np.pi)**0.5)*np.exp(-0.5*((l-l_wrt_main_substrate)/sigma)**2)
                 I = I + I_
+                I_text.append(I_this_point/(sigma*(2*np.pi)**0.5))
             intensity_dict[name].append(l)
             intensity_dict[name].append(I)
-            intensity_dict['total'][-1] = intensity_dict['total'][-1]+I
+            intensity_dict[name].append(l_text)
+            intensity_dict[name].append(I_text)
+            intensity_dict[name].append(text)
+            intensity_dict['total'][2] = intensity_dict['total'][2]+I
+            intensity_dict['total'][3]+=l_text
+            intensity_dict['total'][4]+=I_text
+            intensity_dict['total'][5]+=text
         for each in intensity_dict:
-            ax, l, I = intensity_dict[each]
+            ax, l, I,l_text, I_text, text = intensity_dict[each]
             ax.plot(l,I,label = each)
+            for i in range(len(text)):
+                ax.text(l_text[i],I_text[i],str(text[i]),rotation ='vertical')
             ax.set_title(each)
+        self.widget.canvas.figure.tight_layout()
         self.widget.canvas.draw()
         
     def update_camera_position(self,widget_name = 'widget_glview', angle_type="azimuth", angle=0):
@@ -192,6 +296,7 @@ class MyMainWindow(QMainWindow):
         self.common_offset_angle = float(self.config.get('Plot', 'common_offset_angle'))
         self.plot_axes = int(self.config.get('Plot', 'plot_axes'))
         self.energy_keV = float(self.config.get('Plot', 'energy_keV'))
+        self.lineEdit_energy.setText(str(self.energy_keV))
         self.k0 = rsp.get_k0(self.energy_keV)
         self.load_base_structures_in_config()
         self.load_structures_in_config()
@@ -246,6 +351,8 @@ class MyMainWindow(QMainWindow):
 
         self.comboBox_names.clear()
         self.comboBox_names.addItems(names)
+        self.comboBox_working_substrate.addItems(names)
+        self.comboBox_reference_substrate.addItems(names)
         # put reference structure at first position in list
         for i in range(len(self.structures)):
             if(self.structures[i].is_reference_coordinate_system):
