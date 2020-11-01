@@ -5,6 +5,7 @@ from pyqtgraph.Qt import QtGui,QtCore
 import copy
 from scipy.spatial.distance import pdist
 import itertools
+from OpenGL.GL import *
 #color_lib = {'C':(1,0,0,1),'O':(0,1,0,1),'Cu':(1,0,1,1)}
 # color_lib = {'C':0xFFFFFF,'O':(0,1,0,1),'Cu':(1,0,1,1)}
 def color_to_rgb(hex_str):
@@ -202,6 +203,22 @@ class GLViewWidget_cum(gl.GLViewWidget):
                        [[0,0,0],[1,0,0],0.1,0.2,(1,0,0,0.8)]]
         self.grids = []
         self.texts = [[0,0,0,'o']]
+
+    def mouseReleaseEvent(self, ev):
+        pass
+        '''
+        # Example item selection code:
+        region = (ev.pos().x()-0.1, ev.pos().y()-0.01, 0.01, 0.01)
+        print(self.itemsAt(region))
+        
+        ## debugging code: draw the picking region
+        
+        glViewport(*self.getViewport())
+        glClear( GL_DEPTH_BUFFER_BIT | GL_COLOR_BUFFER_BIT )
+        region = (region[0], self.height()-(region[1]+region[3]), region[2], region[3])
+        self.paintGL(region=region)
+        self.swapBuffers()
+        '''
 
     def clear(self):
         """

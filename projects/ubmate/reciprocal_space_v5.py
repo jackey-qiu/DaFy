@@ -477,6 +477,7 @@ class lattice():
     def calculate_diffr_angles(self, HKL, mu=0):
         #mu is tilt angle or incidence angle
         q = self.q(HKL)
+        q = Rx(np.deg2rad(mu)).dot(q)
         qx,qy,qz = q
         q_par = (qx**2 + qy**2)**0.5
         Q = self.Q(HKL)

@@ -98,7 +98,12 @@ class MyMainWindow(QMainWindow):
         hkl = [float(self.lineEdit_H.text()),float(self.lineEdit_K.text()),float(self.lineEdit_L.text())]
         name = self.comboBox_working_substrate.currentText()
         structure = [each for each in self.structures if each.name == name][0]
-        phi, gamma, delta = structure.lattice.calculate_diffr_angles(hkl)
+        energy_kev = float(self.lineEdit_energy.text())
+        if self.comboBox_unit.currentText() != 'KeV':
+            energy_kev = 12.398/energy_kev
+        structure.lattice.set_E_keV(energy_kev)
+        mu = float(self.lineEdit_mu.text())
+        phi, gamma, delta = structure.lattice.calculate_diffr_angles(hkl,mu)
         self.lineEdit_phi.setText(str(round(phi,3)))
         self.lineEdit_gamma.setText(str(round(gamma,3)))
         self.lineEdit_delta.setText(str(round(delta,3)))
@@ -153,7 +158,7 @@ class MyMainWindow(QMainWindow):
         q = self._cal_q(qx_qy_qz)
         energy_anstrom = float(self.lineEdit_energy.text())
         if self.comboBox_unit.currentText() == 'KeV':
-            energy_anstrom = energy_anstrom/12.398
+            energy_anstrom = 12.398/energy_anstrom
         _2theta = self._cal_2theta(q,energy_anstrom)
         self.lineEdit_q.setText(str(round(q,4)))
         self.lineEdit_2theta.setText(str(round(_2theta,2)))
@@ -350,6 +355,8 @@ class MyMainWindow(QMainWindow):
             self.structures.append(Structure(self.base_structures[id], HKL_normal, HKL_para_x, offset_angle, is_reference_coordinate_system, plot_peaks, plot_rods, plot_grid, plot_unitcell, color, name))
 
         self.comboBox_names.clear()
+        self.comboBox_working_substrate.clear()
+        self.comboBox_reference_substrate.clear()
         self.comboBox_names.addItems(names)
         self.comboBox_working_substrate.addItems(names)
         self.comboBox_reference_substrate.addItems(names)
@@ -499,6 +506,6 @@ if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
-    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())
