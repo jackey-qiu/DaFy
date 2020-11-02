@@ -34,7 +34,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -88,6 +88,13 @@
             <widget class="QPushButton" name="pushButton_draw">
              <property name="text">
               <string>Draw</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_ewarld">
+             <property name="text">
+              <string>Ewarld Sphere</string>
              </property>
             </widget>
            </item>
@@ -641,13 +648,6 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="4">
-            <widget class="QLabel" name="label_17">
-             <property name="text">
-              <string>Energy</string>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="0">
             <widget class="QLabel" name="label_18">
              <property name="text">
@@ -705,16 +705,6 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="5">
-            <widget class="QLineEdit" name="lineEdit_energy">
-             <property name="maximumSize">
-              <size>
-               <width>80</width>
-               <height>16777215</height>
-              </size>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="7">
             <widget class="QLineEdit" name="lineEdit_mu">
              <property name="maximumSize">
@@ -728,7 +718,7 @@
              </property>
             </widget>
            </item>
-           <item row="0" column="6">
+           <item row="0" column="8">
             <widget class="QComboBox" name="comboBox_unit">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
@@ -752,6 +742,40 @@
                <string>Å</string>
               </property>
              </item>
+            </widget>
+           </item>
+           <item row="0" column="7">
+            <widget class="QLineEdit" name="lineEdit_energy">
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="6">
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>Energy</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="4">
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>d_spacing</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="5">
+            <widget class="QLineEdit" name="lineEdit_d">
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
             </widget>
            </item>
           </layout>

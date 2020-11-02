@@ -98,7 +98,7 @@ class space_plot():
 
         qs = np.swapaxes(qs, 0, 1)
         if(len(Is) > 0):
-            return [[[qs[0][i]*scale_q[0], qs[1][i]*scale_q[1], qs[2][i]*scale_q[2]], list(color)+[0.9],  np.sqrt(Is)[i]/2] for i in range(len(Is))],HKs          
+            return [[[qs[0][i]*scale_q[0], qs[1][i]*scale_q[1], qs[2][i]*scale_q[2]], list(color)+[0.5],  np.sqrt(Is)[i]/2] for i in range(len(Is))],HKs          
         return [], []
 
     # Plot Bragg peaks, with point size proportional to scattering intensity

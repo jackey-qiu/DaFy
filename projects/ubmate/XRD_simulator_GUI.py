@@ -102,7 +102,8 @@ class MyMainWindow(QMainWindow):
         if self.comboBox_unit.currentText() != 'KeV':
             energy_kev = 12.398/energy_kev
         structure.lattice.set_E_keV(energy_kev)
-        mu = float(self.lineEdit_mu.text())
+        #negative because of the rotation sense
+        mu = -float(self.lineEdit_mu.text())
         phi, gamma, delta = structure.lattice.calculate_diffr_angles(hkl,mu)
         self.lineEdit_phi.setText(str(round(phi,3)))
         self.lineEdit_gamma.setText(str(round(gamma,3)))
@@ -162,6 +163,7 @@ class MyMainWindow(QMainWindow):
         _2theta = self._cal_2theta(q,energy_anstrom)
         self.lineEdit_q.setText(str(round(q,4)))
         self.lineEdit_2theta.setText(str(round(_2theta,2)))
+        self.lineEdit_d.setText(str(round(energy_anstrom/2/np.sin(np.deg2rad(_2theta/2)),2)))
 
     def _cal_q(self,q):
         q = np.array(q)
@@ -452,6 +454,10 @@ class MyMainWindow(QMainWindow):
             self.axes.append([[qx_min,qy_min,0],[qx_min+1,qy_min,0],0.1,0.2,(0,0,1,0.8)])
             self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min+1,0],0.1,0.2,(0,1,0,0.8)])
             self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min,1],0.1,0.2,(1,0,0,0.8)])
+        if self.checkBox_ewarld.isChecked():
+            self.widget_glview.ewarld_sphere = [[0,-self.structures[0].lattice.k0,0],(0,1,0,0.8),self.structures[0].lattice.k0]
+        else:
+            self.widget_glview.ewarld_sphere = []
         self.widget_glview.spheres = self.peaks
         self.widget_glview.lines = self.rods
         self.widget_glview.grids = self.grids

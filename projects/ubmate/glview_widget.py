@@ -147,6 +147,8 @@ covalent_bond_length = {
     ('O','Cd'):2.5
 }
 
+
+
 class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
     def __init__(self, X, Y, Z, text):
         gl.GLGraphicsItem.GLGraphicsItem.__init__(self)
@@ -191,18 +193,46 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.opts['fov'] = 1
         #self.setConfigOption('background', 'w')
         #self.setConfigOption('foreground', 'k')
-        self.setBackgroundColor((50,50,50))
+        # self.setBackgroundColor((50,50,50))
 
         self.lines = []
         self.spheres = [
                         [[0,0,0],(1,0,0,0.8),0.2],
                         [[5,0,0],(1,1,0,0.8),0.2]]
+        self.ewarld_sphere = []
         self.arrows = [
                        [[0,0,0],[0,0,1],0.1,0.2,(1,0,0,0.8)],
                        [[0,0,0],[0,1,0],0.1,0.2,(1,0,0,0.8)],
                        [[0,0,0],[1,0,0],0.1,0.2,(1,0,0,0.8)]]
         self.grids = []
         self.texts = [[0,0,0,'o']]
+
+    #calculate the cross point(s) (if any) between a line segment and a sphere
+    #The line segment is defined by two end points: line_p1 and line_p2
+    #The sphere is defined by its center coordinate and its radius
+    @staticmethod
+    def compute_line_intersection_with_sphere(line_p1, line_p2, sphere_center, radius):
+        x1, y1, z1 = line_p1
+        x2, y2, z2 = line_p2
+        xc, yc, zc = sphere_center
+        a = (x2-x1)**2 + (y2 - y1)**2 + (z2-z1)**2
+        b = 2*((x2-x1)*(xc-x1)+(y2-y1)*(yc-y1)+(zc-z1)*(z2-z1))
+        c = (xc - x1)**2 + (yc-y1)**2 + (zc-z1)**2 - radius**2
+        value_in_rms = b**2 - 4*a*c
+        if value_in_rms>0:
+            ts = np.array([(-b + value_in_rms**0.5)/(2*a),(-b - value_in_rms**0.5)/(2*a)])
+        elif value_in_rms == 0:
+            ts = np.array([-b/(2*a)])
+        else:
+            ts = np.array([])
+        pts = []
+        for each  in ts:
+            _pt = np.array(line_p1) + (np.array(line_p2) - np.array(line_p1))*each
+            _x, _y, _z = _pt
+            if (_x-x1)*(_x-x2)<=0 and (_y-y1)*(_y-y2)<=0 and (_z-z1)*(_z-z2)<=0:
+                pts.append(_pt)
+        return pts
+
 
     def mouseReleaseEvent(self, ev):
         pass
@@ -250,9 +280,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
         mesh_item.translate(*v1)
         return line, mesh_item
 
-    def draw_sphere(self, v1, color = (1,0,0,0.8), scale_factor = 1):
-        md = gl.MeshData.sphere(rows=10, cols=20)
-        m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions='opaque')
+    def draw_sphere(self, v1, color = (1,0,0,0.8), scale_factor = 1, rows=10, cols= 20,glOption = 'opaque'):
+        md = gl.MeshData.sphere(rows=rows, cols=cols)
+        # m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions='opaque')
+        m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions=glOption)
         # m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions='additive')
         # print(dir(m1.metaObject()))
         x,y,z = v1
@@ -265,12 +296,20 @@ class GLViewWidget_cum(gl.GLViewWidget):
         for each_line in self.lines:
             v1, v2, color = each_line
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 3))
+            if len(self.ewarld_sphere)!=0:
+                v1_, _, scale_factor = self.ewarld_sphere
+                cross_points = self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor)
+                for each in cross_points:
+                    self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
         for each_line in self.grids:
             v1, v2, color = each_line
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 1))
         for each_sphere in self.spheres:
             v1_, color_, scale_factor = each_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor)) 
+        if len(self.ewarld_sphere)!=0:
+            v1_, color_, scale_factor = self.ewarld_sphere
+            self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'opaque'))
         for each_arrow in self.arrows:
             v1, v2, tip_width, tip_length_scale, color = each_arrow
             items = self.draw_arrow(v1, v2, tip_width, tip_length_scale, color)
