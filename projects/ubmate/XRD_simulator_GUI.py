@@ -66,6 +66,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_pandown.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,0.5))
         self.pushButton_plot_XRD_profiles.clicked.connect(self.draw_ctrs)
         # self.comboBox_working_substrate.currentIndexChanged.connect(self.fill_matrix)
+        self.pushButton_convert_abc.clicked.connect(self.cal_xyz)
+        self.pushButton_convert_xyz.clicked.connect(self.cal_abc)
         self.pushButton_convert_hkl.clicked.connect(self.cal_qxqyqz)
         self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
         self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
@@ -155,6 +157,30 @@ class MyMainWindow(QMainWindow):
         self.lineEdit_K.setText(str(round(K,3)))
         self.lineEdit_L.setText(str(round(L,3)))
         self.cal_q_and_2theta()
+
+    def cal_xyz(self):
+        if self.lineEdit_a.text()=='' or self.lineEdit_b.text()=='' or self.lineEdit_c.text()=='':
+            error_pop_up('You must fill all a b c blocks for this calculation!')
+            return
+        a_b_c = [float(self.lineEdit_a.text()),float(self.lineEdit_b.text()),float(self.lineEdit_c.text())]
+        name = self.comboBox_working_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        x, y, z = structure.lattice.RealTM.dot(a_b_c)
+        self.lineEdit_x.setText(str(round(x,3)))
+        self.lineEdit_y.setText(str(round(y,3)))
+        self.lineEdit_z.setText(str(round(z,3)))
+
+    def cal_abc(self):
+        if self.lineEdit_x.text()=='' or self.lineEdit_y.text()=='' or self.lineEdit_z.text()=='':
+            error_pop_up('You must fill all x y z blocks for this calculation!')
+            return
+        x_y_z = [float(self.lineEdit_x.text()),float(self.lineEdit_y.text()),float(self.lineEdit_z.text())]
+        name = self.comboBox_working_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        a, b, c = structure.lattice.RealTMInv.dot(x_y_z)
+        self.lineEdit_a.setText(str(round(a,3)))
+        self.lineEdit_b.setText(str(round(b,3)))
+        self.lineEdit_c.setText(str(round(c,3)))
 
     def cal_hkl_in_reference(self):
         #name_work = self.comboBox_working_substrate.currentText()
@@ -468,6 +494,7 @@ class MyMainWindow(QMainWindow):
                     qx_min = qx_
                 if qy_<qy_min:
                     qy_min = qy_
+            qx_min, qy_min = 0, self.structures[0].lattice.k0
             self.axes.append([[qx_min,qy_min,0],[qx_min+1,qy_min,0],0.1,0.2,(0,0,1,0.8)])
             self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min+1,0],0.1,0.2,(0,1,0,0.8)])
             self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min,1],0.1,0.2,(1,0,0,0.8)])

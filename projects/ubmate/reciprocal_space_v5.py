@@ -105,6 +105,7 @@ class lattice():
                                 [self.A1[1], self.A2[1], self.A3[1]],
                                 [self.A1[2], self.A2[2], self.A3[2]]])
 
+        self.RealTMInv = inv(self.RealTM)
         # Calculate reciprocal space unit cell vectors
         self._V_real = self.A1.dot(np.cross(self.A2, self.A3))
         self.B1 = 2 * np.pi * np.cross(self.A2, self.A3) / self._V_real
