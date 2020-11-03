@@ -48,7 +48,7 @@ def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warn
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator_debug.ui'),self)
         self.widget_terminal.update_name_space('main_gui',self)
         self.config = ConfigParser.RawConfigParser()
         self.config.optionxform = str # make entries in config file case sensitive
@@ -65,7 +65,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_panup.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,-0.5))
         self.pushButton_pandown.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,0.5))
         self.pushButton_plot_XRD_profiles.clicked.connect(self.draw_ctrs)
-        self.comboBox_working_substrate.currentIndexChanged.connect(self.fill_matrix)
+        # self.comboBox_working_substrate.currentIndexChanged.connect(self.fill_matrix)
         self.pushButton_convert_hkl.clicked.connect(self.cal_qxqyqz)
         self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
         self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
@@ -90,6 +90,18 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    #extract cross points between the rods and the Ewarld sphere
+    def extract_cross_point_info(self):
+        text = ['The cross points between rods and the Ewarld sphere is listed below']
+        for each in self.widget_glview.cross_points_info:
+            text.append('')
+            text.append(each)
+            structure = [self.structures[i] for i in range(len(self.structures)) if self.structures[i].name == each][0]
+            for each_q in self.widget_glview.cross_points_info[each]:
+                H, K, L = structure.lattice.HKL(each_q)
+                text.append('HKL:{}'.format([round(H,3),round(K,3),round(L,3)]))
+        self.plainTextEdit_cross_points_info.setPlainText('\n'.join(text))
 
     def compute_angles(self):
         if self.lineEdit_H.text()=='' or self.lineEdit_K.text()=='' or self.lineEdit_L.text()=='':
@@ -230,6 +242,8 @@ class MyMainWindow(QMainWindow):
 
     def show_structure(self, widget_name = 'widget_glview'):
         getattr(self,widget_name).show_structure()
+        if widget_name == 'widget_glview':
+            self.extract_cross_point_info()
         self.update_camera_position(widget_name=widget_name, angle_type="elevation", angle=90)
         self.update_camera_position(widget_name=widget_name, angle_type="azimuth", angle=270)
 
@@ -354,7 +368,7 @@ class MyMainWindow(QMainWindow):
             plot_unitcell = int(toks[8])
             color = toks[9].split(';')
             color = (float(color[0]), float(color[1]), float(color[2]))
-            self.structures.append(Structure(self.base_structures[id], HKL_normal, HKL_para_x, offset_angle, is_reference_coordinate_system, plot_peaks, plot_rods, plot_grid, plot_unitcell, color, name))
+            self.structures.append(Structure(self.base_structures[id], HKL_normal, HKL_para_x, offset_angle, is_reference_coordinate_system, plot_peaks, plot_rods, plot_grid, plot_unitcell, color, name, self.energy_keV))
 
         self.comboBox_names.clear()
         self.comboBox_working_substrate.clear()
@@ -410,6 +424,8 @@ class MyMainWindow(QMainWindow):
     def prepare_objects_for_render(self):
         self.peaks = []
         self.peaks_dict = {}
+        self.HKLs_dict = {}
+        self.rods_dict = {}
         self.rods = []
         self.grids = []
         self.axes = []
@@ -431,6 +447,7 @@ class MyMainWindow(QMainWindow):
                     for each in rods_:
                         self.rods.append(each)
                     self.HKLs_dict[struc.name] = HKLs
+                    self.rods_dict[struc.name] = rods_
             if(struc.plot_grid):
                 grids_ = space_plots[i].get_grids(qx_lims=self.qx_lims, qy_lims=self.qy_lims, qz_lims=self.qz_lims, q_inplane_lim=self.q_inplane_lim, color=struc.color)
                 if len(grids_)>0:
@@ -455,11 +472,12 @@ class MyMainWindow(QMainWindow):
             self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min+1,0],0.1,0.2,(0,1,0,0.8)])
             self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min,1],0.1,0.2,(1,0,0,0.8)])
         if self.checkBox_ewarld.isChecked():
-            self.widget_glview.ewarld_sphere = [[0,-self.structures[0].lattice.k0,0],(0,1,0,0.8),self.structures[0].lattice.k0]
+            self.widget_glview.ewarld_sphere = [[0,-self.structures[0].lattice.k0,0],(1,1,1,0.3),self.structures[0].lattice.k0]
         else:
             self.widget_glview.ewarld_sphere = []
         self.widget_glview.spheres = self.peaks
         self.widget_glview.lines = self.rods
+        self.widget_glview.lines_dict = self.rods_dict
         self.widget_glview.grids = self.grids
         self.widget_glview.arrows = self.axes
         self.widget_glview.clear()
@@ -483,7 +501,7 @@ class Base_Structure():
         return Base_Structure(id, filename=filename, create_from_cif=True)
 
 class Structure():
-    def __init__(self, base_structure, HKL_normal, HKL_para_x, offset_angle, is_reference_coordinate_system, plot_peaks, plot_rods, plot_grid, plot_unitcell, color, name):
+    def __init__(self, base_structure, HKL_normal, HKL_para_x, offset_angle, is_reference_coordinate_system, plot_peaks, plot_rods, plot_grid, plot_unitcell, color, name, energy_keV):
         self.HKL_normal = HKL_normal
         self.HKL_para_x = HKL_para_x
         self.offset_angle = offset_angle
@@ -495,8 +513,9 @@ class Structure():
         self.base_structure = base_structure
         self.color = color
         self.name = name
+        self.energy_keV = energy_keV
         if(base_structure.create_from_cif):
-            self.lattice = rsp.lattice.from_cif(base_structure.filename, self.HKL_normal, self.HKL_para_x, offset_angle)
+            self.lattice = rsp.lattice.from_cif(base_structure.filename, self.HKL_normal, self.HKL_para_x, offset_angle, self.energy_keV)
         else:
             a = base_structure.a
             b = base_structure.b
@@ -505,7 +524,7 @@ class Structure():
             beta = base_structure.beta
             gamma = base_structure.gamma
             basis = base_structure.basis
-            self.lattice = rsp.lattice(a, b, c, alpha, beta, gamma, basis, HKL_normal, HKL_para_x, offset_angle)
+            self.lattice = rsp.lattice(a, b, c, alpha, beta, gamma, basis, HKL_normal, HKL_para_x, offset_angle, self.energy_keV)
 
 
 if __name__ == "__main__":

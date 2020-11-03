@@ -483,12 +483,9 @@ class lattice():
         Q = self.Q(HKL)
         k02 = self.k0**2
         r_par = (k02-qz**2)**0.5
-        # longitude_ang_after_phi_rotation = np.rad2deg(np.arccos((k02+q_par**2-r_par**2)/(2*self.k0*q_par)))
         longitude_ang_after_phi_rotation = np.rad2deg(np.arccos((k02+r_par**2-q_par**2)/(2*self.k0*r_par)))
-        # longitude_ang_before_phi_rotation = np.rad2deg(self.angle_between([qx,qy,0],[1,0,0]))
         r_par_vector = np.array([qx,qy,0]) - np.array([self.k0,0,0])
-        longitude_ang_before_phi_rotation=self.angle_between(r_par_vector,[-1,0,0])
-        longitude_ang_before_phi_rotation = np.rad2deg(self.angle_between([qx,qy,0],[1,0,0]))
+        longitude_ang_before_phi_rotation = np.rad2deg(self.angle_between(np.array([qx,qy,0])-np.array([0,-self.k0,0]),[0,1,0]))
         phi = longitude_ang_after_phi_rotation - longitude_ang_before_phi_rotation
         gamma = longitude_ang_after_phi_rotation
         delta = np.rad2deg(np.arcsin(qz/self.k0))

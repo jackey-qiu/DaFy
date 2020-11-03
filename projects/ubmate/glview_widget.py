@@ -150,12 +150,13 @@ covalent_bond_length = {
 
 
 class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
-    def __init__(self, X, Y, Z, text):
+    def __init__(self, X, Y, Z, text, color = QtCore.Qt.white):
         gl.GLGraphicsItem.GLGraphicsItem.__init__(self)
         self.text = text
         self.X = X
         self.Y = Y
         self.Z = Z
+        self.color = color
 
     def setGLViewWidget(self, GLViewWidget):
         self.GLViewWidget = GLViewWidget
@@ -179,7 +180,7 @@ class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
     def paint(self):
         font = QtGui.QFont("Arial")
         font.setPointSize(10)
-        self.GLViewWidget.qglColor(QtCore.Qt.white)
+        self.GLViewWidget.qglColor(self.color)
         self.GLViewWidget.renderText(self.X, self.Y, self.Z, self.text, font)
 
 class GLViewWidget_cum(gl.GLViewWidget):
@@ -196,6 +197,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
         # self.setBackgroundColor((50,50,50))
 
         self.lines = []
+        self.lines_dict = {}
+        self.cross_points_info = {}
         self.spheres = [
                         [[0,0,0],(1,0,0,0.8),0.2],
                         [[5,0,0],(1,1,0,0.8),0.2]]
@@ -233,6 +236,14 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 pts.append(_pt)
         return pts
 
+    #v1 and v2 are orthogonal unit vector
+    #The circle to be computed will be parallel to the plane defined by v1 and v2, with the center defined by center, with a radius defined by r
+    @staticmethod
+    def compute_points_on_3d_circle(center, v1, v2, r,resolution = 1000):
+        ts = np.linspace(0,np.pi*2,resolution)
+        v1, v2, p = v1/np.linalg.norm(v1),v2/np.linalg.norm(v2), np.array(center)
+        points = np.array([p + r*np.cos(t)*v1 + r*np.sin(t)*v2 for t in ts])
+        return points
 
     def mouseReleaseEvent(self, ev):
         pass
@@ -264,9 +275,9 @@ class GLViewWidget_cum(gl.GLViewWidget):
         return line
 
     #tip_length_scale is the percentage [0,1] of the length of arrow wrt the vector length
-    def draw_arrow(self, v1, v2, tip_width, tip_length_scale, color):
+    def draw_arrow(self, v1, v2, tip_width, tip_length_scale, color,line_width = 2):
         v2, v1 = np.array(v1), np.array(v2)
-        line = gl.GLLinePlotItem(pos=np.array([v1,v2]), width=2, color = color, antialias=False)
+        line = gl.GLLinePlotItem(pos=np.array([v1,v2]), width=line_width, color = color, antialias=False)
         dist = np.linalg.norm(np.array(v1)-np.array(v2))
         c = np.dot([0,0,1],v2-v1)/np.linalg.norm(v2-v1)
         ang = np.arccos(np.clip(c,-1,1))/np.pi*180
@@ -288,19 +299,43 @@ class GLViewWidget_cum(gl.GLViewWidget):
         # print(dir(m1.metaObject()))
         x,y,z = v1
         m1.translate(x, y, z)
-        m1.scale(*([scale_factor]*3))
+        m1.scale(*([scale_factor]*2+[scale_factor]))
         return m1
 
     def show_structure(self):
         self.clear()
+        self.cross_points_info = {}
         for each_line in self.lines:
             v1, v2, color = each_line
+            name = None
+            for each_name in self.lines_dict:
+                if each_line in self.lines_dict[each_name]:
+                    name = each_name
+                    break
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 3))
             if len(self.ewarld_sphere)!=0:
                 v1_, _, scale_factor = self.ewarld_sphere
-                cross_points = self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor)
+                cross_points = list(self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor))
+                if name in self.cross_points_info:
+                    self.cross_points_info[name] += cross_points
+                else:
+                    self.cross_points_info[name] = cross_points
                 for each in cross_points:
+                    points_on_circle = self.compute_points_on_3d_circle(center=v1_, v1=each, v2=(each-np.array(v1_)*2), r=scale_factor,resolution = 100)
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
                     self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
+                    ki = self.draw_arrow(v1_,[0,0,0], tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
+                    kfs=self.draw_arrow(v1_, each, tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
+                    q_vs= self.draw_arrow([0,0,0], each, tip_width=0.1, tip_length_scale=0.02, color=(1.,1.,1,1),line_width =0.5)
+                    for kf in kfs:
+                        self.addItem(kf)
+                    for q_v in q_vs:
+                        self.addItem(q_v)
+                    for each_ki in ki:
+                        self.addItem(each_ki)
+                    # text = CustomTextItem(*each, 'x', color = QtCore.Qt.red)
+                    # text.setGLViewWidget(self)
+                    # self.addItem(text)
         for each_line in self.grids:
             v1, v2, color = each_line
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 1))
@@ -309,7 +344,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
             self.addItem(self.draw_sphere(v1_, color_, scale_factor)) 
         if len(self.ewarld_sphere)!=0:
             v1_, color_, scale_factor = self.ewarld_sphere
-            self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'opaque'))
+            self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'additive'))
         for each_arrow in self.arrows:
             v1, v2, tip_width, tip_length_scale, color = each_arrow
             items = self.draw_arrow(v1, v2, tip_width, tip_length_scale, color)
