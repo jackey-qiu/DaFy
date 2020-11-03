@@ -22,14 +22,14 @@
       </property>
       <widget class="QTabWidget" name="tabWidget">
        <property name="sizePolicy">
-        <sizepolicy hsizetype="Minimum" vsizetype="Expanding">
+        <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
          <horstretch>0</horstretch>
          <verstretch>0</verstretch>
         </sizepolicy>
        </property>
        <property name="maximumSize">
         <size>
-         <width>600</width>
+         <width>600000</width>
          <height>16777215</height>
         </size>
        </property>
@@ -820,7 +820,7 @@
       <widget class="QTabWidget" name="tabWidget_2">
        <property name="minimumSize">
         <size>
-         <width>600</width>
+         <width>1000</width>
          <height>0</height>
         </size>
        </property>
@@ -837,9 +837,88 @@
         <attribute name="title">
          <string>RecSpaceViewer</string>
         </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
+        <layout class="QHBoxLayout" name="horizontalLayout_11">
          <item>
-          <widget class="GLViewWidget_cum" name="widget_glview" native="true"/>
+          <widget class="QFrame" name="frame">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_4">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_2">
+              <item>
+               <widget class="QPushButton" name="pushButton_azimuth0">
+                <property name="text">
+                 <string>Azimuth_0</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_azimuth90">
+                <property name="text">
+                 <string>Azimuth_90</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_azimuth180">
+                <property name="text">
+                 <string>Azimuth_180</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_panup_2">
+                <property name="text">
+                 <string>PanUp</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_pandown_2">
+                <property name="text">
+                 <string>PanDown</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_panleft">
+                <property name="text">
+                 <string>PanLeft</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_panright">
+                <property name="text">
+                 <string>PanRight</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_start_spin">
+                <property name="text">
+                 <string>StartSpin</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_stop_spin">
+                <property name="text">
+                 <string>StopSpin</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="GLViewWidget_cum" name="widget_glview" native="true"/>
+            </item>
+           </layout>
+          </widget>
          </item>
          <item>
           <widget class="GLViewWidget_cum" name="widget_glview_zoomin" native="true">

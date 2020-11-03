@@ -2,7 +2,7 @@ import sys,os,qdarkstyle
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
-from PyQt5 import uic
+from PyQt5 import uic, QtCore
 import pyqtgraph as pg
 import random,copy
 import numpy as np
@@ -72,6 +72,18 @@ class MyMainWindow(QMainWindow):
         self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
         self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
         self.pushButton_compute.clicked.connect(self.compute_angles)
+        self.timer_spin = QtCore.QTimer(self)
+        self.timer_spin.timeout.connect(self.spin)
+        self.azimuth_angle = 0
+        self.pushButton_azimuth0.clicked.connect(self.azimuth_0)
+        self.pushButton_azimuth90.clicked.connect(self.azimuth_90)
+        self.pushButton_azimuth180.clicked.connect(self.azimuth_180)
+        self.pushButton_panup_2.clicked.connect(lambda:self.pan_view([0,0,-1]))
+        self.pushButton_pandown_2.clicked.connect(lambda:self.pan_view([0,0,1]))
+        self.pushButton_panleft.clicked.connect(lambda:self.pan_view([0,-1,0]))
+        self.pushButton_panright.clicked.connect(lambda:self.pan_view([0,1,0]))
+        self.pushButton_start_spin.clicked.connect(self.start_spin)
+        self.pushButton_stop_spin.clicked.connect(self.stop_spin)
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
         ##set style for matplotlib figures
         plt.style.use('ggplot')
@@ -260,11 +272,39 @@ class MyMainWindow(QMainWindow):
             ax.set_title(each)
         self.widget.canvas.figure.tight_layout()
         self.widget.canvas.draw()
-        
+
+    def pan_view(self,signs = [1,1,1]):
+        value = 0.5
+        pan_values = list(np.array(signs)*value)
+        self.widget_glview.pan(*pan_values)
+ 
     def update_camera_position(self,widget_name = 'widget_glview', angle_type="azimuth", angle=0):
         getattr(self,widget_name).setCameraPosition(pos=None, distance=None, \
             elevation=[None,angle][int(angle_type=="elevation")], \
                 azimuth=[None,angle][int(angle_type=="azimuth")])
+
+    def azimuth_0(self):
+        self.update_camera_position(angle_type="elevation", angle=0)
+        self.update_camera_position(angle_type="azimuth", angle=0)
+
+    def azimuth_90(self):
+        self.update_camera_position(angle_type="elevation", angle=0)
+        self.update_camera_position(angle_type="azimuth", angle=90)
+
+    def azimuth_180(self):
+        self.update_camera_position(angle_type="elevation", angle=0)
+        self.update_camera_position(angle_type="azimuth", angle=180)
+
+    def start_spin(self):
+        self.timer_spin.start(100)
+
+    def stop_spin(self):
+        self.timer_spin.stop()
+
+    def spin(self):
+        #if self.azimuth > 360:
+        self.update_camera_position(angle_type="azimuth", angle=self.azimuth_angle)
+        self.azimuth_angle = self.azimuth_angle + 1
 
     def show_structure(self, widget_name = 'widget_glview'):
         getattr(self,widget_name).show_structure()
