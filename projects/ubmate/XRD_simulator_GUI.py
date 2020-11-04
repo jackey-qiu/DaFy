@@ -62,6 +62,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update.clicked.connect(self.update_config_file)
         self.pushButton_launch.clicked.connect(self.launch_config_file)
         self.comboBox_names.currentIndexChanged.connect(self.update_HKs_list)
+        self.comboBox_names.currentIndexChanged.connect(self.update_Bragg_peak_list)
+        self.comboBox_bragg_peak.currentIndexChanged.connect(self.select_rod_based_on_Bragg_peak)
         self.pushButton_panup.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,-0.5))
         self.pushButton_pandown.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,0.5))
         self.pushButton_plot_XRD_profiles.clicked.connect(self.draw_ctrs)
@@ -362,6 +364,40 @@ class MyMainWindow(QMainWindow):
         self.comboBox_HKs.clear()
         self.comboBox_HKs.addItems(list(map(str,self.HKLs_dict[name])))
 
+    def update_Bragg_peak_list(self):
+        name = self.comboBox_names.currentText()
+        structure = None
+        for each in self.structures:
+            if each.name == name:
+                structure = each
+                break
+        peaks = self.peaks_dict[name]
+        peaks_unique = []
+        for i, peak in enumerate(peaks):
+            qxqyqz, _, intensity = peak
+            HKL = [int(round(each_, 0)) for each_ in structure.lattice.HKL(qxqyqz)]
+            peaks_unique.append(HKL+[intensity])
+        peaks_unique = np.array(peaks_unique)
+        peaks_unique = peaks_unique[peaks_unique[:,-1].argsort()[::-1]]
+        HKLs_unique = [str(list(map(int,each[:3]))) for each in peaks_unique]
+        self.comboBox_bragg_peak.clear()
+        self.comboBox_bragg_peak.addItems(HKLs_unique)
+
+    def select_rod_based_on_Bragg_peak(self):
+        name = self.comboBox_names.currentText()
+        structure = None
+        for each in self.structures:
+            if each.name == name:
+                structure = each
+                break
+        hkl_selected = list(eval(self.comboBox_bragg_peak.currentText()))
+        qxqy_reference = np.array(structure.lattice.q(hkl_selected)[0:2])
+        for each in self.HKLs_dict[name]:
+            qxqy = np.array(structure.lattice.q(each)[0:2])
+            if np.sum(np.abs(qxqy - qxqy_reference))<0.05:
+                self.comboBox_HKs.setCurrentText(str(each))
+                break
+
     def load_config_file(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -439,7 +475,7 @@ class MyMainWindow(QMainWindow):
         self.comboBox_names.clear()
         self.comboBox_working_substrate.clear()
         self.comboBox_reference_substrate.clear()
-        self.comboBox_names.addItems(names)
+        # self.comboBox_names.addItems(names)
         self.comboBox_working_substrate.addItems(names)
         self.comboBox_reference_substrate.addItems(names)
         # put reference structure at first position in list
@@ -496,8 +532,10 @@ class MyMainWindow(QMainWindow):
         self.grids = []
         self.axes = []
         space_plots = []
+        names = []
         for i in range(len(self.structures)):
             struc = self.structures[i]
+            names.append(struc.name)
             space_plots.append(rsplt.space_plot(struc.lattice))
 
             if(struc.plot_peaks):
@@ -542,13 +580,13 @@ class MyMainWindow(QMainWindow):
             self.widget_glview.ewarld_sphere = [[0,-self.structures[0].lattice.k0,0],(1,1,1,0.3),self.structures[0].lattice.k0]
         else:
             self.widget_glview.ewarld_sphere = []
+        self.comboBox_names.addItems(names)
         self.widget_glview.spheres = self.peaks
         self.widget_glview.lines = self.rods
         self.widget_glview.lines_dict = self.rods_dict
         self.widget_glview.grids = self.grids
         self.widget_glview.arrows = self.axes
         self.widget_glview.clear()
-
 
 class Base_Structure():
     def __init__(self, id, a=1, b=1, c=1, alpha=90, beta=90, gamma=90, basis=[], filename=None, create_from_cif=False):

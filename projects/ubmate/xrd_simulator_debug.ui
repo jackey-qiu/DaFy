@@ -34,7 +34,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -125,26 +125,36 @@
            <item row="1" column="0">
             <widget class="QLabel" name="label_4">
              <property name="text">
-              <string>HK list</string>
+              <string>CTR  list</string>
              </property>
             </widget>
            </item>
            <item row="1" column="1">
             <widget class="QComboBox" name="comboBox_HKs"/>
            </item>
-           <item row="2" column="0">
+           <item row="3" column="0">
             <widget class="QLabel" name="label_5">
              <property name="text">
               <string>qx_qy round_up offset</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="1">
+           <item row="3" column="1">
             <widget class="QLineEdit" name="lineEdit_q_offset">
              <property name="text">
               <string>0.01</string>
              </property>
             </widget>
+           </item>
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_27">
+             <property name="text">
+              <string>Bragg Peak list</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QComboBox" name="comboBox_bragg_peak"/>
            </item>
           </layout>
          </item>
@@ -820,7 +830,7 @@
       <widget class="QTabWidget" name="tabWidget_2">
        <property name="minimumSize">
         <size>
-         <width>1000</width>
+         <width>1200</width>
          <height>0</height>
         </size>
        </property>
