@@ -11,6 +11,7 @@ import CifFile
 from periodictable import elements
 from scipy.optimize import fmin
 from timeit import itertools
+import copy
 
 
 # Calculate k0 in inverse Angstrom from E in keV
@@ -61,10 +62,13 @@ def strip_brackets(s):
 class lattice():
     def __init__(self, a, b, c, alpha=90, beta=90, gamma=90, basis=[0, 0, 0],
                  HKL_normal=[0, 0, 1], HKL_para_x=[1, 0, 0], offset_angle=0,
-                 E_keV=22.5):
+                 E_keV=22.5,theta_x=0, theta_y=0, theta_z=0):
         self.a = a
         self.b = b
         self.c = c
+        self.theta_x = theta_x
+        self.theta_y = theta_y
+        self.theta_z = theta_z
 
         self.alpha = np.deg2rad(alpha)
         self.beta = np.deg2rad(beta)
@@ -117,9 +121,9 @@ class lattice():
                                [self.B1[2], self.B2[2], self.B3[2]]])
 
         self._V_rec = self.B1.dot(np.cross(self.B2, self.B3))
-
         # Align surface normal to qz axis
         # In reciprocal space, the surface normal will point "up" (along qz)
+        #self.RecTM = copy.deepcopy(self.RecTM_)
         q_normal = self.q(HKL_normal)
         q_normal /= np.linalg.norm(q_normal)
 
@@ -151,6 +155,7 @@ class lattice():
             R = I + vx + vx.dot(vx) / (1. + q_normal.dot(z))
 
         self.RecTM = R.dot(self.RecTM)
+        #self.RecTM = copy.deepcopy(self.RecTM_)
 
         # Align projection of HKL_para_x onto x-axis
         # After this, turn by an additional offset_angle
@@ -159,7 +164,6 @@ class lattice():
         R = np.array([[np.cos(rot), -np.sin(rot), 0],
                       [np.sin(rot), np.cos(rot), 0], [0, 0, 1]])
         self.RecTM = R.dot(self.RecTM)
-
         self.RecTMInv = inv(self.RecTM)
 
         self.unique_elements = np.unique(np.array(self.basis).T[0])
@@ -170,7 +174,19 @@ class lattice():
             self.basis_xyz.append([atom[1], atom[2], atom[3]])
         self.basis_xyz = np.array(self.basis_xyz)
         self.basis_el = np.array(self.basis_el)
+        self.RealTM_ = copy.deepcopy(self.RealTM)
+        self.RealTMInv_ = inv(self.RealTM_)
+        self.RecTM_ = copy.deepcopy(self.RecTM)
+        self.RecTMInv_ = inv(self.RecTM_)
+        self.apply_xyz_rotation()
 
+    #rotation along x y z axis, but not yet working at this moment
+    def apply_xyz_rotation(self):
+        RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z))
+        self.RecTM = RM.dot(self.RecTM_)
+        self.RecTMInv = inv(self.RecTM)
+        self.RealTM = RM.dot(self.RealTM_)
+        self.RealTMInv = inv(self.RealTM)
 
     # Import a lattice from a CIF file stored at filename
     # For other parameters, see description above

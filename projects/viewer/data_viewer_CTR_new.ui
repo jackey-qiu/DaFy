@@ -660,7 +660,7 @@
          <item>
           <widget class="QTabWidget" name="tabWidget">
            <property name="currentIndex">
-            <number>0</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -669,6 +669,16 @@
             <layout class="QHBoxLayout" name="horizontalLayout_10">
              <item>
               <widget class="MplWidget" name="mplwidget" native="true"/>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tab_2">
+            <attribute name="title">
+             <string>Terminal</string>
+            </attribute>
+            <layout class="QHBoxLayout" name="horizontalLayout_11">
+             <item>
+              <widget class="TerminalWidget" name="widget_terminal" native="true"/>
              </item>
             </layout>
            </widget>
@@ -744,6 +754,12 @@
   </action>
  </widget>
  <customwidgets>
+  <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header>terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
   <customwidget>
    <class>MplWidget</class>
    <extends>QWidget</extends>

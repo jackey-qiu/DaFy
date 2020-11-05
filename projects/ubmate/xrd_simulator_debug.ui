@@ -34,7 +34,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -175,18 +175,17 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="pushButton_pandown">
-             <property name="text">
-              <string>PanDown</string>
+            <spacer name="horizontalSpacer">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QPushButton" name="pushButton_panup">
-             <property name="text">
-              <string>PanUp</string>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
              </property>
-            </widget>
+            </spacer>
            </item>
           </layout>
          </item>
@@ -522,19 +521,6 @@
          </item>
          <item>
           <layout class="QGridLayout" name="gridLayout_5">
-           <item row="1" column="6">
-            <widget class="QLabel" name="label_22">
-             <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-               <horstretch>0</horstretch>
-               <verstretch>0</verstretch>
-              </sizepolicy>
-             </property>
-             <property name="text">
-              <string>mu</string>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="8">
             <widget class="QPushButton" name="pushButton_compute">
              <property name="text">
@@ -623,13 +609,6 @@
              </property>
             </widget>
            </item>
-           <item row="1" column="2">
-            <widget class="QLabel" name="label_19">
-             <property name="text">
-              <string>delta</string>
-             </property>
-            </widget>
-           </item>
            <item row="1" column="1">
             <widget class="QLineEdit" name="lineEdit_gamma">
              <property name="maximumSize">
@@ -637,6 +616,13 @@
                <width>80</width>
                <height>16777215</height>
               </size>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
+            <widget class="QLabel" name="label_19">
+             <property name="text">
+              <string>delta</string>
              </property>
             </widget>
            </item>
@@ -650,6 +636,53 @@
              </property>
              <property name="text">
               <string>1</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="6">
+            <widget class="QLabel" name="label_22">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>mu</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="7">
+            <widget class="QLineEdit" name="lineEdit_energy">
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="5">
+            <widget class="QLineEdit" name="lineEdit_d">
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="4">
+            <widget class="QLabel" name="label_23">
+             <property name="text">
+              <string>d_spacing</string>
+             </property>
+            </widget>
+           </item>
+           <item row="0" column="6">
+            <widget class="QLabel" name="label_17">
+             <property name="text">
+              <string>Energy</string>
              </property>
             </widget>
            </item>
@@ -679,38 +712,97 @@
              </item>
             </widget>
            </item>
-           <item row="0" column="7">
-            <widget class="QLineEdit" name="lineEdit_energy">
+           <item row="2" column="0">
+            <widget class="QLabel" name="label_28">
+             <property name="text">
+              <string>Rot_x</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="1">
+            <widget class="QLineEdit" name="lineEdit_rot_x">
              <property name="maximumSize">
               <size>
                <width>80</width>
                <height>16777215</height>
               </size>
              </property>
-            </widget>
-           </item>
-           <item row="0" column="6">
-            <widget class="QLabel" name="label_17">
              <property name="text">
-              <string>Energy</string>
+              <string>0</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="4">
-            <widget class="QLabel" name="label_23">
+           <item row="2" column="2">
+            <widget class="QLabel" name="label_29">
              <property name="text">
-              <string>d_spacing</string>
+              <string>Rot_y</string>
              </property>
             </widget>
            </item>
-           <item row="0" column="5">
-            <widget class="QLineEdit" name="lineEdit_d">
+           <item row="2" column="3">
+            <widget class="QLineEdit" name="lineEdit_rot_y">
              <property name="maximumSize">
               <size>
                <width>80</width>
                <height>16777215</height>
               </size>
              </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="4">
+            <widget class="QLabel" name="label_30">
+             <property name="text">
+              <string>Rot_z</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="5">
+            <widget class="QLineEdit" name="lineEdit_rot_z">
+             <property name="maximumSize">
+              <size>
+               <width>80</width>
+               <height>16777215</height>
+              </size>
+             </property>
+             <property name="text">
+              <string>0</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="6">
+            <widget class="QPushButton" name="pushButton_rotate">
+             <property name="text">
+              <string>Rotate</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="7">
+            <widget class="QPushButton" name="pushButton_spin">
+             <property name="text">
+              <string>Spin or stop </string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="8">
+            <widget class="QComboBox" name="comboBox_rotation_axis">
+             <item>
+              <property name="text">
+               <string>z</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>x</string>
+              </property>
+             </item>
+             <item>
+              <property name="text">
+               <string>y</string>
+              </property>
+             </item>
             </widget>
            </item>
           </layout>
@@ -847,7 +939,7 @@
         <attribute name="title">
          <string>RecSpaceViewer</string>
         </attribute>
-        <layout class="QHBoxLayout" name="horizontalLayout_11">
+        <layout class="QHBoxLayout" name="horizontalLayout_12">
          <item>
           <widget class="QFrame" name="frame">
            <property name="frameShape">
@@ -931,25 +1023,61 @@
           </widget>
          </item>
          <item>
-          <widget class="GLViewWidget_cum" name="widget_glview_zoomin" native="true">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="minimumSize">
-            <size>
-             <width>200</width>
-             <height>0</height>
-            </size>
-           </property>
+          <widget class="QFrame" name="frame_2">
            <property name="maximumSize">
             <size>
              <width>300</width>
              <height>16777215</height>
             </size>
            </property>
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="frameShadow">
+            <enum>QFrame::Raised</enum>
+           </property>
+           <layout class="QVBoxLayout" name="verticalLayout_5">
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_11">
+              <item>
+               <widget class="QPushButton" name="pushButton_panup">
+                <property name="text">
+                 <string>PanUp</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_pandown">
+                <property name="text">
+                 <string>PanDown</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
+            </item>
+            <item>
+             <widget class="GLViewWidget_cum" name="widget_glview_zoomin" native="true">
+              <property name="sizePolicy">
+               <sizepolicy hsizetype="Maximum" vsizetype="Preferred">
+                <horstretch>0</horstretch>
+                <verstretch>0</verstretch>
+               </sizepolicy>
+              </property>
+              <property name="minimumSize">
+               <size>
+                <width>200</width>
+                <height>0</height>
+               </size>
+              </property>
+              <property name="maximumSize">
+               <size>
+                <width>300</width>
+                <height>16777215</height>
+               </size>
+              </property>
+             </widget>
+            </item>
+           </layout>
           </widget>
          </item>
         </layout>

@@ -15,6 +15,15 @@ def color_to_rgb(hex_str):
     rgb.append(1)
     return tuple(rgb)
 
+def RotationMatrix(theta_x, theta_y, theta_z):
+    Rx = np.array([[1, 0, 0], [0, np.cos(theta_x), -np.sin(theta_x)],
+                  [0, np.sin(theta_x), np.cos(theta_x)]])
+    Ry = np.array([[np.cos(theta_y), 0, np.sin(theta_y)], [0, 1, 0],
+                   [-np.sin(theta_y), 0, np.cos(theta_y)]])
+    Rz = np.array([[np.cos(theta_z), -np.sin(theta_z), 0],
+                   [np.sin(theta_z), np.cos(theta_z), 0], [0, 0, 1]])
+    return Rx.dot(Ry).dot(Rz)
+
 color_lib = {
     "H": "FFFFFF",
     "HE": "D9FFFF",
@@ -147,8 +156,6 @@ covalent_bond_length = {
     ('O','Cd'):2.5
 }
 
-
-
 class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
     def __init__(self, X, Y, Z, text, color = QtCore.Qt.white):
         gl.GLGraphicsItem.GLGraphicsItem.__init__(self)
@@ -186,15 +193,19 @@ class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
 class GLViewWidget_cum(gl.GLViewWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        self.theta_x = 0
+        self.theta_y = 0
+        self.theta_z = 0
+        self.RM = np.eye(3)
         #set a near ortho projection (i.e. non-projective view)
         #if need a parallel view, set dis=2000, fov=1
         # self.opts['distance'] = 25
         # self.opts['fov'] = 60
         self.opts['distance'] = 2000
         self.opts['fov'] = 1
-        #self.setConfigOption('background', 'w')
+        # self.setConfigOption('background', 'w')
         #self.setConfigOption('foreground', 'k')
-        # self.setBackgroundColor((50,50,50))
+        self.setBackgroundColor((0,0,0))
 
         self.lines = []
         self.lines_dict = {}
@@ -209,6 +220,11 @@ class GLViewWidget_cum(gl.GLViewWidget):
                        [[0,0,0],[1,0,0],0.1,0.2,(1,0,0,0.8)]]
         self.grids = []
         self.texts = [[0,0,0,'o']]
+        self.items_subject_to_transformation = []
+        self.items_subject_to_recreation = []
+
+    def apply_xyz_rotation(self):
+        self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(self.RM)
 
     #calculate the cross point(s) (if any) between a line segment and a sphere
     #The line segment is defined by two end points: line_p1 and line_p2
@@ -232,7 +248,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
         for each  in ts:
             _pt = np.array(line_p1) + (np.array(line_p2) - np.array(line_p1))*each
             _x, _y, _z = _pt
-            if (_x-x1)*(_x-x2)<=0 and (_y-y1)*(_y-y2)<=0 and (_z-z1)*(_z-z2)<=0:
+            # if (_x-x1)*(_x-x2)<=0 and (_y-y1)*(_y-y2)<=0 and (_z-z1)*(_z-z2)<=0:
+            if (_z-z1)*(_z-z2)<=0:
                 pts.append(_pt)
         return pts
 
@@ -302,9 +319,55 @@ class GLViewWidget_cum(gl.GLViewWidget):
         m1.scale(*([scale_factor]*2+[scale_factor]))
         return m1
 
+    def recal_cross_points(self):
+        # self.apply_xyz_rotation()
+        for each_item in self.items_subject_to_recreation:
+            self.removeItem(each_item)
+        self.items_subject_to_recreation = []
+        self.cross_points_info = {}
+        for each_line in self.lines:
+            v1, v2, color = each_line
+            v1, v2 = list(self.RM.dot(np.array(v1))), list(self.RM.dot(np.array(v2)))
+            name = None
+            for each_name in self.lines_dict:
+                if each_line in self.lines_dict[each_name]:
+                    name = each_name
+                    break
+            #self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 3))
+            #self.items_subject_to_transformation.append(self.items[-1])
+            if len(self.ewarld_sphere)!=0:
+                #print('yes')
+                v1_, _, scale_factor = self.ewarld_sphere
+                cross_points = list(self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor))
+                if name in self.cross_points_info:
+                    self.cross_points_info[name] += cross_points
+                else:
+                    self.cross_points_info[name] = cross_points
+                for each in cross_points:
+                    points_on_circle_full_circle = self.compute_points_on_3d_circle(center=v1_, v1=each, v2=(each-np.array(v1_)*2), r=scale_factor,resolution = 100)
+                    points_on_circle = self.compute_points_on_3d_circle(center=np.array(each)*[0,1,0], v1=np.array([0,0,1]), v2=np.array([1,0,0]), r=(scale_factor**2-(scale_factor-abs(each[1]))**2)**0.5,resolution = 100)
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.items_subject_to_recreation.append(self.items[-1])
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.items_subject_to_recreation.append(self.items[-1])
+                    self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
+                    self.items_subject_to_recreation.append(self.items[-1])
+                    #ki = self.draw_arrow(v1_,[0,0,0], tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
+                    kfs=self.draw_arrow(v1_, each, tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
+                    q_vs= self.draw_arrow([0,0,0], each, tip_width=0.1, tip_length_scale=0.02, color=(1.,1.,1,1),line_width =0.5)
+                    for kf in kfs:
+                        self.addItem(kf)
+                        self.items_subject_to_recreation.append(self.items[-1])
+                    for q_v in q_vs:
+                        self.addItem(q_v)
+                        self.items_subject_to_recreation.append(self.items[-1])
+
     def show_structure(self):
         self.clear()
         self.cross_points_info = {}
+        self.items_subject_to_transformation = []
+        self.items_subject_to_recreation = []
+        self.RM = np.eye(3)
         for each_line in self.lines:
             v1, v2, color = each_line
             name = None
@@ -313,6 +376,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     name = each_name
                     break
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 3))
+            self.items_subject_to_transformation.append(self.items[-1])
             if len(self.ewarld_sphere)!=0:
                 v1_, _, scale_factor = self.ewarld_sphere
                 cross_points = list(self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor))
@@ -324,15 +388,20 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     points_on_circle_full_circle = self.compute_points_on_3d_circle(center=v1_, v1=each, v2=(each-np.array(v1_)*2), r=scale_factor,resolution = 100)
                     points_on_circle = self.compute_points_on_3d_circle(center=np.array(each)*[0,1,0], v1=np.array([0,0,1]), v2=np.array([1,0,0]), r=(scale_factor**2-(scale_factor-abs(each[1]))**2)**0.5,resolution = 100)
                     self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.items_subject_to_recreation.append(self.items[-1])
                     self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.items_subject_to_recreation.append(self.items[-1])
                     self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
+                    self.items_subject_to_recreation.append(self.items[-1])
                     ki = self.draw_arrow(v1_,[0,0,0], tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
                     kfs=self.draw_arrow(v1_, each, tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
                     q_vs= self.draw_arrow([0,0,0], each, tip_width=0.1, tip_length_scale=0.02, color=(1.,1.,1,1),line_width =0.5)
                     for kf in kfs:
                         self.addItem(kf)
+                        self.items_subject_to_recreation.append(self.items[-1])
                     for q_v in q_vs:
                         self.addItem(q_v)
+                        self.items_subject_to_recreation.append(self.items[-1])
                     for each_ki in ki:
                         self.addItem(each_ki)
                     # text = CustomTextItem(*each, 'x', color = QtCore.Qt.red)
@@ -341,9 +410,11 @@ class GLViewWidget_cum(gl.GLViewWidget):
         for each_line in self.grids:
             v1, v2, color = each_line
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 1))
+            self.items_subject_to_transformation.append(self.items[-1])
         for each_sphere in self.spheres:
             v1_, color_, scale_factor = each_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor)) 
+            self.items_subject_to_transformation.append(self.items[-1])
         if len(self.ewarld_sphere)!=0:
             v1_, color_, scale_factor = self.ewarld_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'additive'))
@@ -358,23 +429,12 @@ class GLViewWidget_cum(gl.GLViewWidget):
             self.addItem(text)
         self.setProjection()
 
-    def update_structure(self, xyz):
-        for i in range(len(xyz)):
-            _,x,y,z = xyz[i]
-            #first item is grid net
-            self.items[i+self.grid_num].resetTransform()
-            self.items[i+self.grid_num].translate(x,y,z)
-            self.items[i+self.grid_num].scale(0.5, 0.5, 0.5)
-        if self.bond_index!=None:
-            ii=1
-            for each_bond_index in self.bond_index:
-                self.items[ii+i+self.grid_num].resetTransform()
-                self.items[ii+i+self.grid_num+1].resetTransform()
-                v1 = np.array(xyz[each_bond_index[0]][1:])
-                v2 = np.array(xyz[each_bond_index[1]][1:])
-                color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
-                color2= color_to_rgb(color_lib[xyz[each_bond_index[1]][0].upper()])
-                items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1]])
-                self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1] = items
-                # self.items[ii+i+grid_number].scale(0.3,0.3,0.3)
-                ii +=2
+    def update_structure(self):
+        self.apply_xyz_rotation()
+        for each in self.items_subject_to_transformation:
+            # each.resetTransform()
+            each.rotate(self.theta_x, 1,0,0, local = False)
+            each.rotate(self.theta_y, 0,1,0, local = False)
+            each.rotate(self.theta_z, 0,0,1, local = False)
+        self.recal_cross_points()
+        self.update()

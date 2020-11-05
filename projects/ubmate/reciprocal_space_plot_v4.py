@@ -75,7 +75,7 @@ class space_plot():
         HKL_range = np.arange(HKL_lims[0], HKL_lims[1] + 1)
         HKLs = np.array(list(itertools.product(HKL_range, repeat=3)))
         I0 = self.lattice.I([0,0,0])
-        print('I0 =', I0)
+        # print('I0 =', I0)
         qs = self.lattice.q_many(HKLs)
         in_limits = self.is_in_limits_many(qs, qx_lims, qy_lims, q_inplane_lim, qz_lims, mag_q_lims)
         HKLs = HKLs[in_limits == True]

@@ -32,6 +32,7 @@ class MyMainWindow(QMainWindow):
         uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_CTR_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
+        self.widget_terminal.update_name_space('main_gui',self)
         self.setWindowTitle('CTR data Viewer')
         self.set_plot_channels()
         self.data_to_save = {}
@@ -441,6 +442,36 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_yscale('log')
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
         self.mplwidget.fig.tight_layout()
+        self.mplwidget.canvas.draw()
+
+    #this is temporary func to plot the l positions for different Bragg peaks (Co3O4 and CoOOH peaks on 01L of Au_hex)
+    #eg for info info = {'Au_hex': [[1.9999999999999998, '(0, 1, 2)'], [5.0, '(0, 1, 5)'], [7.999999999999999, '(0, 1, 8)']], 
+    # 'Co3O4': [[1.0089863209787204, '(2, -2, 2)'], [2.5224658024468014, '(3, -1, 3)'], [4.035945283914882, '(4, 0, 4)'], 
+    # [5.5494247653829625, '(5, 1, 5)'], [7.062904246851043, '(6, 2, 6)'], [8.576383728319124, '(7, 3, 7)']], 
+    # 'Co3O4_R60': [[0.5044931604893608, '(3, -1, -1)'], [2.0179726419574417, '(4, 0, 0)'], [3.5314521234255225, '(5, 1, 1)'], 
+    # [5.044931604893603, '(6, 2, 2)'], [6.558411086361683, '(7, 3, 3)'], [8.071890567829763, '(8, 4, 4)']], 
+    # 'CoOOH': [[1.0743117870722434, '(0, 1, 2)'], [2.685779467680608, '(0, 1, 5)'], [4.297247148288973, '(0, 1, 8)']], 
+    # 'CoOOH_R60': [[0.5371558935361217, '(1, 0, 1)'], [2.148623574144487, '(1, 0, 4)'], [3.7600912547528518, '(1, 0, 7)'], 
+    # [5.371558935361216, '(1, 0, 10)']]}  
+    #each item contains l value wrt Au_hex, hkl str for that peak
+    def plot_miller_index_temp(self, info, key = '0.4 V', ax_name = 'plot_axis_plot_set1', color_map = {'CoOOH':'blue','CoOOH_R60':'blue','Co3O4':'red','Co3O4_R60':'red','Au_hex':'m'}):
+        for each in info:
+            peaks = info[each]
+            name = each
+            
+            for each_peak in peaks:
+                l, hkl = each_peak
+                if 'R60' in name:
+                    name = name[0:5]
+                    hkl = eval(hkl)
+                    hkl = (hkl[1],hkl[0],hkl[2])
+                int_high_end = self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-l))]
+                int_low_end = 0.0005
+                if name!='Au_hex' and l<5.6:
+                    getattr(self,ax_name).plot([l,l],[int_low_end,int_high_end],color = color_map[each])
+                    getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(name,str(hkl)),rotation ='vertical',color = color_map[each])
+        getattr(self,ax_name).set_ylim(0.0005,1000)
+        getattr(self,ax_name).set_xlim(0.,5.6)
         self.mplwidget.canvas.draw()
 
     def prepare_data_to_plot_ctr(self,plot_label_list, scan_number):

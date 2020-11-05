@@ -76,6 +76,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_compute.clicked.connect(self.compute_angles)
         self.timer_spin = QtCore.QTimer(self)
         self.timer_spin.timeout.connect(self.spin)
+        self.timer_spin_sample = QtCore.QTimer(self)
+        self.timer_spin_sample.timeout.connect(self.rotate_sample)
         self.azimuth_angle = 0
         self.pushButton_azimuth0.clicked.connect(self.azimuth_0)
         self.pushButton_azimuth90.clicked.connect(self.azimuth_90)
@@ -86,6 +88,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_panright.clicked.connect(lambda:self.pan_view([0,1,0]))
         self.pushButton_start_spin.clicked.connect(self.start_spin)
         self.pushButton_stop_spin.clicked.connect(self.stop_spin)
+        self.pushButton_rotate.clicked.connect(self.rotate_sample)
+        self.pushButton_spin.clicked.connect(self.spin_)
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
         ##set style for matplotlib figures
         plt.style.use('ggplot')
@@ -106,6 +110,22 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    def spin_(self):
+        if self.timer_spin_sample.isActive():
+            self.timer_spin_sample.stop()
+        else:
+            self.timer_spin_sample.start(100)
+
+    def rotate_sample(self):
+        theta_x = float(self.lineEdit_rot_x.text())
+        theta_y = float(self.lineEdit_rot_y.text())
+        theta_z = float(self.lineEdit_rot_z.text())
+        self.widget_glview.theta_x = theta_x
+        self.widget_glview.theta_y = theta_y
+        self.widget_glview.theta_z = theta_z
+        self.widget_glview.update_structure()
+        self.extract_cross_point_info()
 
     #extract cross points between the rods and the Ewarld sphere
     def extract_cross_point_info(self):
@@ -231,8 +251,10 @@ class MyMainWindow(QMainWindow):
         resolution = 300
         l = np.linspace(0,self.qz_lim_high,resolution)
         intensity_dict = {'total':[self.widget.canvas.figure.add_subplot(num_plot+1,1,num_plot+1),l,np.zeros(resolution),[],[],[]]}
+        self.peak_info_selected_rod = {}
         for i in range(num_plot):
             name = list(self.peaks_in_zoomin_viewer.keys())[i]
+            self.peak_info_selected_rod[name] = []
             ax = self.widget.canvas.figure.add_subplot(num_plot+1,1,i+1)
             # ax.set_yscale('log')
             intensity_dict[name] = [ax]
@@ -251,6 +273,7 @@ class MyMainWindow(QMainWindow):
                     I_this_point = structure.lattice.I(hkl)
                 l_wrt_main_substrate = self.structures[0].lattice.HKL(each_peak)[-1]
                 l_text.append(l_wrt_main_substrate)
+                self.peak_info_selected_rod[name].append([l_wrt_main_substrate,str(tuple([int(round(each_,0)) for each_ in hkl]))])
                 # print(name, hkl, I_this_point)
                 #Gaussian expansion, assume sigma = 0.2
                 sigma = 0.06
@@ -561,9 +584,9 @@ class MyMainWindow(QMainWindow):
             q1 = self.structures[0].lattice.q([1,0,0])
             q2 = self.structures[0].lattice.q([0,1,0])
             q3 = self.structures[0].lattice.q([0,0,1])
-            self.axes.append([[0,0,0],q1,0.1,0.2,(250,250,250,0.8)])
-            self.axes.append([[0,0,0],q2,0.1,0.2,(1,1,1,0.8)])
-            self.axes.append([[0,0,0],q3,0.1,0.2,(1,1,1,0.8)])
+            self.axes.append([[0,0,0],q1,0.1,0.2,(0,0,1,0.8)])
+            self.axes.append([[0,0,0],q2,0.1,0.2,(0,1,0,0.8)])
+            self.axes.append([[0,0,0],q3,0.1,0.2,(1,0,0,0.8)])
             #compose
             qx_min, qy_min = 10000, 10000
             for each in self.rods:
@@ -573,11 +596,11 @@ class MyMainWindow(QMainWindow):
                 if qy_<qy_min:
                     qy_min = qy_
             qx_min, qy_min = 0, self.structures[0].lattice.k0
-            self.axes.append([[qx_min,qy_min,0],[qx_min+1,qy_min,0],0.1,0.2,(0,0,1,0.8)])
-            self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min+1,0],0.1,0.2,(0,1,0,0.8)])
-            self.axes.append([[qx_min,qy_min,0],[qx_min,qy_min,1],0.1,0.2,(1,0,0,0.8)])
+            self.axes.append([[0,-qy_min,0],[1,-qy_min,0],0.1,0.2,(0,0,1,0.8)])
+            self.axes.append([[0,-qy_min,0],[0,1-qy_min,0],0.1,0.2,(0,1,0,0.8)])
+            self.axes.append([[0,-qy_min,0],[0,-qy_min,1],0.1,0.2,(1,0,0,0.8)])
         if self.checkBox_ewarld.isChecked():
-            self.widget_glview.ewarld_sphere = [[0,-self.structures[0].lattice.k0,0],(1,1,1,0.3),self.structures[0].lattice.k0]
+            self.widget_glview.ewarld_sphere = [[0,-self.structures[0].lattice.k0,0],(0,0,1,0.3),self.structures[0].lattice.k0]
         else:
             self.widget_glview.ewarld_sphere = []
         self.comboBox_names.addItems(names)
