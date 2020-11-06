@@ -6,6 +6,7 @@ from PyQt5 import uic, QtCore
 import pyqtgraph as pg
 import random,copy
 import numpy as np
+from numpy.linalg import inv
 import matplotlib.pyplot as plt
 try:
     from . import locate_path
@@ -134,8 +135,11 @@ class MyMainWindow(QMainWindow):
             text.append('')
             text.append(each)
             structure = [self.structures[i] for i in range(len(self.structures)) if self.structures[i].name == each][0]
+            #apply the rotation matrix due to sample rotation
+            RecTMInv = inv(self.widget_glview.RM.dot(structure.lattice.RecTM))
             for each_q in self.widget_glview.cross_points_info[each]:
-                H, K, L = structure.lattice.HKL(each_q)
+                #H, K, L = structure.lattice.HKL(each_q)
+                H, K, L = RecTMInv.dot(each_q)
                 text.append('HKL:{}'.format([round(H,3),round(K,3),round(L,3)]))
         self.plainTextEdit_cross_points_info.setPlainText('\n'.join(text))
 
@@ -243,7 +247,6 @@ class MyMainWindow(QMainWindow):
 
     def _cal_2theta(self,q,wl):
         return np.rad2deg(np.arcsin(q*wl/4/np.pi))*2
-        
 
     def draw_ctrs(self):
         self.widget.canvas.figure.clear()
@@ -378,8 +381,8 @@ class MyMainWindow(QMainWindow):
         self.widget_glview_zoomin.clear()
         self.widget_glview_zoomin.spheres = peaks_temp
         self.widget_glview_zoomin.texts = text_temp
-        self.widget_glview.texts = [[qx,qy,self.qz_lims[1],'x']]
-        self.widget_glview.show_structure()
+        self.widget_glview.texts = list(self.widget_glview.RM.dot([qx,qy,self.qz_lims[1]]))+['x']
+        # self.widget_glview.show_structure()
         self.widget_glview_zoomin.show_structure()
 
     def update_HKs_list(self):
