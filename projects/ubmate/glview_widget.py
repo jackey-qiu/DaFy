@@ -157,13 +157,14 @@ covalent_bond_length = {
 }
 
 class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
-    def __init__(self, X, Y, Z, text, color = QtCore.Qt.white):
+    def __init__(self, X, Y, Z, text, color = QtCore.Qt.white, font_size = 10):
         gl.GLGraphicsItem.GLGraphicsItem.__init__(self)
         self.text = text
         self.X = X
         self.Y = Y
         self.Z = Z
         self.color = color
+        self.font_size = font_size
 
     def setGLViewWidget(self, GLViewWidget):
         self.GLViewWidget = GLViewWidget
@@ -186,7 +187,7 @@ class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
 
     def paint(self):
         font = QtGui.QFont("Arial")
-        font.setPointSize(10)
+        font.setPointSize(self.font_size)
         self.GLViewWidget.qglColor(self.color)
         self.GLViewWidget.renderText(self.X, self.Y, self.Z, self.text, font)
 
@@ -220,6 +221,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
                        [[0,0,0],[1,0,0],0.1,0.2,(1,0,0,0.8)]]
         self.grids = []
         self.texts = [[0,0,0,'o']]
+        self.text_selected_rod = []
+        self.text_item_selected_rod = None
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
 
@@ -427,7 +430,22 @@ class GLViewWidget_cum(gl.GLViewWidget):
             text = CustomTextItem(*each_text)
             text.setGLViewWidget(self)
             self.addItem(text)
+        if len(self.text_selected_rod)!=0:
+            text = CustomTextItem(*self.text_selected_rod, font_size = 20)
+            text.setGLViewWidget(self)
+            self.addItem(text)
+            self.text_item_selected_rod = self.items[-1]
         self.setProjection()
+
+    def update_text_item_selected_rod(self):
+        text = CustomTextItem(*self.text_selected_rod, font_size = 20)
+        text.setGLViewWidget(self)
+        self.addItem(text)
+        if self.text_item_selected_rod!=None:
+            self.removeItem(self.text_item_selected_rod)
+        self.text_item_selected_rod = self.items[-1]
+        self.update()
+
 
     def update_structure(self):
         self.apply_xyz_rotation()

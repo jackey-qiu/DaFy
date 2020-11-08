@@ -89,8 +89,17 @@ class MyMainWindow(QMainWindow):
         self.pushButton_panright.clicked.connect(lambda:self.pan_view([0,1,0]))
         self.pushButton_start_spin.clicked.connect(self.start_spin)
         self.pushButton_stop_spin.clicked.connect(self.stop_spin)
+        #real space viewer control
+        self.pushButton_azimuth0_2.clicked.connect(self.azimuth_0_2)
+        self.pushButton_azimuth90_2.clicked.connect(self.azimuth_90_2)
+        #self.pushButton_azimuth180_2.clicked.connect(self.azimuth_180_2)
+        self.pushButton_elevation90.clicked.connect(self.elevation_90)
+        self.pushButton_panup_4.clicked.connect(lambda:self.pan_view([0,0,-1],'widget_real_space'))
+        self.pushButton_pandown_4.clicked.connect(lambda:self.pan_view([0,0,1],'widget_real_space'))
+
         self.pushButton_rotate.clicked.connect(self.rotate_sample)
         self.pushButton_spin.clicked.connect(self.spin_)
+        self.pushButton_draw_real_space.clicked.connect(self.draw_real_space)
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
         ##set style for matplotlib figures
         plt.style.use('ggplot')
@@ -111,6 +120,13 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    def draw_real_space(self):
+        super_cell_size = [self.spinBox_repeat_x.value(), self.spinBox_repeat_y.value(), self.spinBox_repeat_z.value()]
+        name = self.comboBox_substrate.currentText()
+        structure = [each for each in self.structures if each.name == name][0]
+        self.widget_real_space.RealRM = structure.lattice.RealTM
+        self.widget_real_space.show_structure(structure.lattice.basis, super_cell_size)
 
     def spin_(self):
         if self.timer_spin_sample.isActive():
@@ -301,10 +317,11 @@ class MyMainWindow(QMainWindow):
         self.widget.canvas.figure.tight_layout()
         self.widget.canvas.draw()
 
-    def pan_view(self,signs = [1,1,1]):
+    def pan_view(self,signs = [1,1,1], widget = 'widget_glview'):
         value = 0.5
         pan_values = list(np.array(signs)*value)
-        self.widget_glview.pan(*pan_values)
+        getattr(self,widget).pan(*pan_values)
+        #self.widget_glview.pan(*pan_values)
  
     def update_camera_position(self,widget_name = 'widget_glview', angle_type="azimuth", angle=0):
         getattr(self,widget_name).setCameraPosition(pos=None, distance=None, \
@@ -322,6 +339,21 @@ class MyMainWindow(QMainWindow):
     def azimuth_180(self):
         self.update_camera_position(angle_type="elevation", angle=0)
         self.update_camera_position(angle_type="azimuth", angle=180)
+
+    def azimuth_0_2(self):
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="elevation", angle=0)
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="azimuth", angle=0)
+
+    def azimuth_90_2(self):
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="elevation", angle=0)
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="azimuth", angle=90)
+
+    def azimuth_180_2(self):
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="elevation", angle=0)
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="azimuth", angle=180)
+
+    def elevation_90(self):
+        self.update_camera_position(widget_name = 'widget_real_space',angle_type="elevation", angle=90)
 
     def start_spin(self):
         self.timer_spin.start(100)
@@ -381,8 +413,8 @@ class MyMainWindow(QMainWindow):
         self.widget_glview_zoomin.clear()
         self.widget_glview_zoomin.spheres = peaks_temp
         self.widget_glview_zoomin.texts = text_temp
-        self.widget_glview.texts = list(self.widget_glview.RM.dot([qx,qy,self.qz_lims[1]]))+['x']
-        # self.widget_glview.show_structure()
+        self.widget_glview.text_selected_rod = list(self.widget_glview.RM.dot([qx,qy,self.qz_lims[1]]))+['x']
+        self.widget_glview.update_text_item_selected_rod()
         self.widget_glview_zoomin.show_structure()
 
     def update_HKs_list(self):
@@ -501,9 +533,11 @@ class MyMainWindow(QMainWindow):
         self.comboBox_names.clear()
         self.comboBox_working_substrate.clear()
         self.comboBox_reference_substrate.clear()
+        self.comboBox_substrate.clear()
         # self.comboBox_names.addItems(names)
         self.comboBox_working_substrate.addItems(names)
         self.comboBox_reference_substrate.addItems(names)
+        self.comboBox_substrate.addItems(names)
         # put reference structure at first position in list
         for i in range(len(self.structures)):
             if(self.structures[i].is_reference_coordinate_system):
