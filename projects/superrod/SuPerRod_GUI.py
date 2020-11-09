@@ -595,7 +595,13 @@ class MyMainWindow(QMainWindow):
                 #plot ideal structure factor
                 try:
                     scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
-                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.f_ideal[i+offset]*scale_factor**2,pen = {'color': "w", 'width': 1},clear = False)
+                    h_, k_ = int(round(self.model.data[i+offset].extra_data['h'][0],0)),int(round(self.model.data[i+offset].extra_data['k'][0],0))
+                    extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
+                    if hasattr(self.model.script_module.rgh,extra_scale_factor):
+                        rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
+                    else:
+                        rod_factor = 1
+                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.f_ideal[i+offset]*(scale_factor*rod_factor)**2,pen = {'color': "w", 'width': 1},clear = False)
                 except:
                     pass
                 #plot simulated results
