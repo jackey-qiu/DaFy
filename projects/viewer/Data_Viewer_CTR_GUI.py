@@ -479,9 +479,9 @@ class MyMainWindow(QMainWindow):
                 int_low_end = 0.0005
                 if name!='Au_hex' and l<5.6:
                     getattr(self,ax_name).plot([l,l],[int_low_end,int_high_end],color = color_map[each])
-                    getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(name,str(hkl)),rotation ='vertical',color = color_map[each])
-        getattr(self,ax_name).set_ylim(0.0005,1000)
-        getattr(self,ax_name).set_xlim(0.,5.6)
+                    # getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(name,str(hkl)),rotation ='vertical',color = color_map[each])
+        getattr(self,ax_name).set_ylim(0.0005,2000)
+        # getattr(self,ax_name).set_xlim(0.,5.6)
         getattr(self,ax_name).get_legend().remove()
         getattr(self,ax_name).tick_params(which = 'major', axis="x", direction="in")
         getattr(self,ax_name).tick_params(which = 'minor', axis="x", direction="in")
@@ -492,6 +492,7 @@ class MyMainWindow(QMainWindow):
         getattr(self,ax_name).tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
         getattr(self,ax_name).xaxis.set_minor_locator(AutoMinorLocator())
         self.mplwidget.canvas.draw()
+        self.mplwidget.canvas.figure.savefig('/Users/canrong/Documents/Co oxide project/ctr_profile.png',dpi = 300)
 
     def prepare_data_to_plot_ctr(self,plot_label_list, scan_number):
         scans_ = [int(each) for each in self.lineEdit_scan_numbers.text().rsplit(',')]

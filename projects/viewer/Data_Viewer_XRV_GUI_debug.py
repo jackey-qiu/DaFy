@@ -22,6 +22,8 @@ from PlotSetup import data_viewer_plot_cv, RHE, plot_tafel_from_formatted_cv_inf
 import pandas as pd
 import time
 import matplotlib
+from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import FixedLocator, FixedFormatter
 matplotlib.use("Qt5Agg")
 from scipy import signal
 # import scipy.signal.savgol_filter as savgol_filter
@@ -72,6 +74,7 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.major.size'] = 6
         plt.rcParams['ytick.major.width'] = 2
         plt.rcParams['ytick.minor.size'] = 4
+        plt.rcParams["errorbar.capsize"] = 5
         # plt.rcParams['axes.facecolor']='0.7'
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
@@ -97,7 +100,9 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update_cv_config.clicked.connect(self.update_cv_config_file)
         self.pushButton_plot_cv.clicked.connect(self.plot_cv_data)
         self.pushButton_cal_charge_2.clicked.connect(self.calculate_charge_2)
-        self.pushButton_plot_reaction_order.clicked.connect(self.cv_tool.plot_reaction_order_with_pH)
+        # self.pushButton_plot_reaction_order.clicked.connect(self.cv_tool.plot_reaction_order_with_pH)
+        self.pushButton_plot_reaction_order.clicked.connect(self.plot_reaction_order_and_tafel)
+        
         #self.pushButton_save_data.clicked.connect(self.save_data_method)
         #self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
         #self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
@@ -214,7 +219,9 @@ class MyMainWindow(QMainWindow):
         pot_filtered = RHE(pot_filtered,pH=ph)
         ax.plot(pot_filtered,current_filtered*8*cv_scale_factor,label='',color = color)
         ax.plot(RHE(pot,pH=ph),current*8,label='',color = color)
-        ax.text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
+        #get the position to show the scaling text on the plot
+        current_temp = current_filtered[np.argmin(np.abs(pot_filtered[0:int(len(pot_filtered)/2)]-1.1))]*8*cv_scale_factor
+        ax.text(1.1,current_temp+1.5,'x{}'.format(cv_scale_factor),color=color)
         #store the cv data
         self.cv_info[scan_no] = {'current_density':current*8,'potential':RHE(pot,pH = ph),'pH':ph, 'color':color}
 
@@ -596,15 +603,37 @@ class MyMainWindow(QMainWindow):
                     colors_bar = colors_bar + [colors_bar[-1]]*(len(self.scans)-len(colors_bar))
             plot_y_labels = [each for each in list(self.data_summary[self.scans[0]].keys()) if each in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']]
             #TODO this has to be changed to set the y_max automatically in different cases.
-            lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.4,'grain_size_ip':-1.2,'grain_size_oop':-1.4}
+            lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.5,'grain_size_ip':-1.2,'grain_size_oop':-1.6}
             for each in plot_y_labels:
                 for i in range(int(len(self.data_summary[self.scans[0]]['strain_ip'])/2)):#each value come with an error value
                     # plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)],self.data_summary[each_scan][each][-1]] for each_scan in self.scans])
                     plot_data_y = np.array([[self.data_summary[each_scan][each][i*2],self.data_summary[each_scan][each][i*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
                     labels = ['pH {}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
+                    count_pH13 = 1
+                    for j,each_label in enumerate(labels):
+                        if each_label == 'pH 13':
+                            labels[j] = '{}_{}'.format(each_label,count_pH13)
+                            count_pH13 += 1
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), int(len(self.data_summary[self.scans[0]]['strain_ip'])/2), i+1+int(len(self.data_summary[self.scans[0]]['strain_ip'])/2)*plot_y_labels.index(each))
                     ax_temp.bar(plot_data_x,plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
+                    self._format_axis(ax_temp)
+                    if each == 'strain_ip':
+                        y_locator = [0,-0.05,-0.1,-0.15]
+                    elif each =='strain_oop':
+                        y_locator = [0,-0.1,-0.2,-0.3,-0.4]
+                    elif each == 'grain_size_ip':
+                        y_locator = [0,-0.25,-0.5,-0.75,-1]
+                    elif each == 'grain_size_oop':
+                        y_locator = [0,-0.3,-0.6,-0.9,-1.2,-1.5]
+                    self._format_ax_tick_labels(ax = ax_temp,
+                            fun_set_bounds = 'set_ylim', 
+                            bounds = [lim_y_temp[each],0], 
+                            bound_padding = 0., 
+                            major_tick_location =y_locator, 
+                            show_major_tick_label = i==0, #show major tick label for the first scan
+                            num_of_minor_tick_marks=4, 
+                            fmt_str = '{: 4.2f}')
                     if i == 0:
                         ax_temp.set_ylabel(y_label_map[each],fontsize=13)
                         ax_temp.set_ylim([lim_y_temp[each],0])
@@ -616,12 +645,12 @@ class MyMainWindow(QMainWindow):
                         ax_temp.set_xticklabels([])
                     else:
                         ax_temp.set_xticks(plot_data_x)
-                        ax_temp.set_xticklabels(labels,fontsize=13)
+                        ax_temp.set_xticklabels(labels,fontsize=10)
                     if i!=0:
                         ax_temp.set_yticklabels([])
                         
                     # ax_temp.set_xticklabels(plot_data_x,labels)
-            self.mplwidget2.fig.subplots_adjust(hspace=0.04)
+            self.mplwidget2.fig.subplots_adjust(wspace = 0.04,hspace=0.04)
             self.mplwidget2.canvas.draw()
         else:
             pass
@@ -814,6 +843,46 @@ class MyMainWindow(QMainWindow):
         # print('now update potential range')
         # print(self.pot_ranges)
 
+    def plot_reaction_order_and_tafel(self):
+        self.widget_cv_view.canvas.figure.clear()
+        ax_tafel = self.widget_cv_view.canvas.figure.add_subplot(1,2,1)
+        ax_order = self.widget_cv_view.canvas.figure.add_subplot(1,2,2)
+        if self.cv_tool.info['reaction_order_mode'] == 'constant_potential':
+            constant_value = self.cv_tool.info['potential_reaction_order']
+        elif self.cv_tool.info['reaction_order_mode'] == 'constant_current':
+            constant_value = self.cv_tool.info['current_reaction_order']
+        mode = self.cv_tool.info['reaction_order_mode']
+        forward_cycle = True
+        self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle)
+        self._format_axis(ax_tafel)
+        self._format_axis(ax_order)
+        self._format_ax_tick_labels(ax = ax_tafel,
+                fun_set_bounds = 'set_ylim', 
+                bounds = [0.05,10], 
+                bound_padding = 0., 
+                major_tick_location =[0.1,1,10], 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks=10, 
+                fmt_str = '{:.0e}')
+        self._format_ax_tick_labels(ax = ax_tafel,
+                fun_set_bounds = 'set_xlim', 
+                bounds = [1.55,1.85], 
+                bound_padding = 0., 
+                major_tick_location =[1.55,1.6,1.65,1.7,1.75,1.8,1.85], 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks=5, 
+                fmt_str = '{: 4.2f}')
+        self._format_ax_tick_labels(ax = ax_order,
+                fun_set_bounds = 'set_ylim', 
+                bounds = [1.62,1.82], 
+                bound_padding = 0.01, 
+                major_tick_location =[1.62,1.67,1.72,1.77,1.82], 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks=5, 
+                fmt_str = '{: 4.2f}')
+        self.widget_cv_view.canvas.draw()
+
+
     def plot_cv_data(self):
         
         self.widget_cv_view.canvas.figure.clear()
@@ -828,6 +897,7 @@ class MyMainWindow(QMainWindow):
 
         for i in range(len(scans)):
             min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[i])
+            # min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[0])
             # print(min_x_, max_x_, min_y_, max_y_)
             if min_x_<min_x:
                 min_x = min_x_
@@ -863,6 +933,15 @@ class MyMainWindow(QMainWindow):
             j = self.scans.index(scan) + 1
             for i in range(plot_dim[0]):
                 getattr(self,'plot_axis_scan{}'.format(scan)).append(self.mplwidget.canvas.figure.add_subplot(plot_dim[0], plot_dim[1],j+plot_dim[1]*i))
+                self._format_axis(getattr(self,'plot_axis_scan{}'.format(scan))[-1])
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(which = 'major', axis="x", direction="in")
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(which = 'minor', axis="x", direction="in")
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(which = 'major', axis="y", direction="in")
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(which = 'minor', axis="y", direction="in")
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(which = 'major', bottom=True, top=True, left=True, right=True)
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
+                # getattr(self,'plot_axis_scan{}'.format(scan))[-1].tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+                #getattr(self,'plot_axis_scan{}'.format(scan))[-1].xaxis.set_minor_locator(AutoMinorLocator())
         y_max_values,y_min_values = [-100000000]*len(self.plot_labels_y),[100000000]*len(self.plot_labels_y)
 
         #prepare ranges for viewing datasummary
@@ -886,6 +965,8 @@ class MyMainWindow(QMainWindow):
                 elif len(each)==2:
                     pot_range_.append(each)
             self.pot_range = pot_range_
+        #count the times of dataset for pH 13
+        count_pH13_temp = 1
         for scan in self.scans:
             self.cal_potential_ranges(scan)
             self.data_summary[scan] = {}
@@ -1014,8 +1095,11 @@ class MyMainWindow(QMainWindow):
                                     except:
                                         pass
                 if i==0:
-                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=13)
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
+                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
+                    if self.phs[self.scans.index(scan)]==13:
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_{}'.format(self.phs[self.scans.index(scan)],count_pH13_temp),fontsize=11)
+                        count_pH13_temp+=1
                 if each=='current':
                     try:
                         temp_min,temp_max = lim_y
@@ -1083,13 +1167,126 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
                     else:
                         pass
-                getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(y_min_values[i],y_max_values[i])
+                #padding_offset = 0.01
+                #getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(y_min_values[i]-padding_offset, y_max_values[i]+padding_offset)
+                ####The following lines are customized for a specific dataset, it is subject to change depending on the dataset you are using
+                #getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(0.95,1.95)
+                if self.plot_label_x == 'potential':
+                    # x_locator = [1,1.3,1.6,1.9]
+                    x_locator = [0.5,1,1.5,2]
+                    self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
+                                                fun_set_bounds = 'set_xlim', 
+                                                bounds = [0.4,2.1],#[0.95,1.95], 
+                                                bound_padding = 0.0, 
+                                                major_tick_location = x_locator, 
+                                                show_major_tick_label = (len(self.plot_labels_y)-1)==i, #show major tick label for the first scan
+                                                num_of_minor_tick_marks=4, 
+                                                fmt_str = '{:3.1f}')
+
+                y_locator = None
+                if each == 'strain_ip':
+                    # y_locator = [0, -0.02, -0.04, -0.06]
+                    y_locator = [-0.3,-0.2,-0.1,0]
+                elif each == 'strain_oop':
+                    # y_locator = [0,-0.05,-0.10,-0.15,-0.20]
+                    y_locator = [-0.6,-0.4,-0.2,0]
+                elif each == 'grain_size_ip':
+                    # y_locator = [0,-0.1,-0.2,-0.3,-0.40]
+                    y_locator = [-4,-3,-2,-1,0]
+                elif each == 'grain_size_oop':
+                    # y_locator = [0,-0.2,-0.4,-0.6]
+                    y_locator = [-2.5,-2,-1.5,-1,-0.5,0]
+                elif each == 'current':
+                    # y_locator = [-1,0,1,2,3,4]
+                    y_locator = [-2,0,2,4,6]
+                if y_locator!=None:
+                    self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
+                                                fun_set_bounds = 'set_ylim', 
+                                                bounds = [y_min_values[i],y_max_values[i]], 
+                                                bound_padding = 0.01, 
+                                                major_tick_location = y_locator, 
+                                                show_major_tick_label = self.scans.index(scan)==0, #show major tick label for the first scan
+                                                num_of_minor_tick_marks=4, 
+                                                fmt_str = '{: 4.2f}')
         # self.print_data_summary()
         #self.actionPlotData.triggered.connect(self.print_data_summary)
         self.mplwidget.fig.tight_layout()
         # print(self.data_summary)
         self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
         self.mplwidget.canvas.draw()
+
+    #format the axis tick so that the tick facing inside, showing both major and minor tick marks
+    #The tick marks on both sides (y tick marks on left and right side and x tick marks on top and bottom side)
+    def _format_axis(self,ax):
+        major_length = 4
+        minor_length = 2
+        if hasattr(ax,'__len__'):
+            for each in ax:
+                each.tick_params(which = 'major', axis="x", length = major_length, direction="in")
+                each.tick_params(which = 'minor', axis="x", length = minor_length,direction="in")
+                each.tick_params(which = 'major', axis="y", length = major_length, direction="in")
+                each.tick_params(which = 'minor', axis="y", length = minor_length,direction="in")
+                each.tick_params(which = 'major', bottom=True, top=True, left=True, right=True)
+                each.tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
+                each.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+        else:
+            ax.tick_params(which = 'major', axis="x", length = major_length,direction="in")
+            ax.tick_params(which = 'minor', axis="x", length = minor_length,direction="in")
+            ax.tick_params(which = 'major', axis="y", length = major_length,direction="in")
+            ax.tick_params(which = 'minor', axis="y", length = minor_length,direction="in")
+            ax.tick_params(which = 'major', bottom=True, top=True, left=True, right=True)
+            ax.tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
+            ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+
+    def _format_ax_tick_labels(self,ax,fun_set_bounds = 'set_ylim', bounds = [0,1], bound_padding = 0, major_tick_location = [], show_major_tick_label = True, num_of_minor_tick_marks=5, fmt_str = '{: 4.2f}'):
+        mapping = {'set_ylim':'yaxis','set_xlim':'xaxis'}
+        which_axis = mapping[fun_set_bounds]
+        bounds_after_add_padding = bounds[0]-bound_padding, bounds[1]+bound_padding
+        major_tick_labels = []
+        for each in major_tick_location:
+            if show_major_tick_label:
+                major_tick_labels.append(fmt_str.format(each))
+            else:
+                major_tick_labels.append('')
+        minor_tick_location = []
+        minor_tick_labels = []
+        for i in range(len(major_tick_location)-1):
+            start = major_tick_location[i]
+            end = major_tick_location[i+1]
+            tick_spacing = (end-start)/(num_of_minor_tick_marks+1)
+            for j in range(num_of_minor_tick_marks):
+                minor_tick_location.append(start + tick_spacing*(j+1))
+                minor_tick_labels.append('')#not showing minor tick labels
+            #before starting point
+            if i==0:
+                count = 1
+                while True:
+                    if (start-count*abs(tick_spacing))<bounds_after_add_padding[0]:
+                        break
+                    else:
+                        minor_tick_location.append(start - abs(tick_spacing)*count)
+                        minor_tick_labels.append('')#not showing minor tick labels
+                        count = count+1
+            #after the last point
+            elif i == (len(major_tick_location)-2):
+                count = 1
+                while True:
+                    if (end+count*abs(tick_spacing))>bounds_after_add_padding[1]:
+                        break
+                    else:
+                        minor_tick_location.append(end + abs(tick_spacing)*count)
+                        minor_tick_labels.append('')#not showing minor tick labels
+                        count = count+1
+
+        #set limits
+        getattr(ax,fun_set_bounds)(*bounds_after_add_padding)
+        #set major tick and tick labels
+        getattr(ax, which_axis).set_major_formatter(FixedFormatter(major_tick_labels))
+        getattr(ax, which_axis).set_major_locator(FixedLocator(major_tick_location))
+        #set minor tick and tick lables (not showing the lable)
+        getattr(ax, which_axis).set_minor_formatter(FixedFormatter(minor_tick_labels))
+        getattr(ax, which_axis).set_minor_locator(FixedLocator(minor_tick_location))
+        
 
     def prepare_data_to_plot_xrv(self,plot_label_list, scan_number):
         if scan_number in self.image_range_info:

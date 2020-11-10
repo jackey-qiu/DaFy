@@ -365,6 +365,85 @@ class cvAnalysis(object):
         plt.show()
 
     #plot tafel slope for one scan
+    def plot_tafel_from_formatted_cv_info_one_scan_2(self,scan, ax, forward_cycle = True):
+        #half = 0, first half cycle E scan from low to high values
+        #how many points to be extended beyond the Tafel E range
+        offset = 0
+        which = self.info['sequence_id'].index(scan)
+        resistance = [self.info['resistance'][which]]
+        pot_start = self.info['pot_starts_tafel'][which]
+        pot_end = self.info['pot_ends_tafel'][which]
+        potential_for_reaction_order = self.info['potential_reaction_order']
+        if len(self.cv_info)==0:
+            self.extract_cv_info()
+        cv_info = self.cv_info
+        if forward_cycle:
+            half = 0
+        else:
+            half = 1
+        ax.set_yscale('log')
+        ax.set_xlabel(r'E / V$_{RHE}$')
+        # ax.set_ylabel(f"pH {cv_info[scan]['pH']}")
+        ax.set_ylabel(r'j / mAcm$^{-2}$')
+        # ax.yaxis.tick_right()
+        # ax.yaxis.set_label_position("right")
+        over_E = round(potential_for_reaction_order-1.23,2)
+        
+        # ax2 = fig.add_subplot(212)
+        #labels = ['pH {}'.format(ph) for ph in phs]
+        scans = [scan]
+        log_current_density = []
+        pHs = []
+        min_x, max_x, min_y, max_y= 0, 0, 0, 0
+        pH13_count = 1
+        for i in range(len(scans)):
+            #ph = phs[i]
+            pHs.append(cv_info[scans[i]]['pH'])
+            if cv_info[scans[i]]['pH']==13 and self.pH13_count==1:
+                label = 'pH {}'.format(cv_info[scans[i]]['pH'])
+            elif cv_info[scans[i]]['pH']==13 and self.pH13_count!=1:
+                label = None
+            else:
+                label = 'pH {}'.format(cv_info[scans[i]]['pH'])
+            color = cv_info[scans[i]]['color']
+            #pot_start=pot_starts[i]
+            #pot_end=pot_ends[i]
+            print(label,': resistance ={};pot_range between {} and {}'.format(resistance[i],pot_start, pot_end))
+            current = signal.savgol_filter(cv_info[scans[i]]['current_density'],21,0)
+            pot = cv_info[scans[i]]['potential']
+            # ax2.plot(pot)
+            if half==1:
+                pot_fit = pot[0:int(len(pot)/2)]
+                current_fit = current[0:int(len(pot)/2)]
+            else:
+                pot_fit = pot[int(len(pot)/2):len(pot)][::-1]
+                current_fit = current[int(len(pot)/2):len(pot)][::-1]
+            indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
+            ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],color = color)
+            if cv_info[scans[i]]['pH']==13:
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13_'+str(self.pH13_count))
+                self.pH13_count+=1
+            else:
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right')
+            # ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
+            # ax.plot(pot_fit[indx1-offset:indx1]-resistance[i]*(current_fit[indx1-offset:indx1]/8*0.001),current_fit[indx1-offset:indx1],':',label=label,color = color)
+            min_x, max_x = min(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001)),max(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001))
+            min_y, max_y = min(current_fit[indx1-offset:indx2]),max(current_fit[indx1-offset:indx2])
+            # ax.legend()
+            #linear regression
+            try:
+                slope,intercept,r_value, *others =stats.linregress(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),np.log10(current_fit[indx1:indx2]))
+                print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
+                print('Tafel slope = {} mV/decade'.format(1/slope*1000))
+                # ax.text(min_x,min_y+0.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
+                # ax.text(1.65,0.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
+                log_current_density.append(potential_for_reaction_order*slope+intercept)
+            except:
+                pass
+        # ax.legend()
+        return min_x, max_x, min_y, max_y
+
+    #plot tafel slope for one scan
     def plot_tafel_from_formatted_cv_info_one_scan(self,scan, ax, forward_cycle = True):
         #half = 0, first half cycle E scan from low to high values
         #how many points to be extended beyond the Tafel E range
@@ -432,6 +511,12 @@ class cvAnalysis(object):
                 pass
         return min_x, max_x, min_y, max_y
     
+    def plot_tafel_with_reaction_order(self,ax_tafel, ax_order,constant_value = 1,mode = 'constant_current', forward_cycle = True):
+        self.plot_reaction_order_with_pH(constant_value = constant_value, ax = ax_order, mode = mode, forward_cycle = forward_cycle)
+        self.pH13_count = 1
+        for scan in self.info['sequence_id']:
+            self.plot_tafel_from_formatted_cv_info_one_scan_2(scan=scan, ax=ax_tafel, forward_cycle = forward_cycle)
+
     #plot reaction order with pH
     #two modes: 
     # constant_current: current density at the same potential
@@ -442,7 +527,7 @@ class cvAnalysis(object):
         else:
             half = 1
         if ax == None:
-            fig = plt.figure(figsize=(4,4))
+            fig = plt.figure(figsize=(7,4))
             ax = fig.add_subplot(111)
         else:
             pass
@@ -490,14 +575,19 @@ class cvAnalysis(object):
                 values.append(pot_fit[which])
         pHs_unique = list(set(pHs))
         values_unique = [values[pHs.index(each)] for each in pHs_unique]
-        pHs, values = pHs_unique, values_unique
-        ax.plot(pHs, values, 'og')
+        # pHs, values = pHs_unique, values_unique
+        pH13_count = 1
+        for j,pH in enumerate(pHs):
+            ax.plot(pH, values[j], 'o', color = self.info['color'][j])
+            if pH ==13:
+                ax.text(pH+0.1,values[j],str(pH13_count))
+                pH13_count+=1
         slope_, intercept_, r_value_, *_ = stats.linregress(pHs, values)
         f = lambda x: slope_*x + intercept_
         x_min, x_max = min(pHs), max(pHs)
-        ax.plot([x_min,x_max],[f(x_min),f(x_max)],'-r')
+        ax.plot([x_min,x_max],[f(x_min),f(x_max)],'-k')
         text_label = 'y = {}x + {}, R2 = {}'.format(round(slope_,3), round(intercept_,3), round(r_value_**2,3))
-        ax.text(x_min,f(x_max),text_label)
+        # ax.text(x_min,f(x_max),text_label)
         print('Reaction order fit: log(current) = {}pH + {}, R2 = {}'.format(slope_, intercept_, r_value_**2))
         #plt.legend()
         try:
