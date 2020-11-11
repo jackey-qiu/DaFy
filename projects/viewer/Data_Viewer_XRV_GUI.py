@@ -1,5 +1,5 @@
 import sys,os,qdarkstyle
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5 import uic
@@ -16,16 +16,32 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
+from cv_tool import cvAnalysis
 from charge_calculation import calculate_charge
 from PlotSetup import data_viewer_plot_cv, RHE, plot_tafel_from_formatted_cv_info
 import pandas as pd
 import time
 import matplotlib
+from matplotlib.ticker import AutoMinorLocator
+from matplotlib.ticker import FixedLocator, FixedFormatter
 matplotlib.use("Qt5Agg")
 from scipy import signal
 # import scipy.signal.savgol_filter as savgol_filter
 
 #from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as NavigationToolbar)
+def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warning'][0]):
+    msg = QMessageBox()
+    if window_title == 'Error':
+        msg.setIcon(QMessageBox.Critical)
+    elif window_title == 'Warning':
+        msg.setIcon(QMessageBox.Warning)
+    else:
+        msg.setIcon(QMessageBox.Information)
+
+    msg.setText(msg_text)
+    # msg.setInformativeText('More information')
+    msg.setWindowTitle(window_title)
+    msg.exec_()
 
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
@@ -33,6 +49,8 @@ class MyMainWindow(QMainWindow):
         uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer__xrv_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
+        self.cv_tool = cvAnalysis()
+        self.widget_terminal.update_name_space('main_gui',self)
         self.addToolBar(self.mplwidget.navi_toolbar)
         self.setWindowTitle('XRV data Viewer')
         self.data_to_save = {}
@@ -56,15 +74,17 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.major.size'] = 6
         plt.rcParams['ytick.major.width'] = 2
         plt.rcParams['ytick.minor.size'] = 4
+        plt.rcParams["errorbar.capsize"] = 5
         # plt.rcParams['axes.facecolor']='0.7'
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
+        plt.rcParams['savefig.dpi'] = 300
         #style.use('ggplot')
         self.actionLoadData.triggered.connect(self.load_file)
         self.actionPlotData.triggered.connect(self.plot_figure_xrv)
         self.actionPlotData.triggered.connect(self.print_data_summary)
         self.actionPlotRate.triggered.connect(self.plot_data_summary_xrv)
-        self.actionSaveData.triggered.connect(self.save_xrv_data)
+        self.actionSaveData.triggered.connect(self.save_data_method)
         self.actionShowHide.triggered.connect(self.show_or_hide)
         self.pushButton_cal_charge.clicked.connect(self.plot_figure_xrv)
         self.pushButton_cal_charge.clicked.connect(self.print_data_summary)
@@ -77,6 +97,13 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update.clicked.connect(self.append_scans_xrv)
         self.pushButton_update_info.clicked.connect(self.make_plot_lib)
         self.pushButton_apply.clicked.connect(self.update_pot_offset)
+        self.pushButton_load_cv_config.clicked.connect(self.load_cv_config_file)
+        self.pushButton_update_cv_config.clicked.connect(self.update_cv_config_file)
+        self.pushButton_plot_cv.clicked.connect(self.plot_cv_data)
+        self.pushButton_cal_charge_2.clicked.connect(self.calculate_charge_2)
+        # self.pushButton_plot_reaction_order.clicked.connect(self.cv_tool.plot_reaction_order_with_pH)
+        self.pushButton_plot_reaction_order.clicked.connect(self.plot_reaction_order_and_tafel)
+        
         #self.pushButton_save_data.clicked.connect(self.save_data_method)
         #self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
         #self.pushButton_plot_datasummary.clicked.connect(self.plot_data_summary_xrv)
@@ -93,7 +120,31 @@ class MyMainWindow(QMainWindow):
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
         self.pot_ranges = {}
         self.cv_info = {}
+        self.tick_label_settings = {}
         self.plot_tafel = plot_tafel_from_formatted_cv_info
+
+    def extract_tick_label_settings(self):
+        if hasattr(self,'plainTextEdit_tick_label_settings'):
+            strings = self.plainTextEdit_tick_label_settings.toPlainText()
+            lines = strings.rsplit('\n')
+            for each_line in lines:
+                if each_line.startswith('#'):
+                    pass
+                else:
+                    items = each_line.rstrip().rsplit('+')
+                    key,item,locator,padding,tick_num,fmt,func = items
+                    locator = eval(locator)
+                    if key in self.tick_label_settings:
+                        self.tick_label_settings[key][item] = {'locator':locator,'padding':float(padding),'tick_num':int(tick_num),'fmt':fmt,'func':func}
+                    else:
+                        self.tick_label_settings[key] = {}
+                        self.tick_label_settings[key][item] = {'locator':locator,'padding':float(padding),'tick_num':int(tick_num),'fmt':fmt,'func':func}
+        else:
+            pass
+
+    def calculate_charge_2(self):
+        output = self.cv_tool.calc_charge_all()
+        self.plainTextEdit_cv_summary.setPlainText(output)
 
     def set_grain_info_all_scan(self,grain_object, scan, pot_ranges, direction, cases):
         pot_ranges = [tuple(each) for each in pot_ranges]
@@ -112,6 +163,7 @@ class MyMainWindow(QMainWindow):
         self.charge_info = {}
         self.grain_size_info_all_scans = {}
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
+        self.tick_label_settings = {}
 
     def update_pot_offset(self):
         self.potential_offset = eval(self.lineEdit_pot_offset.text())/1000
@@ -189,7 +241,9 @@ class MyMainWindow(QMainWindow):
         pot_filtered = RHE(pot_filtered,pH=ph)
         ax.plot(pot_filtered,current_filtered*8*cv_scale_factor,label='',color = color)
         ax.plot(RHE(pot,pH=ph),current*8,label='',color = color)
-        ax.text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
+        #get the position to show the scaling text on the plot
+        current_temp = current_filtered[np.argmin(np.abs(pot_filtered[0:int(len(pot_filtered)/2)]-1.1))]*8*cv_scale_factor
+        ax.text(1.1,current_temp+1.5,'x{}'.format(cv_scale_factor),color=color)
         #store the cv data
         self.cv_info[scan_no] = {'current_density':current*8,'potential':RHE(pot,pH = ph),'pH':ph, 'color':color}
 
@@ -355,19 +409,18 @@ class MyMainWindow(QMainWindow):
         self.frame.setVisible(not self.show_frame)
         self.show_frame = not self.show_frame
 
+    #this update the data range for the selected scan
+    #it will take effect after you replot the figures
     def update_plot_range(self):
-        try:
-            scan = int(self.comboBox_scans.currentText())
-            l,r = int(self.lineEdit_img_range_left.text()),int(self.lineEdit_img_range_right.text())
-        except:
-            return
+        scan = int(self.comboBox_scans.currentText())
+        l,r = int(self.lineEdit_img_range_left.text()),int(self.lineEdit_img_range_right.text())
         self.image_range_info[scan] = [l,r]
         all_info=[]
         for each in self.image_range_info:
             all_info.append('{}:{}'.format(each,self.image_range_info[each]))
-        print(all_info)
         self.plainTextEdit_img_range.setPlainText('\n'.join(all_info))
 
+    #open data file
     def locate_data_folder(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -375,11 +428,15 @@ class MyMainWindow(QMainWindow):
         if fileName:
             self.lineEdit_data_file_path.setText(os.path.dirname(fileName)) 
 
+    #save the data according to the specified data ranges
     def save_data_method(self):
         # print(self.data_to_save.keys())
-        for each in self.data_to_save:
-            # print(self.data_to_save[each])
-            self.data_to_save[each].to_csv(os.path.join(self.lineEdit_data_file_path.text(), self.lineEdit_data_file_name.text()+'_{}.csv'.format(each)),header = False, sep =' ',index=False)
+        if len(self.data_to_save)==0:
+            error_pop_up('No data prepared to be saved!','Error')
+        else:
+            for each in self.data_to_save:
+                # print(self.data_to_save[each])
+                self.data_to_save[each].to_csv(os.path.join(self.lineEdit_data_file_path.text(), self.lineEdit_data_file_name.text()+'_{}.csv'.format(each)),header = False, sep =' ',index=False)
 
 
     #save a segment of data to be formated for loading in superrod
@@ -421,6 +478,29 @@ class MyMainWindow(QMainWindow):
             df.to_csv(self.lineEdit_data_file_path.text().replace('.csv','_{}.csv'.format(scan_)),\
                       header = False, sep =' ',columns = list(temp_data.keys()), index=False)
 
+    #open the cv config file for cv analysis only
+    def load_cv_config_file(self):
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","CV config Files (*.ini);;All Files (*.txt)", options=options)
+        if fileName:
+            self.lineEdit_cv_config_path.setText(fileName)
+            with open(fileName,'r') as f:
+                lines = f.readlines()
+                self.plainTextEdit_cv_config.setPlainText(''.join(lines))
+
+    #update the config file after edition in the plainText block
+    def update_cv_config_file(self):
+        with open(self.lineEdit_cv_config_path.text(),'w') as f:
+            f.write(self.plainTextEdit_cv_config.toPlainText())
+        missed_items = self.cv_tool._extract_parameter_from_config(self.lineEdit_cv_config_path.text(), sections = ['Global'])
+        if len(missed_items)==0:
+            self.cv_tool.extract_cv_info()
+            error_pop_up('The config file is overwritten!','Information')
+        else:
+            error_pop_up(f'The config file is overwritten, but the config file has the following items missed:{missed_items}!','Error')
+
+    #load config file
     def load_config(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -444,26 +524,30 @@ class MyMainWindow(QMainWindow):
                         else:
                             getattr(self,channel).setText(value)
                     except:
-                        getattr(self,channel).setPlainText(value.replace(";","\n"))
-                        if value=="":
-                            pass
-                        else:
-                            self.image_range_info = {}
-                            items = value.rsplit(';')
-                            for each_item in items:
-                                a,b = each_item.rstrip().rsplit(":")
-                                self.image_range_info[int(a)] = eval(b)
+                        if channel == 'plainTextEdit_img_range':
+                            getattr(self,channel).setPlainText(value.replace(";","\n"))
+                            if value=="":
+                                pass
+                            else:
+                                self.image_range_info = {}
+                                items = value.rsplit(';')
+                                for each_item in items:
+                                    a,b = each_item.rstrip().rsplit(":")
+                                    self.image_range_info[int(a)] = eval(b)
+                        elif channel == 'plainTextEdit_tick_label_settings':
+                            getattr(self,channel).setPlainText(value.replace(";","\n"))
         self._load_file()
         self.append_scans_xrv()
         self.update_pot_offset()
         self.make_plot_lib()
 
+    #save config file
     def save_config(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","config file (*.ini);Text Files (*.txt);all files(*.*)", options=options)
         with open(fileName,'w') as f:
-            channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
+            channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
                         'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
                         'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file']
             for channel in channels:
@@ -473,6 +557,8 @@ class MyMainWindow(QMainWindow):
                     f.write(channel+':'+getattr(self,channel).text()+'\n')
             f.write("plainTextEdit_img_range:"+self.plainTextEdit_img_range.toPlainText().replace("\n",";")+'\n')
             f.write("textEdit_plot_lib:"+self.textEdit_plot_lib.toPlainText().replace("\n",";")+'\n')
+            if hasattr(self,'plainTextEdit_tick_label_settings'):
+                f.write("plainTextEdit_tick_label_settings:"+self.plainTextEdit_tick_label_settings.toPlainText().replace("\n",";")+'\n')
             
     def set_plot_channels(self):
         time_scan = self.checkBox_time_scan.isChecked()
@@ -483,6 +569,8 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_x.setText('potential')
             self.lineEdit_y.setText('current,strain_ip,strain_oop,grain_size_ip,grain_size_oop') 
 
+    #fill the info in the summary text block
+    #and init the self.data attribute by reading data from excel file
     def _load_file(self):
         fileName = self.lineEdit_data_file.text()
         self.lineEdit_data_file.setText(fileName)
@@ -497,6 +585,7 @@ class MyMainWindow(QMainWindow):
         phs = 'pHs\n'+str(self.phs_all)+'\n'
         self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
 
+    #load excel data file
     def load_file(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
@@ -518,9 +607,11 @@ class MyMainWindow(QMainWindow):
         phs = 'pHs\n'+str(self.phs_all)+'\n'
         self.textEdit_summary_data.setText('\n'.join([col_labels,scan_numbers,phs]))
 
+    #plot bar chart using linear fit results
     def plot_data_summary_xrv_from_external_file(self):
         if self.data_summary!={}:
             self.mplwidget2.fig.clear()
+            #label mapping
             y_label_map = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
                         'strain_ip':r'$\Delta\varepsilon_\parallel$  (%/V)',
@@ -528,6 +619,7 @@ class MyMainWindow(QMainWindow):
                         'grain_size_oop':r'$\Delta d_\perp$  (nm/V)',
                         'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
                         'peak_intensity':r'Intensity / a.u.'}
+            #get color tags
             colors_bar = self.lineEdit_colors_bar.text().rsplit(',')
             if len(colors_bar) == 1:
                 colors_bar = colors_bar*len(self.scans)
@@ -538,15 +630,40 @@ class MyMainWindow(QMainWindow):
                     colors_bar = colors_bar + [colors_bar[-1]]*(len(self.scans)-len(colors_bar))
             plot_y_labels = [each for each in list(self.data_summary[self.scans[0]].keys()) if each in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']]
             #TODO this has to be changed to set the y_max automatically in different cases.
-            lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.4,'grain_size_ip':-1.2,'grain_size_oop':-1.4}
+            lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.5,'grain_size_ip':-1.2,'grain_size_oop':-1.6}
             for each in plot_y_labels:
-                for i in range(int(len(self.data_summary[self.scans[0]]['strain_ip'])/2)):
+                for i in range(int(len(self.data_summary[self.scans[0]]['strain_ip'])/2)):#each value come with an error value
                     # plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)],self.data_summary[each_scan][each][-1]] for each_scan in self.scans])
                     plot_data_y = np.array([[self.data_summary[each_scan][each][i*2],self.data_summary[each_scan][each][i*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
+                    '''
+                    plot_data_y_charge = []
+                    for each_scan in self.scans:
+                        key_ = list(self.charge_info[each_scan].keys())[-1]
+                        plot_data_y_charge.append(self.charge_info[each_scan][key_]['total_charge']/abs(key_[0]-key_[1]))
+                    '''
                     labels = ['pH {}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
+                    count_pH13 = 1
+                    for j,each_label in enumerate(labels):
+                        if each_label == 'pH 13':
+                            labels[j] = '{}_{}'.format(each_label,count_pH13)
+                            count_pH13 += 1
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), int(len(self.data_summary[self.scans[0]]['strain_ip'])/2), i+1+int(len(self.data_summary[self.scans[0]]['strain_ip'])/2)*plot_y_labels.index(each))
+                    # ax_temp_2 = ax_temp.twinx()
                     ax_temp.bar(plot_data_x,plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
+                    # ax_temp_2.plot(plot_data_x,-np.array(plot_data_y_charge),'k:*')
+                    self._format_axis(ax_temp)
+                    # self._format_axis(ax_temp_2)
+                    if 'bar' in self.tick_label_settings:
+                        if (each in self.tick_label_settings['bar']) and self.checkBox_use.isChecked():
+                            self._format_ax_tick_labels(ax = ax_temp,
+                                    fun_set_bounds = self.tick_label_settings['bar'][each]['func'], 
+                                    bounds = [lim_y_temp[each],0], 
+                                    bound_padding = self.tick_label_settings['bar'][each]['padding'], 
+                                    major_tick_location =self.tick_label_settings['bar'][each]['locator'], 
+                                    show_major_tick_label = i==0, #show major tick label for the first scan
+                                    num_of_minor_tick_marks=self.tick_label_settings['bar'][each]['tick_num'], 
+                                    fmt_str = self.tick_label_settings['bar'][each]['fmt'])
                     if i == 0:
                         ax_temp.set_ylabel(y_label_map[each],fontsize=13)
                         ax_temp.set_ylim([lim_y_temp[each],0])
@@ -558,21 +675,25 @@ class MyMainWindow(QMainWindow):
                         ax_temp.set_xticklabels([])
                     else:
                         ax_temp.set_xticks(plot_data_x)
-                        ax_temp.set_xticklabels(labels,fontsize=13)
+                        ax_temp.set_xticklabels(labels,fontsize=10)
                     if i!=0:
                         ax_temp.set_yticklabels([])
                         
                     # ax_temp.set_xticklabels(plot_data_x,labels)
-            self.mplwidget2.fig.subplots_adjust(hspace=0.04)
+            self.mplwidget2.fig.subplots_adjust(wspace = 0.04,hspace=0.04)
             self.mplwidget2.canvas.draw()
         else:
             pass
 
+    #for each item
+    #eg self.data_summary[221]['strain_ip] = [slop_1st_seg, error_1st_seg, slope_2nd_seg, error_2nd_seg]
+    # this fun is very much highly customized for one time purpose, not generic at all
+    #be careful if you want to use it to extract info from a new fit file
     def make_data_summary_from_external_file(self):
         file = self.lineEdit_slope_file.text()
         if file=="":
             return
-        data = pd.read_csv(file,sep='\t')
+        data = pd.read_csv(file,sep='\t',comment = '#')
         summary = {}
         for each in self.scans:
             summary[each] = {}
@@ -584,6 +705,7 @@ class MyMainWindow(QMainWindow):
                     summary[each][item] = summary[each][item] + [each_item,error*abs(each_item)]
         self.data_summary = summary
 
+    #bar chart based on slope values calculated directely from the xrv master figure
     def plot_data_summary_xrv(self):
         if self.checkBox_use_external_slope.isChecked():
             self.make_data_summary_from_external_file()
@@ -592,6 +714,8 @@ class MyMainWindow(QMainWindow):
             return 
         #here you should update the self.data_summary info
         self.plot_figure_xrv()
+        #plain text to be displayed in the data summary tab
+        plain_text = []
 
         if self.data_summary!={}:
             self.mplwidget2.fig.clear()
@@ -619,10 +743,11 @@ class MyMainWindow(QMainWindow):
                 elif len(colors_bar) < len(self.scans):
                     colors_bar = colors_bar + [colors_bar[-1]]*(len(self.scans)-len(colors_bar))
             plot_y_labels = [each for each in list(self.data_summary[self.scans[0]].keys()) if each in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']]
-            #TODO this has to be changed to set the y_max automatically in different cases.
-            lim_y_temp = {'strain_ip':-0.18,'strain_oop':-0.4,'grain_size_ip':-1.2,'grain_size_oop':-1.4}
+            
             lim_y_temp = {'strain_ip':[],'strain_oop':[],'grain_size_ip':[],'grain_size_oop':[]}
             for each_pot in self.pot_range:
+                #if pot_range = [1,1] for eg, the bar value is actually the associated absolute value at pot = 1
+                #if pot_range = [1,1.5] for eg, the bar value is the value difference between 1 and 1.5 V
                 use_absolute_value = each_pot[0] == each_pot[1]
                 for each in lim_y_temp.keys():
                     for each_scan in self.scans:
@@ -642,7 +767,6 @@ class MyMainWindow(QMainWindow):
                 output_data = []
                 use_absolute_value = each_pot[0] == each_pot[1]
                 for each in plot_y_labels:
-                    # plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)],self.data_summary[each_scan][each][-1]] for each_scan in self.scans])
                     plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2],self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
                     labels = ['pH {}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
@@ -662,7 +786,10 @@ class MyMainWindow(QMainWindow):
                     else:
                         ax_temp.set_ylim(lim_y_temp[each])
                     if each == plot_y_labels[0]:
-                        ax_temp.set_title('E range:{:4.2f}-->{:4.2f} V'.format(*each_pot), fontsize=12)
+                        if use_absolute_value:
+                            ax_temp.set_title('E = {:4.2f} V'.format(each_pot[0]), fontsize=12)
+                        else:
+                            ax_temp.set_title('E range:{:4.2f}-->{:4.2f} V'.format(*each_pot), fontsize=12)
                     if each != plot_y_labels[-1]:
                         ax_temp.set_xticklabels([])
                     else:
@@ -674,23 +801,29 @@ class MyMainWindow(QMainWindow):
                 output_data = np.array(output_data).T
                 output_data = np.append(output_data,np.array([int(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans])[:,np.newaxis],axis=1)
                 output_data = np.append(np.array([int(each_) for each_ in self.scans])[:,np.newaxis],output_data,axis = 1)
-                print('\n')
-                print(each_pot)
+                # print('\n')
+                # print(each_pot)
+                plain_text.append(f'\npot = {each_pot} V')
+                plain_text.append('scan_no\tstrain_ip\tstrain_oop\tgrain_size_ip\tgrain_size_oop\tpH')
                 for each_row in output_data:
-                    print("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:2.0f}".format(*each_row))
+                    # print("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:2.0f}".format(*each_row))
+                    plain_text.append("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t\t{:2.0f}".format(*each_row))
             self.mplwidget2.fig.subplots_adjust(hspace=0.04)
             self.mplwidget2.canvas.draw()
+            self.plainTextEdit_summary.setPlainText('\n'.join(plain_text))
         else:
             pass
 
+    #extract the potential seperation in the fit file
     def return_seperator_values(self,scan):
         file = self.lineEdit_slope_file.text()
-        data = pd.read_csv(file,sep='\t')
+        data = pd.read_csv(file,sep='\t',comment = '#')
         summary = {}
         summary[scan] = {}
         for_current =[]
         try:
             for item in ['strain_ip','strain_oop','grain_size_ip','grain_size_oop']:
+                #_p1 is the associated potential value at the cross point (seperator)
                 summary[scan][item] = [data['scan{}'.format(scan)]['{}_p1'.format(item)]+self.potential_offset]
                 for_current.append(summary[scan][item])
             summary[scan]['current'] = for_current
@@ -698,9 +831,13 @@ class MyMainWindow(QMainWindow):
             summary[scan] = None
         return summary
 
+    #get slope/intercept values from fit files
+    #dic of scan_number
+    #each item is a dic of structural values, each structure value (eg strain_ip) corresponds to 6 items [p0, p1,p2,y1,a1,a2]
+    #p's are potentials at the left bound(p0), right bound (p2), and cross point (p1), y1 is the associated value at p1, a1 and a2 are two slopes
     def return_slope_values(self):
         file = self.lineEdit_slope_file.text()
-        data = pd.read_csv(file,sep='\t')
+        data = pd.read_csv(file,sep='\t',comment = '#')
         summary = {}
         for each in self.scans:
             summary[each] = {}
@@ -710,10 +847,12 @@ class MyMainWindow(QMainWindow):
                     summary[each][item] = summary[each][item] + [data['scan{}'.format(each)]['{}_y1'.format(item)]]
                     summary[each][item] = summary[each][item] +  list(data['scan{}'.format(each)]['{}'.format(item)])[::-1]
                 except:
-                    summary[each][item] = None
+                    error_pop_up('Could not extract the slope value from fit file', 'Error')
         #each item = [p0,p1,p2,y1,a1,a2], as are slope values, (p1,y1) transition value, y0 and y2 are end points for potentials
         return summary
 
+    #when using external_slope, the potential range is determined by the fitted cross point and the bounds you provied on the GUI (in tab of More setup, potential_range)
+    #If not, just use the ranges specified in tab of Basic setup, potential ranges selector
     def cal_potential_ranges(self,scan):
         f = lambda x:(round(x[0],3),round(x[1],3))
         if self.checkBox_use_external_slope.isChecked():
@@ -721,10 +860,9 @@ class MyMainWindow(QMainWindow):
         else:
             slope_info_temp = None
         if slope_info_temp == None:
-            # pot_range = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
             self.pot_ranges[scan] = [f(each) for each in self.pot_range]
         else:
-            p0,p1,p2,y1,a1,a2 = slope_info_temp[scan]["strain_ip"]
+            _,p1,*_ = slope_info_temp[scan]["strain_ip"]#p1 y1 is the cross point, thus should be the same for all structural pars
             pot_range_specified = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
             if p1>pot_range_specified[1]:
                 p1 = sum(pot_range_specified)/2
@@ -735,8 +873,103 @@ class MyMainWindow(QMainWindow):
         # print('now update potential range')
         # print(self.pot_ranges)
 
+    def plot_reaction_order_and_tafel(self):
+        self.widget_cv_view.canvas.figure.clear()
+        ax_tafel = self.widget_cv_view.canvas.figure.add_subplot(1,2,1)
+        ax_order = self.widget_cv_view.canvas.figure.add_subplot(1,2,2)
+        if self.cv_tool.info['reaction_order_mode'] == 'constant_potential':
+            constant_value = self.cv_tool.info['potential_reaction_order']
+        elif self.cv_tool.info['reaction_order_mode'] == 'constant_current':
+            constant_value = self.cv_tool.info['current_reaction_order']
+        mode = self.cv_tool.info['reaction_order_mode']
+        forward_cycle = True
+        self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle)
+        self._format_axis(ax_tafel)
+        self._format_axis(ax_order)
+        self._format_ax_tick_labels(ax = ax_tafel,
+                fun_set_bounds = 'set_ylim', 
+                bounds = [0.05,10], 
+                bound_padding = 0., 
+                major_tick_location =[0.1,1,10], 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks=10, 
+                fmt_str = '{:.0e}')
+        self._format_ax_tick_labels(ax = ax_tafel,
+                fun_set_bounds = 'set_xlim', 
+                bounds = [1.55,1.85], 
+                bound_padding = 0., 
+                major_tick_location =[1.55,1.6,1.65,1.7,1.75,1.8,1.85], 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks=5, 
+                fmt_str = '{: 4.2f}')
+        self._format_ax_tick_labels(ax = ax_order,
+                fun_set_bounds = 'set_ylim', 
+                bounds = [1.62,1.82], 
+                bound_padding = 0.01, 
+                major_tick_location =[1.62,1.67,1.72,1.77,1.82], 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks=5, 
+                fmt_str = '{: 4.2f}')
+        self.widget_cv_view.canvas.draw()
+
+    def plot_cv_data(self):
+        self.widget_cv_view.canvas.figure.clear()
+        col_num = 4
+        axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
+        self.cv_tool.plot_cv_files(axs = axs)
+        for each in axs:
+            self._format_axis(each)
+            self._format_ax_tick_labels(ax = each,
+                                        fun_set_bounds = 'set_xlim', 
+                                        bounds = [1.,1.9], 
+                                        bound_padding = 0.05, 
+                                        major_tick_location =[1,1.2,1.4,1.6,1.8], 
+                                        show_major_tick_label = True, #show major tick label for the first scan
+                                        num_of_minor_tick_marks=5, 
+                                        fmt_str = '{: 3.1f}')
+            self._format_ax_tick_labels(ax = each,
+                                        fun_set_bounds = 'set_ylim', 
+                                        bounds = [-1.2,7.6], 
+                                        bound_padding = 0.1, 
+                                        major_tick_location =[0,2,4,6], 
+                                        show_major_tick_label = True, #show major tick label for the first scan
+                                        num_of_minor_tick_marks=5, 
+                                        fmt_str = '{: 4.2f}')
+        axs[-1].set_xlabel(r'E / V$_{RHE}$')
+        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1)+1) for i in range(1,len(self.cv_tool.cv_info)+1)]
+        scans = list(self.cv_tool.cv_info.keys())
+        scans = sorted(scans)
+        min_x, max_x = 10000000, -10000000
+        min_y, max_y = 10000000, -10000000
+
+        for i in range(len(scans)):
+            min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[i])
+            # min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[0])
+            # print(min_x_, max_x_, min_y_, max_y_)
+            if min_x_<min_x:
+                min_x = min_x_
+            if min_y_<min_y:
+                min_y = min_y_
+            if max_x_>max_x:
+                max_x = max_x_
+            if max_y_>max_y:
+                max_y = max_y_ 
+        for each in axs_2:
+            each.set_xlim(min_x, max_x)
+            each.set_ylim(min_y, max_y)
+            # each.yaxis.tick_right()
+            each.yaxis.set_label_position("right")
+
+        #self.widget_cv_view.fig.tight_layout()
+        # print(self.data_summary)
+        self.widget_cv_view.fig.subplots_adjust(wspace=0.24,hspace=0.04)
+        self.widget_cv_view.canvas.draw()
+
+    #plot the master figure
     def plot_figure_xrv(self):
         self.reset_meta_data()
+        self.extract_tick_label_settings()
+
         if self.checkBox_use_external_slope.isChecked():
             slope_info_temp = self.return_slope_values()
         else:
@@ -749,7 +982,9 @@ class MyMainWindow(QMainWindow):
             j = self.scans.index(scan) + 1
             for i in range(plot_dim[0]):
                 getattr(self,'plot_axis_scan{}'.format(scan)).append(self.mplwidget.canvas.figure.add_subplot(plot_dim[0], plot_dim[1],j+plot_dim[1]*i))
+                self._format_axis(getattr(self,'plot_axis_scan{}'.format(scan))[-1])
         y_max_values,y_min_values = [-100000000]*len(self.plot_labels_y),[100000000]*len(self.plot_labels_y)
+        x_min_value, x_max_value = [1000000000,-10000000000]
 
         #prepare ranges for viewing datasummary
         data_range = self.lineEdit_data_range.text().rsplit(',')
@@ -772,6 +1007,8 @@ class MyMainWindow(QMainWindow):
                 elif len(each)==2:
                     pot_range_.append(each)
             self.pot_range = pot_range_
+        #count the times of dataset for pH 13
+        count_pH13_temp = 1
         for scan in self.scans:
             self.cal_potential_ranges(scan)
             self.data_summary[scan] = {}
@@ -864,10 +1101,11 @@ class MyMainWindow(QMainWindow):
                             except:
                                 pass
                         else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
-                            for each_index in seperators:
-                                pot = self.data_to_plot[scan][self.plot_label_x][each_index]
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
+                            if self.checkBox_show_marker.isChecked():
+                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
+                                for each_index in seperators:
+                                    pot = self.data_to_plot[scan][self.plot_label_x][each_index]
+                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                     else:
                         if self.checkBox_use_external_cv.isChecked():
                             try:
@@ -888,9 +1126,10 @@ class MyMainWindow(QMainWindow):
                             getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                             if not self.checkBox_use_external_slope.isChecked():
-                                for each_index in seperators:
-                                    pot = self.data_to_plot[scan][self.plot_label_x][each_index]
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
+                                if self.checkBox_show_marker.isChecked():
+                                    for each_index in seperators:
+                                        pot = self.data_to_plot[scan][self.plot_label_x][each_index]
+                                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                             else:
                                 for each_item in seperators[scan][each]:
                                     try:
@@ -898,8 +1137,11 @@ class MyMainWindow(QMainWindow):
                                     except:
                                         pass
                 if i==0:
-                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=13)
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
+                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
+                    if self.phs[self.scans.index(scan)]==13:
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_{}'.format(self.phs[self.scans.index(scan)],count_pH13_temp),fontsize=11)
+                        count_pH13_temp+=1
                 if each=='current':
                     try:
                         temp_min,temp_max = lim_y
@@ -907,7 +1149,11 @@ class MyMainWindow(QMainWindow):
                         temp_max, temp_min = max(list(self.data_to_plot[scan][plot_labels_y[i]]*8)),min(list(self.data_to_plot[scan][plot_labels_y[i]]*8))
                 else:
                     temp_max, temp_min = max(list(self.data_to_plot[scan][plot_labels_y[i]])),min(list(self.data_to_plot[scan][plot_labels_y[i]]))
-                    
+                temp_max_x, temp_min_x = max(list(self.data_to_plot[scan][self.plot_label_x])), min(list(self.data_to_plot[scan][self.plot_label_x]))
+                if temp_max_x > x_max_value:
+                    x_max_value = temp_max_x
+                if temp_min_x < x_min_value:
+                    x_min_value = temp_min_x
                 if y_max_values[i]<temp_max:
                     y_max_values[i] = temp_max
                 if y_min_values[i]>temp_min:
@@ -933,38 +1179,8 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylabel(y_label_map[each], fontsize = 13)
                     else:
                         pass
-            """
-            for each_pot_range in self.grain_size_info_all_scans[scan]:
-                horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
-                vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
-                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
-                print("potential range:",each_pot_range)
-                print({"horizontal":horizontal,"vertical":vertical})
-                print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
-                if scan not in self.charge_info:
-                    self.charge_info[scan] = {}
-                    self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
-                else:
-                    self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
-                    self.charge_info[scan][each_pot_range]['film_charge'] = q_film
-            """
-            """
+
             for each_pot_range in self.pot_ranges[scan]:
-                horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
-                vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
-                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
-                print("potential range:",each_pot_range)
-                print({"horizontal":horizontal,"vertical":vertical})
-                print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
-                if each_pot_range not in self.charge_info[scan]:
-                    self.charge_info[scan][each_pot_range] = {}
-                    self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
-                else:
-                    self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
-                    self.charge_info[scan][each_pot_range]['film_charge'] = q_film
-            """
-            for each_pot_range in self.pot_ranges[scan]:
-                # if self.checkBox_use_external_slope.isChecked():
                 try:
                     horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
                     vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
@@ -980,13 +1196,11 @@ class MyMainWindow(QMainWindow):
                         self.charge_info[scan][each_pot_range]['film_charge'] = q_film
                 except:
                     print('Fail to cal charge info. Check!')
-                # else:
-                    # pass
-        # print(self.strain_info_all_scans[221])
 
         for scan in self.scans:
             for each in self.plot_labels_y:
                 i = self.plot_labels_y.index(each)
+                #x_lim = []
                 if 'current' not in self.plot_labels_y:
                     pass
                 else:
@@ -996,13 +1210,112 @@ class MyMainWindow(QMainWindow):
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
                     else:
                         pass
-                getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(y_min_values[i],y_max_values[i])
-        # self.print_data_summary()
-        #self.actionPlotData.triggered.connect(self.print_data_summary)
+                ####The following lines are customized for a specific dataset, it is subject to change depending on the dataset you are using
+                if self.plot_label_x == 'potential':
+                    if 'master' in self.tick_label_settings:
+                        if 'potential' in self.tick_label_settings['master']:
+                            if self.checkBox_use.isChecked():
+                                self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
+                                                            fun_set_bounds = self.tick_label_settings['master']['potential']['func'],#'set_xlim', 
+                                                            bounds = [x_min_value,x_max_value],#[0.4,2.1],#[0.95,1.95], 
+                                                            bound_padding = float(self.tick_label_settings['master']['potential']['padding']), 
+                                                            major_tick_location = self.tick_label_settings['master']['potential']['locator'], #x_locator
+                                                            show_major_tick_label = (len(self.plot_labels_y)-1)==i, #show major tick label for the first scan
+                                                            num_of_minor_tick_marks=self.tick_label_settings['master']['potential']['tick_num'], #4
+                                                            fmt_str = self.tick_label_settings['master']['potential']['fmt'])#'{:3.1f}'
+                        else:
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
+                if 'master' in self.tick_label_settings:
+                    if each in self.tick_label_settings['master']:
+                        if self.checkBox_use.isChecked():
+                            self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
+                                                        fun_set_bounds = self.tick_label_settings['master'][each]['func'],#'set_xlim', 
+                                                        bounds = [y_min_values[i],y_max_values[i]],#[0.4,2.1],#[0.95,1.95], 
+                                                        bound_padding = float(self.tick_label_settings['master'][each]['padding']), 
+                                                        major_tick_location = self.tick_label_settings['master'][each]['locator'], #x_locator
+                                                        show_major_tick_label = self.scans.index(scan)==0, #show major tick label for the first scan
+                                                        num_of_minor_tick_marks=self.tick_label_settings['master'][each]['tick_num'], #4
+                                                        fmt_str = self.tick_label_settings['master'][each]['fmt'])#'{:3.1f}'
+                    else:
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(*[y_min_values[i],y_max_values[i]])
+                if not self.checkBox_use.isChecked():
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(*[y_min_values[i],y_max_values[i]])
         self.mplwidget.fig.tight_layout()
-        # print(self.data_summary)
         self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
         self.mplwidget.canvas.draw()
+
+    #format the axis tick so that the tick facing inside, showing both major and minor tick marks
+    #The tick marks on both sides (y tick marks on left and right side and x tick marks on top and bottom side)
+    def _format_axis(self,ax):
+        major_length = 4
+        minor_length = 2
+        if hasattr(ax,'__len__'):
+            for each in ax:
+                each.tick_params(which = 'major', axis="x", length = major_length, direction="in")
+                each.tick_params(which = 'minor', axis="x", length = minor_length,direction="in")
+                each.tick_params(which = 'major', axis="y", length = major_length, direction="in")
+                each.tick_params(which = 'minor', axis="y", length = minor_length,direction="in")
+                each.tick_params(which = 'major', bottom=True, top=True, left=True, right=True)
+                each.tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
+                each.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+        else:
+            ax.tick_params(which = 'major', axis="x", length = major_length,direction="in")
+            ax.tick_params(which = 'minor', axis="x", length = minor_length,direction="in")
+            ax.tick_params(which = 'major', axis="y", length = major_length,direction="in")
+            ax.tick_params(which = 'minor', axis="y", length = minor_length,direction="in")
+            ax.tick_params(which = 'major', bottom=True, top=True, left=True, right=True)
+            ax.tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
+            ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+
+    def _format_ax_tick_labels(self,ax,fun_set_bounds = 'set_ylim', bounds = [0,1], bound_padding = 0, major_tick_location = [], show_major_tick_label = True, num_of_minor_tick_marks=5, fmt_str = '{: 4.2f}'):
+        mapping = {'set_ylim':'yaxis','set_xlim':'xaxis'}
+        which_axis = mapping[fun_set_bounds]
+        bounds_after_add_padding = bounds[0]-bound_padding, bounds[1]+bound_padding
+        major_tick_labels = []
+        for each in major_tick_location:
+            if show_major_tick_label:
+                major_tick_labels.append(fmt_str.format(each))
+            else:
+                major_tick_labels.append('')
+        minor_tick_location = []
+        minor_tick_labels = []
+        for i in range(len(major_tick_location)-1):
+            start = major_tick_location[i]
+            end = major_tick_location[i+1]
+            tick_spacing = (end-start)/(num_of_minor_tick_marks+1)
+            for j in range(num_of_minor_tick_marks):
+                minor_tick_location.append(start + tick_spacing*(j+1))
+                minor_tick_labels.append('')#not showing minor tick labels
+            #before starting point
+            if i==0:
+                count = 1
+                while True:
+                    if (start-count*abs(tick_spacing))<bounds_after_add_padding[0]:
+                        break
+                    else:
+                        minor_tick_location.append(start - abs(tick_spacing)*count)
+                        minor_tick_labels.append('')#not showing minor tick labels
+                        count = count+1
+            #after the last point
+            elif i == (len(major_tick_location)-2):
+                count = 1
+                while True:
+                    if (end+count*abs(tick_spacing))>bounds_after_add_padding[1]:
+                        break
+                    else:
+                        minor_tick_location.append(end + abs(tick_spacing)*count)
+                        minor_tick_labels.append('')#not showing minor tick labels
+                        count = count+1
+
+        #set limits
+        getattr(ax,fun_set_bounds)(*bounds_after_add_padding)
+        #set major tick and tick labels
+        getattr(ax, which_axis).set_major_formatter(FixedFormatter(major_tick_labels))
+        getattr(ax, which_axis).set_major_locator(FixedLocator(major_tick_location))
+        #set minor tick and tick lables (not showing the lable)
+        getattr(ax, which_axis).set_minor_formatter(FixedFormatter(minor_tick_labels))
+        getattr(ax, which_axis).set_minor_locator(FixedLocator(minor_tick_location))
+        
 
     def prepare_data_to_plot_xrv(self,plot_label_list, scan_number):
         if scan_number in self.image_range_info:

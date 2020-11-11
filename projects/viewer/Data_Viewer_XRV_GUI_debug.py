@@ -119,7 +119,27 @@ class MyMainWindow(QMainWindow):
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
         self.pot_ranges = {}
         self.cv_info = {}
+        self.tick_label_settings = {}
         self.plot_tafel = plot_tafel_from_formatted_cv_info
+
+    def extract_tick_label_settings(self):
+        if hasattr(self,'plainTextEdit_tick_label_settings'):
+            strings = self.plainTextEdit_tick_label_settings.toPlainText()
+            lines = strings.rsplit('\n')
+            for each_line in lines:
+                if each_line.startswith('#'):
+                    pass
+                else:
+                    items = each_line.rstrip().rsplit(';')
+                    key,item,locator,padding,tick_num,fmt,func = items
+                    locator = eval(locator)
+                    if key in self.tick_label_settings:
+                        self.tick_label_settings[key][item] = {'locator':locator,'padding':padding,'tick_num':tick_num,'fmt':fmt,'func':func}
+                    else:
+                        self.tick_label_settings[key] = {}
+                        self.tick_label_settings[key][item] = {'locator':locator,'padding':padding,'tick_num':tick_num,'fmt':fmt,'func':func}
+        else:
+            pass
 
     def calculate_charge_2(self):
         output = self.cv_tool.calc_charge_all()
@@ -142,6 +162,7 @@ class MyMainWindow(QMainWindow):
         self.charge_info = {}
         self.grain_size_info_all_scans = {}
         self.strain_info_all_scans = {}#key is scan_no, each_item is {(pot1,pot2):{"vertical":(abs_value,value_change),"horizontal":(abs_value,value_change)},"pH":pH value}}
+        self.tick_label_settings = {}
 
     def update_pot_offset(self):
         self.potential_offset = eval(self.lineEdit_pot_offset.text())/1000
@@ -921,6 +942,8 @@ class MyMainWindow(QMainWindow):
     #plot the master figure
     def plot_figure_xrv(self):
         self.reset_meta_data()
+        self.extract_tick_label_settings()
+
         if self.checkBox_use_external_slope.isChecked():
             slope_info_temp = self.return_slope_values()
         else:
@@ -1173,15 +1196,17 @@ class MyMainWindow(QMainWindow):
                 #getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(0.95,1.95)
                 if self.plot_label_x == 'potential':
                     # x_locator = [1,1.3,1.6,1.9]
-                    x_locator = [0.5,1,1.5,2]
-                    self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
-                                                fun_set_bounds = 'set_xlim', 
-                                                bounds = [0.4,2.1],#[0.95,1.95], 
-                                                bound_padding = 0.0, 
-                                                major_tick_location = x_locator, 
-                                                show_major_tick_label = (len(self.plot_labels_y)-1)==i, #show major tick label for the first scan
-                                                num_of_minor_tick_marks=4, 
-                                                fmt_str = '{:3.1f}')
+                    if 'potential' in self.tick_label_settings['master']:
+                        {'locator':locator,'padding':padding,'tick_num':tick_num,'fmt':fmt,'func':func}
+                        x_locator = [0.5,1,1.5,2]
+                        self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
+                                                    fun_set_bounds = self.tick_label_settings['master']['func']#'set_xlim', 
+                                                    bounds = x_lim#[0.4,2.1],#[0.95,1.95], 
+                                                    bound_padding = float(self.tick_label_settings['master']['padding']), 
+                                                    major_tick_location = self.tick_label_settings['master']['locator'], #x_locator
+                                                    show_major_tick_label = (len(self.plot_labels_y)-1)==i, #show major tick label for the first scan
+                                                    num_of_minor_tick_marks=self.tick_label_settings['master']['tick_num'], #4
+                                                    fmt_str = self.tick_label_settings['master']['fmt'])#'{:3.1f}'
 
                 y_locator = None
                 if each == 'strain_ip':

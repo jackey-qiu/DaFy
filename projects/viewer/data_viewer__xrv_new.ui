@@ -49,7 +49,7 @@
            </font>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -438,6 +438,39 @@
                    <weight>50</weight>
                    <bold>false</bold>
                   </font>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <layout class="QHBoxLayout" name="horizontalLayout_21">
+                 <item>
+                  <widget class="QLabel" name="label_29">
+                   <property name="text">
+                    <string>Tick label settings</string>
+                   </property>
+                  </widget>
+                 </item>
+                 <item>
+                  <widget class="QCheckBox" name="checkBox_use">
+                   <property name="text">
+                    <string>use</string>
+                   </property>
+                  </widget>
+                 </item>
+                </layout>
+               </item>
+               <item>
+                <widget class="QPlainTextEdit" name="plainTextEdit_tick_label_settings">
+                 <property name="font">
+                  <font>
+                   <pointsize>12</pointsize>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="plainText">
+                  <string>#which_figure(master or bar)+item (one plot channel, eg strain_ip)+ tick_label_locator ([] type)+bounds_padding+num_of_minor_ticks+ fmt_str+func
+#master+strain_ip+[0, -0.02, -0.04, -0.06]+0.01+4+{: 4.2f}+set_ylim</string>
                  </property>
                 </widget>
                </item>

@@ -322,7 +322,7 @@ class cvAnalysis(object):
             axes2[i].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
             axes2[i].plot(RHE(pot_origin,pH=ph),current_origin*8,label='',color = color)
             # axes2[i].plot(RHE(pot,pH=ph),current*8,label='',color = color)
-            axes2[i].text(1.1,5,'x{}'.format(cv_scale_factor),color=color)
+            axes2[i].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
             # axes2[i].legend()
             # axes2[i].set_title('seq{}_pH {}'.format(self.info['sequence_id'][i],ph),fontsize=9)
             '''
