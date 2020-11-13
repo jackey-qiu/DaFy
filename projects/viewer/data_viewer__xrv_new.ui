@@ -49,7 +49,7 @@
            </font>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -984,6 +984,16 @@ path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','0
              </widget>
             </item>
             <item>
+             <widget class="QCheckBox" name="checkBox_use_all">
+              <property name="text">
+               <string>use all scans for plotting cv profiles</string>
+              </property>
+              <property name="checked">
+               <bool>true</bool>
+              </property>
+             </widget>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_20">
               <item>
                <widget class="QPushButton" name="pushButton_load_cv_config">
@@ -1056,7 +1066,7 @@ path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','0
           <item>
            <widget class="QTabWidget" name="tabWidget">
             <property name="currentIndex">
-             <number>4</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="tab">
              <attribute name="title">

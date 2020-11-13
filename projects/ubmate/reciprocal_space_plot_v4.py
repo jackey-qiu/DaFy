@@ -290,14 +290,16 @@ class space_plot():
         return grids
 
     # Plot the unit cell
-    def plot_unit_cell(self, color=(0, 0, 0), scale_q=[1., 1., 1.]):
+    def get_unit_cell_edges(self, color=(0, 0, 0), scale_q=[1., 1., 1.]):
         # Unit cell edge lines to be drawn are hard-coded
+
         HKLs = [[0, 0, 0], [1, 0, 0], [0, 1, 0], [1, 1, 0], [0, 0, 1],
                 [1, 0, 1], [0, 1, 1], [1, 1, 1]]
         lines = [[0, 1], [0, 2], [0, 4], [5, 1], [5, 4], [5, 7], [3, 1],
                  [3, 2], [3, 7], [6, 4], [6, 2], [6, 7]]
+        edges = []
         for line in lines:
             q1 = self.lattice.q(HKLs[line[0]])
             q2 = self.lattice.q(HKLs[line[1]])
-            mlab.plot3d([q1[0]*scale_q[0], q2[0]*scale_q[0]], [q1[1]*scale_q[1], q2[1]*scale_q[1]], [q1[2]*scale_q[2], q2[2]*scale_q[2]],
-                        color=color)
+            edges.append([[q1[0]*scale_q[0], q1[1]*scale_q[1],q1[2]*scale_q[2]], [q2[0]*scale_q[0], q2[1]*scale_q[1],q2[2]*scale_q[2]],list(color)+[0.8]])
+        return edges

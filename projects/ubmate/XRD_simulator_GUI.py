@@ -591,6 +591,7 @@ class MyMainWindow(QMainWindow):
         self.rods = []
         self.grids = []
         self.axes = []
+        self.unit_cell_edges = {}
         space_plots = []
         names = []
         for i in range(len(self.structures)):
@@ -617,6 +618,9 @@ class MyMainWindow(QMainWindow):
                 if len(grids_)>0:
                     for each in grids_:
                         self.grids.append(each)
+            if struc.plot_unitcell:
+                self.unit_cell_edges[struc.name] = space_plots[i].get_unit_cell_edges(color = struc.color)
+
         if(self.plot_axes):
             q1 = self.structures[0].lattice.q([1,0,0])
             q2 = self.structures[0].lattice.q([0,1,0])
@@ -624,7 +628,7 @@ class MyMainWindow(QMainWindow):
             self.axes.append([[0,0,0],q1,0.1,0.2,(0,0,1,0.8)])
             self.axes.append([[0,0,0],q2,0.1,0.2,(0,1,0,0.8)])
             self.axes.append([[0,0,0],q3,0.1,0.2,(1,0,0,0.8)])
-            #compose
+            #composer
             qx_min, qy_min = 10000, 10000
             for each in self.rods:
                 qx_, qy_ = each[0][0:2]
@@ -646,6 +650,7 @@ class MyMainWindow(QMainWindow):
         self.widget_glview.lines_dict = self.rods_dict
         self.widget_glview.grids = self.grids
         self.widget_glview.arrows = self.axes
+        self.widget_glview.unit_cell_edges = self.unit_cell_edges
         self.widget_glview.clear()
 
 class Base_Structure():

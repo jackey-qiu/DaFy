@@ -210,6 +210,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
         self.lines = []
         self.lines_dict = {}
+        self.unit_cell_edges = {}
         self.cross_points_info = {}
         self.spheres = [
                         [[0,0,0],(1,0,0,0.8),0.2],
@@ -414,6 +415,11 @@ class GLViewWidget_cum(gl.GLViewWidget):
             v1, v2, color = each_line
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 1))
             self.items_subject_to_transformation.append(self.items[-1])
+        for each_structure in self.unit_cell_edges:
+            for each_unitcell in self.unit_cell_edges[each_structure]:
+                v1, v2, color = each_unitcell
+                self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 2))
+                self.items_subject_to_transformation.append(self.items[-1])
         for each_sphere in self.spheres:
             v1_, color_, scale_factor = each_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor)) 

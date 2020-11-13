@@ -364,6 +364,38 @@ class cvAnalysis(object):
         # fig2.subplots_adjust(wspace=0.04,hspace=0.04)
         plt.show()
 
+    def plot_cv_files_selected_scans(self,axs = [],scans = []):
+        assert len(axs)==len(scans),'The length of axs and scans must match!'
+        if len(self.cv_info)==0:
+            self.extract_cv_info()
+        pot_bounds = [1000, -1000]
+        current_bounds = [1000, -1000]
+        axes2 = axs
+        fig2 = None
+        for scan in scans:
+            i = self.info['sequence_id'].index(scan)
+            pot_origin, current_origin = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
+            ph = self.info['ph'][i]
+            color = self.info['color'][i]
+            cv_spike_cut = self.info['cv_spike_cut'][i]
+            cv_scale_factor = self.info['cv_scale_factor'][i]
+            pot, current = self.filter_current(pot_origin, current_origin, cv_spike_cut)
+            pot_bounds = self._update_bounds(pot_bounds, RHE(pot_origin,pH=ph))
+            current_bounds = self._update_bounds(current_bounds, current*8)
+            current_bounds_ = self._update_bounds(current_bounds, current*8*cv_scale_factor)
+            current_bounds[0] = current_bounds_[0]
+            axes2[scans.index(scan)].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
+            axes2[scans.index(scan)].plot(RHE(pot_origin,pH=ph),current_origin*8,label='',color = color)
+            axes2[scans.index(scan)].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
+            axes2[scans.index(scan)].set_ylabel(r'j / mAcm$^{-2}$')
+            if scan == scans[-1]:
+                axes2[-1].set_xlabel(r'E / V$_{RHE}$')
+
+        for i in range(len(scans)):
+            axes2[i].set_xlim(*pot_bounds)
+            axes2[i].set_ylim(-1.5, 8.)
+        plt.show()
+
     #plot tafel slope for one scan
     def plot_tafel_from_formatted_cv_info_one_scan_2(self,scan, ax, forward_cycle = True):
         #half = 0, first half cycle E scan from low to high values
@@ -421,10 +453,10 @@ class cvAnalysis(object):
             indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
             ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],color = color)
             if cv_info[scans[i]]['pH']==13:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13_'+str(self.pH13_count))
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = 8)
                 self.pH13_count+=1
             else:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right')
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize = 8)
             # ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
             # ax.plot(pot_fit[indx1-offset:indx1]-resistance[i]*(current_fit[indx1-offset:indx1]/8*0.001),current_fit[indx1-offset:indx1],':',label=label,color = color)
             min_x, max_x = min(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001)),max(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001))

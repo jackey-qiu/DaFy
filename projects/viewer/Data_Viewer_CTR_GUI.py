@@ -465,6 +465,24 @@ class MyMainWindow(QMainWindow):
             'CoOOH_R60': [[0.5371558935361217, '(1, 0, 1)'], [2.148623574144487, '(1, 0, 4)'], [3.7600912547528518, '(1, 0, 7)'], 
             [5.371558935361216, '(1, 0, 10)']]}  
         
+        def _format_hkl(hkl):
+            h,k,l = hkl
+            if h>=0:
+                h_str = str(h)
+            else:
+                h_str = r'$\overline{{{}}}$'.format(abs(h))
+            if k>=0:
+                k_str = str(k)
+            else:
+                k_str = r'$\overline{{{}}}$'.format(abs(k))
+            if l>=0:
+                l_str = str(l)
+            else:
+                l_str = r'$\overline{{{}}}$'.format(abs(l))
+            if int(l)>=10:
+                l_str = ' '+l_str
+            return ' ('+h_str+k_str+l_str+')'
+
         for each in info:
             peaks = info[each]
             name = each
@@ -475,11 +493,30 @@ class MyMainWindow(QMainWindow):
                     name = name[0:5]
                     hkl = eval(hkl)
                     hkl = (hkl[1],hkl[0],hkl[2])
+                else:
+                    hkl = eval(hkl)
                 int_high_end = self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-l))]
                 int_low_end = 0.0005
                 if name!='Au_hex' and l<5.6:
-                    getattr(self,ax_name).plot([l,l],[int_low_end,int_high_end],color = color_map[each])
-                    # getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(name,str(hkl)),rotation ='vertical',color = color_map[each])
+                # if l<5.6:
+                    if 'CoOOH' in name:
+                        getattr(self,ax_name).plot([l-0.045,l-0.045],[int_low_end,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))]],color = color_map[each])
+                        if hkl==(0,1,2):
+                            getattr(self,ax_name).text(l-0.045,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))]+0.06,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                        elif hkl==(0,1,1):
+                            getattr(self,ax_name).text(l-0.045-0.12,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))],'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                        else:
+                            getattr(self,ax_name).text(l-0.045,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))],'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                    else:
+                        getattr(self,ax_name).plot([l,l],[int_low_end,int_high_end],color = color_map[each])
+                        if hkl==(2,-2,2):
+                            getattr(self,ax_name).text(l-0.12,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                        elif hkl==(3,-1,3):
+                            getattr(self,ax_name).text(l-0.12,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                        else:
+                            getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+        getattr(self,ax_name).text(2,696,'Au')
+        getattr(self,ax_name).text(5,368,'Au')
         getattr(self,ax_name).set_ylim(0.0005,2000)
         # getattr(self,ax_name).set_xlim(0.,5.6)
         getattr(self,ax_name).get_legend().remove()
@@ -491,6 +528,7 @@ class MyMainWindow(QMainWindow):
         getattr(self,ax_name).tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
         getattr(self,ax_name).tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
         getattr(self,ax_name).xaxis.set_minor_locator(AutoMinorLocator())
+        getattr(self,ax_name).set_title('')
         self.mplwidget.canvas.draw()
         self.mplwidget.canvas.figure.savefig('/Users/canrong/Documents/Co oxide project/ctr_profile.png',dpi = 300)
 

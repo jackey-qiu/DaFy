@@ -614,10 +614,10 @@ class MyMainWindow(QMainWindow):
             #label mapping
             y_label_map = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
-                        'strain_ip':r'$\Delta\varepsilon_\parallel$  (%/V)',
-                        'strain_oop':r'$\Delta\varepsilon_\perp$  (%/V)',
-                        'grain_size_oop':r'$\Delta d_\perp$  (nm/V)',
-                        'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
+                        'strain_ip':r'$\partial\mid\Delta\varepsilon_\parallel\mid\slash\partial E$ (%/V)',
+                        'strain_oop':r'$\partial\mid\Delta\varepsilon_\perp\mid\slash\partial E$ (%/V)',
+                        'grain_size_oop':r'$\partial\mid\Delta d_\perp\mid\slash\partial E$ (nm/V)',
+                        'grain_size_ip':r'$\partial\mid\Delta d_\parallel\mid\slash\partial E$ (nm/V)',
                         'peak_intensity':r'Intensity / a.u.'}
             #get color tags
             colors_bar = self.lineEdit_colors_bar.text().rsplit(',')
@@ -646,11 +646,23 @@ class MyMainWindow(QMainWindow):
                     count_pH13 = 1
                     for j,each_label in enumerate(labels):
                         if each_label == 'pH 13':
-                            labels[j] = '{}_{}'.format(each_label,count_pH13)
+                            labels[j] = '{} ({})'.format(each_label,count_pH13)
                             count_pH13 += 1
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), int(len(self.data_summary[self.scans[0]]['strain_ip'])/2), i+1+int(len(self.data_summary[self.scans[0]]['strain_ip'])/2)*plot_y_labels.index(each))
                     # ax_temp_2 = ax_temp.twinx()
-                    ax_temp.bar(plot_data_x,plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
+                    if i==0 and each == plot_y_labels[0]:
+                        #ax_temp.legend(labels)
+                        for ii in range(len(plot_data_x)):
+                            if labels[ii] in ['pH 13 (1)', 'pH 8', 'pH 7', 'pH 10']:
+                                label = labels[ii]
+                                if label == 'pH 13 (1)':
+                                    label = 'pH 13'
+                                ax_temp.bar(plot_data_x[ii],-plot_data_y[ii,0],0.5, yerr = plot_data_y[ii,-1], color = colors_bar[ii], label = label)
+                            else:
+                                ax_temp.bar(plot_data_x[ii],-plot_data_y[ii,0],0.5, yerr = plot_data_y[ii,-1], color = colors_bar[ii])
+                        ax_temp.legend(loc = 2,ncol = 1)
+                    else:
+                        ax_temp.bar(plot_data_x,-plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
                     # ax_temp_2.plot(plot_data_x,-np.array(plot_data_y_charge),'k:*')
                     self._format_axis(ax_temp)
                     # self._format_axis(ax_temp_2)
@@ -658,17 +670,18 @@ class MyMainWindow(QMainWindow):
                         if (each in self.tick_label_settings['bar']) and self.checkBox_use.isChecked():
                             self._format_ax_tick_labels(ax = ax_temp,
                                     fun_set_bounds = self.tick_label_settings['bar'][each]['func'], 
-                                    bounds = [lim_y_temp[each],0], 
+                                    bounds = [0,abs(lim_y_temp[each])], #[lim_y_temp[each],0], 
                                     bound_padding = self.tick_label_settings['bar'][each]['padding'], 
                                     major_tick_location =self.tick_label_settings['bar'][each]['locator'], 
                                     show_major_tick_label = i==0, #show major tick label for the first scan
                                     num_of_minor_tick_marks=self.tick_label_settings['bar'][each]['tick_num'], 
                                     fmt_str = self.tick_label_settings['bar'][each]['fmt'])
                     if i == 0:
-                        ax_temp.set_ylabel(y_label_map[each],fontsize=13)
-                        ax_temp.set_ylim([lim_y_temp[each],0])
+                        ax_temp.set_ylabel(y_label_map[each],fontsize=10)
+                        ax_temp.set_ylim([0,abs(lim_y_temp[each])])
+
                     else:
-                        ax_temp.set_ylim([lim_y_temp[each],0])
+                        ax_temp.set_ylim([0,abs(lim_y_temp[each])])
                     # if each == plot_y_labels[0]:
                         # ax_temp.set_title('E range:{:4.2f}-->{:4.2f} V'.format(*each_pot), fontsize=13)
                     if each != plot_y_labels[-1]:
@@ -721,7 +734,7 @@ class MyMainWindow(QMainWindow):
             self.mplwidget2.fig.clear()
             y_label_map = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
-                        'strain_ip':r'$\Delta\varepsilon_\parallel$  (%/V)',
+                        'strain_ip':r'|$\Delta\varepsilon_\parallel$|  (%/V)',
                         'strain_oop':r'$\Delta\varepsilon_\perp$  (%/V)',
                         'grain_size_oop':r'$\Delta d_\perp$  (nm/V)',
                         'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
@@ -748,7 +761,9 @@ class MyMainWindow(QMainWindow):
             for each_pot in self.pot_range:
                 #if pot_range = [1,1] for eg, the bar value is actually the associated absolute value at pot = 1
                 #if pot_range = [1,1.5] for eg, the bar value is the value difference between 1 and 1.5 V
-                use_absolute_value = each_pot[0] == each_pot[1]
+                #use_absolute_value = each_pot[0] == each_pot[1]
+                #force using the absolute value
+                use_absolute_value = True
                 for each in lim_y_temp.keys():
                     for each_scan in self.scans:
                         if use_absolute_value:
@@ -765,7 +780,8 @@ class MyMainWindow(QMainWindow):
             #print(self.data_summary)
             for each_pot in self.pot_range:
                 output_data = []
-                use_absolute_value = each_pot[0] == each_pot[1]
+                #use_absolute_value = each_pot[0] == each_pot[1]
+                use_absolute_value = True
                 for each in plot_y_labels:
                     plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2],self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
@@ -873,10 +889,14 @@ class MyMainWindow(QMainWindow):
         # print('now update potential range')
         # print(self.pot_ranges)
 
-    def plot_reaction_order_and_tafel(self):
-        self.widget_cv_view.canvas.figure.clear()
-        ax_tafel = self.widget_cv_view.canvas.figure.add_subplot(1,2,1)
-        ax_order = self.widget_cv_view.canvas.figure.add_subplot(1,2,2)
+    def plot_reaction_order_and_tafel(self,axs = []):
+        if len(axs)== 0:
+            self.widget_cv_view.canvas.figure.clear()
+            ax_tafel = self.widget_cv_view.canvas.figure.add_subplot(1,2,1)
+            ax_order = self.widget_cv_view.canvas.figure.add_subplot(1,2,2)
+        else:
+            assert len(axs) == 2, 'You need only two axis handle here!'
+            ax_tafel, ax_order = axs
         if self.cv_tool.info['reaction_order_mode'] == 'constant_potential':
             constant_value = self.cv_tool.info['potential_reaction_order']
         elif self.cv_tool.info['reaction_order_mode'] == 'constant_current':
@@ -888,16 +908,16 @@ class MyMainWindow(QMainWindow):
         self._format_axis(ax_order)
         self._format_ax_tick_labels(ax = ax_tafel,
                 fun_set_bounds = 'set_ylim', 
-                bounds = [0.05,10], 
+                bounds = [0.05,5], 
                 bound_padding = 0., 
-                major_tick_location =[0.1,1,10], 
+                major_tick_location =[0.1,1], 
                 show_major_tick_label = True, #show major tick label for the first scan
                 num_of_minor_tick_marks=10, 
-                fmt_str = '{:.0e}')
+                fmt_str = '{:4.1f}')
         self._format_ax_tick_labels(ax = ax_tafel,
                 fun_set_bounds = 'set_xlim', 
                 bounds = [1.55,1.85], 
-                bound_padding = 0., 
+                bound_padding = 0.02, 
                 major_tick_location =[1.55,1.6,1.65,1.7,1.75,1.8,1.85], 
                 show_major_tick_label = True, #show major tick label for the first scan
                 num_of_minor_tick_marks=5, 
@@ -910,13 +930,23 @@ class MyMainWindow(QMainWindow):
                 show_major_tick_label = True, #show major tick label for the first scan
                 num_of_minor_tick_marks=5, 
                 fmt_str = '{: 4.2f}')
+
+        #move labels to right side of the plot
+        ax_tafel.yaxis.set_label_position("right")
+        ax_tafel.yaxis.tick_right()
+        ax_order.yaxis.set_label_position("right")
+        ax_order.yaxis.tick_right()
         self.widget_cv_view.canvas.draw()
 
     def plot_cv_data(self):
         self.widget_cv_view.canvas.figure.clear()
-        col_num = 4
-        axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
-        self.cv_tool.plot_cv_files(axs = axs)
+        col_num = 3
+        if self.checkBox_use_all.isChecked():
+            axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
+            self.cv_tool.plot_cv_files(axs = axs)
+        else:
+            axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.info['selected_scan']), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.info['selected_scan'])+1)]
+            self.cv_tool.plot_cv_files_selected_scans(axs = axs, scans = self.cv_tool.info['selected_scan'])
         for each in axs:
             self._format_axis(each)
             self._format_ax_tick_labels(ax = each,
@@ -924,7 +954,7 @@ class MyMainWindow(QMainWindow):
                                         bounds = [1.,1.9], 
                                         bound_padding = 0.05, 
                                         major_tick_location =[1,1.2,1.4,1.6,1.8], 
-                                        show_major_tick_label = True, #show major tick label for the first scan
+                                        show_major_tick_label = each==axs[-1], #show major tick label for the first scan
                                         num_of_minor_tick_marks=5, 
                                         fmt_str = '{: 3.1f}')
             self._format_ax_tick_labels(ax = each,
@@ -936,7 +966,11 @@ class MyMainWindow(QMainWindow):
                                         num_of_minor_tick_marks=5, 
                                         fmt_str = '{: 4.2f}')
         axs[-1].set_xlabel(r'E / V$_{RHE}$')
-        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1)+1) for i in range(1,len(self.cv_tool.cv_info)+1)]
+        # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1)+1) for i in range(1,len(self.cv_tool.cv_info)+1)]
+        how_many_rows = 2
+        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(how_many_rows, col_num, 1 + (col_num)*(i-1)+1) for i in range(1,2+1)]
+        self.plot_reaction_order_and_tafel(axs = axs_2)
+        '''
         scans = list(self.cv_tool.cv_info.keys())
         scans = sorted(scans)
         min_x, max_x = 10000000, -10000000
@@ -959,7 +993,7 @@ class MyMainWindow(QMainWindow):
             each.set_ylim(min_y, max_y)
             # each.yaxis.tick_right()
             each.yaxis.set_label_position("right")
-
+        '''
         #self.widget_cv_view.fig.tight_layout()
         # print(self.data_summary)
         self.widget_cv_view.fig.subplots_adjust(wspace=0.24,hspace=0.04)
@@ -1136,12 +1170,14 @@ class MyMainWindow(QMainWindow):
                                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([each_item,each_item],[-100,100],':k')
                                     except:
                                         pass
+                '''
                 if i==0:
                     # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
                     getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
                     if self.phs[self.scans.index(scan)]==13:
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_{}'.format(self.phs[self.scans.index(scan)],count_pH13_temp),fontsize=11)
                         count_pH13_temp+=1
+                '''
                 if each=='current':
                     try:
                         temp_min,temp_max = lim_y
@@ -1200,7 +1236,14 @@ class MyMainWindow(QMainWindow):
         for scan in self.scans:
             for each in self.plot_labels_y:
                 i = self.plot_labels_y.index(each)
-                #x_lim = []
+                if i==0:
+                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
+                    _,_,_,_, color, _, _ = self.plot_lib[scan]
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {}'.format(self.phs[self.scans.index(scan)]),color = color,fontsize=11)
+                    if self.phs[self.scans.index(scan)]==13:
+                        # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),fontsize=11)
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),color = color,fontsize=11)
+                        count_pH13_temp+=1
                 if 'current' not in self.plot_labels_y:
                     pass
                 else:
