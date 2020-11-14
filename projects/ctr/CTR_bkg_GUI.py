@@ -978,6 +978,7 @@ class MyMainWindow(QMainWindow):
 if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
+    # QApplication.setGraphicsSystem("raster")
     myWin = MyMainWindow()
     # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()

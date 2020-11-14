@@ -32,7 +32,7 @@ import model
 import solvergui
 import time
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 import pyqtgraph as pg
 import pyqtgraph.exporters
 from PyQt5 import QtCore

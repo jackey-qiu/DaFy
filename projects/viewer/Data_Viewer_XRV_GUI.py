@@ -24,7 +24,7 @@ import time
 import matplotlib
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import FixedLocator, FixedFormatter
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 from scipy import signal
 # import scipy.signal.savgol_filter as savgol_filter
 

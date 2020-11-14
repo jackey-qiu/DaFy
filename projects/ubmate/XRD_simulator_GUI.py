@@ -21,7 +21,7 @@ sys.path.append(os.path.join(DaFy_path,'util'))
 import pandas as pd
 import time
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 import reciprocal_space_plot_v4 as rsplt
 try:
     import ConfigParser

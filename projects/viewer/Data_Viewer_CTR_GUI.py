@@ -20,9 +20,10 @@ from PlotSetup import data_viewer_plot_cv
 import pandas as pd
 import time
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 from matplotlib.ticker import AutoMinorLocator
 from scipy import signal
+
 # import scipy.signal.savgol_filter as savgol_filter
 
 #from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as NavigationToolbar)
@@ -30,6 +31,8 @@ from scipy import signal
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
+        # pg.setConfigOptions(imageAxisOrder='row-major')
+        # pg.mkQApp()
         uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_CTR_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')

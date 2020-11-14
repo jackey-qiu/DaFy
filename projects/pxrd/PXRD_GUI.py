@@ -18,7 +18,7 @@ sys.path.append(os.path.join(DaFy_path,'util'))
 from VisualizationEnginePool import plot_bkg_fit_gui_pyqtgraph,replot_bkg_profile, plot_pxrd_fit_gui_pyqtgraph
 import time
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QCheckBox, QRadioButton
