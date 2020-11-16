@@ -167,6 +167,7 @@ http://apps.sourceforge.net/trac/genx/wiki/DocPages/WriteFom </a>
 #==============================================================================
 
 import numpy as np
+import functools
 
 # import also the custom FOM functions defined in fom_funcs_custom.py
 # (do nothing if file does not exist)
@@ -200,6 +201,7 @@ weight_factor = 1
 
 def weight_fom_based_on_HKL(weight_factor):
     def decorator(func):
+        @functools.wraps(func)
         def wrapper(*args,**kwargs):
             # print(kwargs.keys(),len(args))
             if len(kwargs) == 0:
