@@ -31,6 +31,9 @@ import sys,os
 import reciprocal_space_v5 as rsp
 # import scipy.signal.savgol_filter as savgol_filter
 
+pg.setConfigOption('background', 'w')
+pg.setConfigOption('foreground', 'k')
+
 #from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as NavigationToolbar)
 def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warning'][0]):
     msg = QMessageBox()
@@ -625,9 +628,9 @@ class MyMainWindow(QMainWindow):
             q1 = self.structures[0].lattice.q([1,0,0])
             q2 = self.structures[0].lattice.q([0,1,0])
             q3 = self.structures[0].lattice.q([0,0,1])
-            self.axes.append([[0,0,0],q1,0.1,0.2,(0,0,1,0.8)])
-            self.axes.append([[0,0,0],q2,0.1,0.2,(0,1,0,0.8)])
-            self.axes.append([[0,0,0],q3,0.1,0.2,(1,0,0,0.8)])
+            self.axes.append([[0,0,0],q1,0.1,0.2,(0,0,0,0.8)])
+            self.axes.append([[0,0,0],q2,0.1,0.2,(0,0,0,0.8)])
+            self.axes.append([[0,0,0],q3,0.1,0.2,(0,0,0,0.8)])
             #composer
             qx_min, qy_min = 10000, 10000
             for each in self.rods:

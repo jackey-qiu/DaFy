@@ -188,6 +188,45 @@ bg_peaks={'00':[0,2,4,6],'02':[-8.2782,-6.2782,-4.2782,-2.2782,-0.2782,1.7218,3.
 
 #=========================
 # unweighted FOM functions
+#each_key is a tuple of (h,k)
+#each item value is a list of two-item list, each two-item list define the l segment where the weighting will be taken effect
+  #you can difein multiple l segments
+weight_map_Cu100 = {(1,1):[[1.6,2.4]],
+                    (2,0):[[0.8,1.4],[2.5,3.5]],
+                    (2,2):[[1,1.4],[2.5,3.5]],
+                    (3,1):[[1.5,2.5]]}
+#this is the constant weight_factor used to weight the FOM values for defined l segments 
+weight_factor = 1
+
+def weight_fom_based_on_HKL(weight_factor):
+    def decorator(func):
+        def wrapper(*args,**kwargs):
+            # print(kwargs.keys(),len(args))
+            if len(kwargs) == 0:
+                datasets = args[1]
+            else:
+                datasets = kwargs['data']
+            weight_array_list = []
+            for dataset in datasets:
+                hk_tag = (int(round(dataset.extra_data['h'][0],0)), int(round(dataset.extra_data['k'][0],0)))
+                if hk_tag in weight_map_Cu100:
+                    L_segments = weight_map_Cu100[hk_tag]
+                    l = dataset.x
+                    conditions_str_list = []
+                    for each in L_segments:
+                        conditions_str_list.append('((l>={}) & (l<={}))'.format(*each))
+                    condition = eval('|'.join(conditions_str_list))
+                    coniditon_false = (condition==False)*1
+                    condition_true = condition*1*weight_factor
+                    weight_array_list.append(condition_true + coniditon_false)
+                else:
+                    weight_array_list.append(np.ones(len(dataset.x)))
+            results = func(*args,**kwargs)
+            for i, weight_array in enumerate(weight_array_list):
+                results[i] = results[i]*weight_array
+            return results
+        return wrapper
+    return decorator
 
 def diff(simulations, data):
     ''' Average absolute difference
@@ -199,6 +238,8 @@ def diff(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 diff.__div_dof__ = True
 
+#decorator func for Fom weighting purpose
+@weight_fom_based_on_HKL(weight_factor=weight_factor)
 def log(simulations, data):
     ''' Average absolute logartihmic difference
     '''

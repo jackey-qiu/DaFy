@@ -1,4 +1,6 @@
 import pyqtgraph as pg
+# pg.setConfigOption('background', 'w')
+# pg.setConfigOption('foreground', 'k')
 import pyqtgraph.opengl as gl
 import numpy as np
 from pyqtgraph.Qt import QtGui,QtCore
@@ -205,8 +207,9 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.opts['distance'] = 2000
         self.opts['fov'] = 1
         # self.setConfigOption('background', 'w')
-        #self.setConfigOption('foreground', 'k')
-        self.setBackgroundColor((0,0,0))
+        # self.setConfigOption('foreground', 'k')
+        # self.setBackgroundColor((190,190,190))
+        self.setBackgroundColor('w')
 
         self.lines = []
         self.lines_dict = {}
@@ -292,13 +295,13 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.update()
         
     def draw_line_between_two_points(self, v1, v2, color = (1,0,0,0.8), width = 3):
-        line = gl.GLLinePlotItem(pos=np.array([v1,v2]), width=width, color = color, antialias=False)
+        line = gl.GLLinePlotItem(pos=np.array([v1,v2]), width=width, color = color, antialias=True)
         return line
 
     #tip_length_scale is the percentage [0,1] of the length of arrow wrt the vector length
     def draw_arrow(self, v1, v2, tip_width, tip_length_scale, color,line_width = 2):
         v2, v1 = np.array(v1), np.array(v2)
-        line = gl.GLLinePlotItem(pos=np.array([v1,v2]), width=line_width, color = color, antialias=False)
+        line = gl.GLLinePlotItem(pos=np.array([v1,v2]), width=line_width, color = color, antialias=True)
         dist = np.linalg.norm(np.array(v1)-np.array(v2))
         c = np.dot([0,0,1],v2-v1)/np.linalg.norm(v2-v1)
         ang = np.arccos(np.clip(c,-1,1))/np.pi*180
@@ -314,10 +317,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
     def draw_sphere(self, v1, color = (1,0,0,0.8), scale_factor = 1, rows=10, cols= 20,glOption = 'opaque'):
         md = gl.MeshData.sphere(rows=rows, cols=cols)
-        # m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions='opaque')
         m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions=glOption)
-        # m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color, shader='shaded', glOptions='additive')
-        # print(dir(m1.metaObject()))
+        # m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color)
         x,y,z = v1
         m1.translate(x, y, z)
         m1.scale(*([scale_factor]*2+[scale_factor]))
@@ -350,9 +351,9 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 for each in cross_points:
                     points_on_circle_full_circle = self.compute_points_on_3d_circle(center=v1_, v1=each, v2=(each-np.array(v1_)*2), r=scale_factor,resolution = 100)
                     points_on_circle = self.compute_points_on_3d_circle(center=np.array(each)*[0,1,0], v1=np.array([0,0,1]), v2=np.array([1,0,0]), r=(scale_factor**2-(scale_factor-abs(each[1]))**2)**0.5,resolution = 100)
-                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
-                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
                     self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
                     self.items_subject_to_recreation.append(self.items[-1])
@@ -391,9 +392,9 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 for each in cross_points:
                     points_on_circle_full_circle = self.compute_points_on_3d_circle(center=v1_, v1=each, v2=(each-np.array(v1_)*2), r=scale_factor,resolution = 100)
                     points_on_circle = self.compute_points_on_3d_circle(center=np.array(each)*[0,1,0], v1=np.array([0,0,1]), v2=np.array([1,0,0]), r=(scale_factor**2-(scale_factor-abs(each[1]))**2)**0.5,resolution = 100)
-                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
-                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=False))
+                    self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
                     self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
                     self.items_subject_to_recreation.append(self.items[-1])
@@ -427,11 +428,16 @@ class GLViewWidget_cum(gl.GLViewWidget):
         if len(self.ewarld_sphere)!=0:
             v1_, color_, scale_factor = self.ewarld_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'additive'))
-        for each_arrow in self.arrows:
+        labels_axis = ['H','K','L','x','y','z']
+        for i,each_arrow in enumerate(self.arrows):
             v1, v2, tip_width, tip_length_scale, color = each_arrow
             items = self.draw_arrow(v1, v2, tip_width, tip_length_scale, color)
             for each in items:
                 self.addItem(each)
+            #add axis label
+            text = CustomTextItem(*list(np.array(v2)+[0.05,0.05,0.05]),labels_axis[i],color = QtCore.Qt.black, font_size = 13)
+            text.setGLViewWidget(self)
+            self.addItem(text)
         for each_text in self.texts:
             text = CustomTextItem(*each_text)
             text.setGLViewWidget(self)

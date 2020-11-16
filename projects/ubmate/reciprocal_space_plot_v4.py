@@ -204,7 +204,7 @@ class space_plot():
         scaled_qz_lims = [qz_lims[0]*scale_q[2], qz_lims[1]*scale_q[2]]
         lines = []
         for qI in qIs:
-            lines.append([[qI[0]*scale_q[0],qI[1]*scale_q[1],scaled_qz_lims[0]],[qI[0]*scale_q[0],qI[1]*scale_q[1],scaled_qz_lims[1]],list(color)+[0.8]])
+            lines.append([[qI[0]*scale_q[0],qI[1]*scale_q[1],scaled_qz_lims[0]],[qI[0]*scale_q[0],qI[1]*scale_q[1],scaled_qz_lims[1]],list(color)+[1]])
         return lines, [tuple(each) for each in HKLs]
 
     # Plot a grid at a specified qz value
