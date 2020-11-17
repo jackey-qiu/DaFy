@@ -176,9 +176,10 @@ class MyMainWindow(QMainWindow):
             return
         for each in info:
             if not each.startswith('#'):
-                scan, cv, cycle, cutoff,scale,color, ph, func = each.replace(" ","").rstrip().rsplit(',')
+                # scan, cv, cycle, cutoff,scale,color, ph, func = each.replace(" ","").rstrip().rsplit(',')
+                scan, cv, cycle, scale, length, order, color, ph, func = each.replace(" ","").rstrip().rsplit(',')
                 cv_name = os.path.join(folder,cv)
-                self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(cutoff),eval(scale),color,eval(ph),func]
+                self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
 
     #data format based on the output of IVIUM potentiostat
     def extract_ids_file(self,file_path,which_cycle=3):
@@ -228,21 +229,66 @@ class MyMainWindow(QMainWindow):
             return data[nodes[which_cycle]:nodes[which_cycle+1],0],data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
 
     def plot_cv_from_external(self,ax,scan_no,marker_pos):
+        file_name,which_cycle,cv_scale_factor, smooth_length, smooth_order, color, ph, func_name= self.plot_lib[scan_no]
+        func = eval('self.cv_tool.{}'.format(func_name))
+        results = func(file_name, which_cycle)
+        pot,current = results
+        pot_filtered, current_filtered = pot, current
+        pot_filtered = RHE(pot_filtered,pH=ph)
+        print(file_name,func_name,pot,current)
+        #smooth the current due to beam-induced spikes
+        pot_filtered, current_filtered = self.cv_tool.filter_current(pot_filtered, current_filtered*cv_scale_factor, smooth_length, smooth_order)
+
+        ax.plot(pot_filtered,current_filtered*8,label='',color = color)
+        ax.plot(RHE(pot,pH=ph),current*8,label='',color = color)
+        #get the position to show the scaling text on the plot
+        # current_temp = current_filtered[np.argmin(np.abs(pot_filtered[0:int(len(pot_filtered)/2)]-1.1))]*8*cv_scale_factor
+        current_temp = 0
+        ax.text(1.1,current_temp+1.5,'x{}'.format(cv_scale_factor),color=color)
+        #store the cv data
+        self.cv_info[scan_no] = {'current_density':current*8,'potential':RHE(pot,pH = ph),'pH':ph, 'color':color}
+        if self.checkBox_show_marker.isChecked():
+            for each in marker_pos:
+                ax.plot([each,each],[-100,100],':k')
+        #ax.set_ylim([min(current_filtered*8*cv_scale_factor),max(current*8)])
+        print('scan{} based on cv'.format(scan_no))
+        #scan rate in V/s
+        scan_rate = float(self.lineEdit_scan_rate.text())
+        #potential range in V_RHE
+        pot_ranges = self.pot_ranges[scan_no]
+        if scan_no not in self.charge_info:
+            self.charge_info[scan_no] = {}
+        for pot_range in pot_ranges:
+            charge_cv, output = self.cv_tool.calculate_pseudocap_charge_stand_alone(pot_filtered, current_filtered/cv_scale_factor*8, scan_rate = scan_rate, pot_range = pot_range)
+            if pot_range not in self.charge_info[scan_no]:
+                self.charge_info[scan_no][pot_range] = {'skin_charge':0,'film_charge':0,'total_charge':charge_cv}
+            else:
+                self.charge_info[scan_no][pot_range]['total_charge'] = charge_cv
+
+        return min(current_filtered*8),max(current*8)
+
+    def plot_cv_from_external_original(self,ax,scan_no,marker_pos):
         file_name,which_cycle,cv_spike_cut,cv_scale_factor, color, ph, func_name= self.plot_lib[scan_no]
         func = eval('self.{}'.format(func_name))
-        t, pot,current = func(file_name, which_cycle)
-        t_filtered, pot_filtered, current_filtered = t, pot, current
+        results = func(file_name, which_cycle)
+        if len(results) == 3:
+            t, pot,current = results
+            t_filtered, pot_filtered, current_filtered = t, pot, current
+        elif len(results) == 2:
+            pot,current = results
+            pot_filtered, current_filtered = pot, current
         for ii in range(4):
             filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
             filter_index = filter_index+1#index offset by 1
-            t_filtered = t_filtered[(filter_index,)]
+            # t_filtered = t_filtered[(filter_index,)]
             pot_filtered = pot_filtered[(filter_index,)]
             current_filtered = current_filtered[(filter_index,)]
         pot_filtered = RHE(pot_filtered,pH=ph)
         ax.plot(pot_filtered,current_filtered*8*cv_scale_factor,label='',color = color)
         ax.plot(RHE(pot,pH=ph),current*8,label='',color = color)
         #get the position to show the scaling text on the plot
-        current_temp = current_filtered[np.argmin(np.abs(pot_filtered[0:int(len(pot_filtered)/2)]-1.1))]*8*cv_scale_factor
+        # current_temp = current_filtered[np.argmin(np.abs(pot_filtered[0:int(len(pot_filtered)/2)]-1.1))]*8*cv_scale_factor
+        current_temp = 0
         ax.text(1.1,current_temp+1.5,'x{}'.format(cv_scale_factor),color=color)
         #store the cv data
         self.cv_info[scan_no] = {'current_density':current*8,'potential':RHE(pot,pH = ph),'pH':ph, 'color':color}
@@ -932,15 +978,17 @@ class MyMainWindow(QMainWindow):
                 fmt_str = '{: 4.2f}')
 
         #move labels to right side of the plot
+        '''
         ax_tafel.yaxis.set_label_position("right")
         ax_tafel.yaxis.tick_right()
         ax_order.yaxis.set_label_position("right")
         ax_order.yaxis.tick_right()
+        '''
         self.widget_cv_view.canvas.draw()
 
     def plot_cv_data(self):
         self.widget_cv_view.canvas.figure.clear()
-        col_num = 3
+        col_num = 2
         if self.checkBox_use_all.isChecked():
             axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
             self.cv_tool.plot_cv_files(axs = axs)
@@ -954,7 +1002,7 @@ class MyMainWindow(QMainWindow):
                                         bounds = [1.,1.9], 
                                         bound_padding = 0.05, 
                                         major_tick_location =[1,1.2,1.4,1.6,1.8], 
-                                        show_major_tick_label = each==axs[-1], #show major tick label for the first scan
+                                        show_major_tick_label = True, #show major tick label for the first scan
                                         num_of_minor_tick_marks=5, 
                                         fmt_str = '{: 3.1f}')
             self._format_ax_tick_labels(ax = each,
@@ -970,33 +1018,16 @@ class MyMainWindow(QMainWindow):
         how_many_rows = 2
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(how_many_rows, col_num, 1 + (col_num)*(i-1)+1) for i in range(1,2+1)]
         self.plot_reaction_order_and_tafel(axs = axs_2)
-        '''
-        scans = list(self.cv_tool.cv_info.keys())
-        scans = sorted(scans)
-        min_x, max_x = 10000000, -10000000
-        min_y, max_y = 10000000, -10000000
+        self._format_ax_tick_labels(ax = axs_2[-1],
+                                    fun_set_bounds = 'set_xlim', 
+                                    bounds = [7,13], 
+                                    bound_padding = 1, 
+                                    major_tick_location =[7,8,10,13], 
+                                    show_major_tick_label = True, #show major tick label for the first scan
+                                    num_of_minor_tick_marks=0, 
+                                    fmt_str = '{: 4.0f}')
 
-        for i in range(len(scans)):
-            min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[i])
-            # min_x_, max_x_, min_y_, max_y_ = self.cv_tool.plot_tafel_from_formatted_cv_info_one_scan(scans[i], axs_2[0])
-            # print(min_x_, max_x_, min_y_, max_y_)
-            if min_x_<min_x:
-                min_x = min_x_
-            if min_y_<min_y:
-                min_y = min_y_
-            if max_x_>max_x:
-                max_x = max_x_
-            if max_y_>max_y:
-                max_y = max_y_ 
-        for each in axs_2:
-            each.set_xlim(min_x, max_x)
-            each.set_ylim(min_y, max_y)
-            # each.yaxis.tick_right()
-            each.yaxis.set_label_position("right")
-        '''
-        #self.widget_cv_view.fig.tight_layout()
-        # print(self.data_summary)
-        self.widget_cv_view.fig.subplots_adjust(wspace=0.24,hspace=0.04)
+        self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
         self.widget_cv_view.canvas.draw()
 
     #plot the master figure
@@ -1058,6 +1089,8 @@ class MyMainWindow(QMainWindow):
                 except:
                     fmt = 'b-'
                 y = self.data_to_plot[scan][plot_labels_y[i]]
+                # if scan==807 and each=='grain_size_ip':
+                    # y = np.array(y) + 1
                 y_smooth_temp = signal.savgol_filter(self.data_to_plot[scan][plot_labels_y[i]],41,2)
                 std_val = np.sum(np.abs(y_smooth_temp - y))/len(self.data_to_plot[scan][self.plot_label_x])
                 marker_index_container = []
@@ -1142,20 +1175,15 @@ class MyMainWindow(QMainWindow):
                                     getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                     else:
                         if self.checkBox_use_external_cv.isChecked():
-                            try:
-                                if self.checkBox_use_external_slope.isChecked():
-                                    lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
-                                else:
-                                    pots_ = []
-                                    for each_index in seperators:
-                                        pots_.append([self.data_to_plot[scan][self.plot_label_x][each_index]])
-                                    lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,pots_)
-                                if self.checkBox_use_internal_cv.isChecked(): 
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
-                                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
-                            except:
+                            if self.checkBox_use_external_slope.isChecked():
+                                lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
+                            else:
+                                pots_ = []
+                                for each_index in seperators:
+                                    pots_.append([self.data_to_plot[scan][self.plot_label_x][each_index]])
+                                lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,pots_)
+                            if self.checkBox_use_internal_cv.isChecked(): 
                                 getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
-                                # getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                         else:
                             getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
@@ -1170,14 +1198,6 @@ class MyMainWindow(QMainWindow):
                                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([each_item,each_item],[-100,100],':k')
                                     except:
                                         pass
-                '''
-                if i==0:
-                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_scan{}'.format(self.phs[self.scans.index(scan)],scan),fontsize=11)
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
-                    if self.phs[self.scans.index(scan)]==13:
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}_{}'.format(self.phs[self.scans.index(scan)],count_pH13_temp),fontsize=11)
-                        count_pH13_temp+=1
-                '''
                 if each=='current':
                     try:
                         temp_min,temp_max = lim_y
@@ -1238,10 +1258,17 @@ class MyMainWindow(QMainWindow):
                 i = self.plot_labels_y.index(each)
                 if i==0:
                     # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
-                    _,_,_,_, color, _, _ = self.plot_lib[scan]
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {}'.format(self.phs[self.scans.index(scan)]),color = color,fontsize=11)
+                    _,_,_,_,_,color, _, _ = self.plot_lib[scan]
+                    text = r'pH {}'.format(self.phs[self.scans.index(scan)])
+                    tag = ''
+                    '''
+                    if scan == 732:
+                        tag = r' $(Co_3O_4)$'
+                    elif scan == 807:
+                        tag = r' (CoOOH)'
+                    '''
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,text+tag,color = color,fontsize=11)
                     if self.phs[self.scans.index(scan)]==13:
-                        # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),fontsize=11)
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),color = color,fontsize=11)
                         count_pH13_temp+=1
                 if 'current' not in self.plot_labels_y:

@@ -141,8 +141,9 @@ class cvAnalysis(object):
         return pot_filtered, current_filtered
 
     #filter out the spikes on CV due to beam shutter on/off using smoothing func
-    def filter_current(self, pot, current, cv_spike_cut=None, times = 1):
-        return pot, signal.savgol_filter(current,self.info['current_filter_length'],self.info['current_filter_order'])
+    def filter_current(self, pot, current, filter_length, filter_order):
+        # return pot, signal.savgol_filter(current,)
+        return pot, signal.savgol_filter(current,filter_length,filter_order)
 
     #assuming symmetrical potential for one sweep
     #The original pot starts in between pot_min and pot_max
@@ -171,22 +172,11 @@ class cvAnalysis(object):
                     else:
                         area = area + abs((y1-y2)*(x1-x2)/2) + abs(min([abs(y1),abs(y2)])*(x2-x1))
             return area
-
         pot_left, pot_right = pot_range
-        #t, pot,current = extract_cv_file(file_name, which_cycle)
-        pot_filtered, current_filtered = self.filter_current(pot, current)
-        '''
-        for ii in range(4):
-            filter_index = np.where(abs(np.diff(current_filtered*8))<cv_spike_cut)[0]
-            filter_index = filter_index+1#index offset by 1
-            # t_filtered = t_filtered[(filter_index,)]
-            pot_filtered = pot_filtered[(filter_index,)]
-            current_filtered = current_filtered[(filter_index,)]
-        '''
+        pot_filtered, current_filtered = self.filter_current(pot, current,self.info['current_filter_length'],self.info['current_filter_order'])
         pot_filtered = RHE(pot_filtered,pH=ph)
+        #extra smoothing step
         current_smooth = signal.savgol_filter(current_filtered*8*cv_scale_factor,5,3)
-        # plt.plot(pot_filtered)
-        # return
         index_max = np.argmax(current_smooth)
         index_top_left = np.argmin(np.abs(pot_filtered[0:index_max]-pot_left))
         index_top_right = np.argmin(np.abs(pot_filtered[0:index_max]-pot_right))
@@ -194,20 +184,47 @@ class cvAnalysis(object):
         index_bottom_left = np.argmin(np.abs(pot_filtered[index_max:]-pot_right))+index_max
         charge_top = metrics.auc(pot_filtered[index_top_left:index_top_right],current_smooth[index_top_left:index_top_right])
         charge_bottom = metrics.auc(pot_filtered[index_bottom_left:index_bottom_right],current_smooth[index_bottom_left:index_bottom_right])
-        # charge_top_2 = compute_area_under_a_curve(t_filtered[index_top_left:index_top_right],current_smooth[index_top_left:index_top_right])
-        # charge_bottom_2 = compute_area_under_a_curve(t_filtered[index_bottom_left:index_bottom_right],current_smooth[index_bottom_left:index_bottom_right])
-        # self.locate_OER_onset(current_filtered[index_top_left:index_top_right],pot_filtered[index_top_left:index_top_right])
-        # charge_top_np = np.trapz(current_smooth[index_top_left:index_top_right],pot_filtered[index_top_left:index_top_right])
-        # charge_bottom_np = np.trapz(current_smooth[index_bottom_left:index_bottom_right],pot_filtered[index_bottom_left:index_bottom_right])
-        #*200 due to scan rate = 5 mV/s,
         #convert scan rate to time
         v_to_t = 1/scan_rate
         print('Resutls based on sklearn.metrics.auc api func')
         output = 'Total charge = {} mC/cm2 between {} V and {} V'.format((charge_top-charge_bottom)*v_to_t/cv_scale_factor/2,pot_left,pot_right)
         print(output)
-        # print('Results basedon my own hard-coded func')
-        # print('Total charge = {} mC/cm2 between {} V and {} V'.format((charge_top_2-charge_bottom_2)/cv_scale_factor/2, pot_left, pot_right))
         return (charge_top-charge_bottom)*v_to_t/cv_scale_factor/2, output
+
+    @staticmethod
+    def calculate_pseudocap_charge_stand_alone(pot, current, scan_rate = 0.005, pot_range = [0.98,1.6]):
+        #pot: RHE potential in V
+        #current: filtered and smoothed current without scaling
+        #scan_rate: V per second
+        #pot_range: list of two item, which define the bounds of potential (in V according to RHE scale)
+        def compute_area_under_a_curve(x, y):
+            area = 0
+            for i in range(len(x)-1):
+                x1, x2, y1, y2 = x[i],x[i+1],y[i],y[i+1]
+                if y1*y2<0:
+                    x0 = -y1*(x1-x2)/(y1-y2)+x1
+                    area = area + (x0-x1)*y1/2+(x2-x0)*y2/2
+                elif y1*y2==0:
+                    area = area + (y2-y1)*(x2-x1)/2
+                else:
+                    if y1<0:
+                        area = area - abs((y1-y2)*(x1-x2)/2) - abs(min([abs(y1),abs(y2)])*(x2-x1))
+                    else:
+                        area = area + abs((y1-y2)*(x1-x2)/2) + abs(min([abs(y1),abs(y2)])*(x2-x1))
+            return area
+        pot_left, pot_right = pot_range
+        index_max = np.argmax(current)
+        index_top_left = np.argmin(np.abs(pot[0:index_max]-pot_left))
+        index_top_right = np.argmin(np.abs(pot[0:index_max]-pot_right))
+        index_bottom_right = np.argmin(np.abs(pot[index_max:]-pot_left))+index_max
+        index_bottom_left = np.argmin(np.abs(pot[index_max:]-pot_right))+index_max
+        charge_top = metrics.auc(pot[index_top_left:index_top_right],current[index_top_left:index_top_right])
+        charge_bottom = metrics.auc(pot[index_bottom_left:index_bottom_right],current[index_bottom_left:index_bottom_right])
+        #convert scan rate to time
+        v_to_t = 1/scan_rate
+        output = 'Total charge = {} mC/cm2 between {} V and {} V'.format((charge_top-charge_bottom)*v_to_t/2,pot_left,pot_right)
+        # print(output)
+        return (charge_top-charge_bottom)*v_to_t/2, output
 
     #doesnot work yet!
     def locate_OER_onset(self, current, pot):
@@ -227,7 +244,8 @@ class cvAnalysis(object):
 
     #data format based on the output of IVIUM potentiostat
     #note first cycle corresponds to which_cycle = 1
-    def extract_cv_file_ivium(self,file_path,which_cycle=3):
+    @staticmethod
+    def extract_cv_file_ivium(file_path,which_cycle=3):
         if which_cycle == 0:
             which_cycle = 1
         data = []
@@ -257,7 +275,8 @@ class cvAnalysis(object):
         return np.array(pot),np.array(current_density)
 
     #data format based on Fouad's potentiostat
-    def extract_cv_file_fouad(self,file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
+    @staticmethod
+    def extract_cv_file_fouad(file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
         #return: pot(V), current (mA)
         skiprows = 0
         with open(file_path,'r') as f:
@@ -277,19 +296,25 @@ class cvAnalysis(object):
         nodes.append(len(data[:,1]))
         if which_cycle>len(nodes):
             print('Cycle number lager than the total cycles! Use the first cycle instead!')
-            # return data[nodes[1]:nodes[2],0], data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
             return data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
         else:
-            # return data[nodes[which_cycle]:nodes[which_cycle+1],0],data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
             return data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
 
     #only one cycle, which can be manually exported from BioLogic software
-    def extract_cv_file_biologic(self, file_path ='', which_cycle =1):
+    @staticmethod
+    def extract_cv_file_biologic(file_path ='', which_cycle =1):
         #return: time(s), potential(V), current(mA)
         #skip three rows for header info
+        def format_pot_current(pot, current):
+            #return formatted_pot, which starts from the lowest value and ends at the lowest value
+            #The order of current will change accordingly
+            pot, current = np.array(pot), np.array(current)
+            idx_max_pot = np.argmin(pot)
+            idx_min_pot = np.argmin(pot)
+            f = lambda pot, id_min, id_max:list(pot[(id_min+1):])+list(pot[0:id_max]) + list(pot[id_max:(id_min+1)])
+            return np.array(f(pot, idx_min_pot, idx_max_pot)), np.array(f(current, idx_min_pot, idx_max_pot))
         data = np.loadtxt(file_path,skiprows = 3)
-        pot, current = self.format_pot_current(data[:,1], data[:,2])
-        # return data[:,0], data[:,1], data[:,2]
+        pot, current = format_pot_current(data[:,1], data[:,2])
         return pot, current
 
     def _update_bounds(self, current_bounds, data):
@@ -314,7 +339,7 @@ class cvAnalysis(object):
             color = self.info['color'][i]
             cv_spike_cut = self.info['cv_spike_cut'][i]
             cv_scale_factor = self.info['cv_scale_factor'][i]
-            pot, current = self.filter_current(pot_origin, current_origin, cv_spike_cut)
+            pot, current = self.filter_current(pot_origin, current_origin, self.info['current_filter_length'],self.info['current_filter_order'])
             pot_bounds = self._update_bounds(pot_bounds, RHE(pot_origin,pH=ph))
             current_bounds = self._update_bounds(current_bounds, current*8)
             current_bounds_ = self._update_bounds(current_bounds, current*8*cv_scale_factor)
@@ -379,7 +404,7 @@ class cvAnalysis(object):
             color = self.info['color'][i]
             cv_spike_cut = self.info['cv_spike_cut'][i]
             cv_scale_factor = self.info['cv_scale_factor'][i]
-            pot, current = self.filter_current(pot_origin, current_origin, cv_spike_cut)
+            pot, current = self.filter_current(pot_origin, current_origin, self.info['current_filter_length'],self.info['current_filter_order'])
             pot_bounds = self._update_bounds(pot_bounds, RHE(pot_origin,pH=ph))
             current_bounds = self._update_bounds(current_bounds, current*8)
             current_bounds_ = self._update_bounds(current_bounds, current*8*cv_scale_factor)
