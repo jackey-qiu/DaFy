@@ -189,47 +189,48 @@ bg_peaks={'00':[0,2,4,6],'02':[-8.2782,-6.2782,-4.2782,-2.2782,-0.2782,1.7218,3.
 
 #=========================
 # unweighted FOM functions
-#each_key is a tuple of (h,k)
-#each item value is a list of two-item list, each two-item list define the l segment where the weighting will be taken effect
-  #you can difein multiple l segments
-weight_map_Cu100 = {(1,1):[[1.6,2.4]],
-                    (2,0):[[0.8,1.4],[2.5,3.5]],
-                    (2,2):[[1,1.4],[2.5,3.5]],
-                    (3,1):[[1.5,2.5]]}
-#this is the constant weight_factor used to weight the FOM values for defined l segments 
-weight_factor = 1
 
-def weight_fom_based_on_HKL(weight_factor):
-    def decorator(func):
-        @functools.wraps(func)
-        def wrapper(*args,**kwargs):
-            # print(kwargs.keys(),len(args))
-            if len(kwargs) == 0:
-                datasets = args[1]
+class weight_pars(object):
+    weight_factor = 1
+    #each_key is a tuple of (h,k)
+    #each item value is a list of two-item list, each two-item list define the l segment where the weighting will be taken effect
+    #you can difein multiple l segments
+    weight_map = {(1,1):[[1.6,2.4]],
+                  (2,0):[[0.8,1.4],[2.5,3.5]],
+                  (2,2):[[1,1.4],[2.5,3.5]],
+                  (3,1):[[1.5,2.5]]}
+
+#decorator to weight FOM
+def weight_fom_based_on_HKL(func):
+    @functools.wraps(func)
+    def wrapper(*args,**kwargs):
+        # print(kwargs.keys(),len(args))
+        if len(kwargs) == 0:
+            datasets = args[1]
+        else:
+            datasets = kwargs['data']
+        weight_array_list = []
+        for dataset in datasets:
+            hk_tag = (int(round(dataset.extra_data['h'][0],0)), int(round(dataset.extra_data['k'][0],0)))
+            if hk_tag in weight_pars.weight_map:
+                L_segments = weight_pars.weight_map[hk_tag]
+                l = dataset.x
+                conditions_str_list = []
+                for each in L_segments:
+                    conditions_str_list.append('((l>={}) & (l<={}))'.format(*each))
+                condition = eval('|'.join(conditions_str_list))
+                coniditon_false = (condition==False)*1
+                condition_true = condition*1*weight_pars.weight_factor
+                weight_array_list.append(condition_true + coniditon_false)
             else:
-                datasets = kwargs['data']
-            weight_array_list = []
-            for dataset in datasets:
-                hk_tag = (int(round(dataset.extra_data['h'][0],0)), int(round(dataset.extra_data['k'][0],0)))
-                if hk_tag in weight_map_Cu100:
-                    L_segments = weight_map_Cu100[hk_tag]
-                    l = dataset.x
-                    conditions_str_list = []
-                    for each in L_segments:
-                        conditions_str_list.append('((l>={}) & (l<={}))'.format(*each))
-                    condition = eval('|'.join(conditions_str_list))
-                    coniditon_false = (condition==False)*1
-                    condition_true = condition*1*weight_factor
-                    weight_array_list.append(condition_true + coniditon_false)
-                else:
-                    weight_array_list.append(np.ones(len(dataset.x)))
-            results = func(*args,**kwargs)
-            for i, weight_array in enumerate(weight_array_list):
-                results[i] = results[i]*weight_array
-            return results
-        return wrapper
-    return decorator
+                weight_array_list.append(np.ones(len(dataset.x)))
+        results = func(*args,**kwargs)
+        for i, weight_array in enumerate(weight_array_list):
+            results[i] = results[i]*weight_array
+        return results
+    return wrapper
 
+@weight_fom_based_on_HKL
 def diff(simulations, data):
     ''' Average absolute difference
     '''
@@ -241,7 +242,7 @@ def diff(simulations, data):
 diff.__div_dof__ = True
 
 #decorator func for Fom weighting purpose
-@weight_fom_based_on_HKL(weight_factor=weight_factor)
+@weight_fom_based_on_HKL
 def log(simulations, data):
     ''' Average absolute logartihmic difference
     '''
@@ -250,6 +251,7 @@ def log(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 log.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def sqrt(simulations, data):
     ''' Average absolute difference of the square root
     '''
@@ -258,6 +260,7 @@ def sqrt(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 sqrt.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def R1(simulations, data):
     ''' Crystallographic R-factor (R1)
     '''
@@ -266,6 +269,7 @@ def R1(simulations, data):
     return [1.0/denom*(np.sqrt(np.abs(dataset.y)) - np.sqrt(np.abs(sim)))\
         for (dataset, sim) in zip(data,simulations)]
 
+@weight_fom_based_on_HKL
 def R1_weighted(simulations, data):
     ''' Crystallographic R-factor (R1)
     '''
@@ -274,6 +278,7 @@ def R1_weighted(simulations, data):
     return [1.0/denom*abs(np.sqrt(np.abs(dataset.y)) - np.sqrt(np.abs(sim)))/np.sqrt(np.abs(dataset.y))\
         for (dataset, sim) in zip(data,simulations)]
 
+@weight_fom_based_on_HKL
 def R1_weighted_2(simulations, data):
     ''' Crystallographic R-factor (R1)
     '''
@@ -290,6 +295,7 @@ def R1_weighted_2(simulations, data):
     return return_list
 
 
+@weight_fom_based_on_HKL
 def chi2bars_2(simulations, data):
     ''' Weighted chi squared
     '''
@@ -304,6 +310,7 @@ def chi2bars_2(simulations, data):
     return return_list
 chi2bars_2.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def R1_weighted_2b(simulations, data):
         ''' Crystallographic R-factor (R1)
         '''
@@ -319,6 +326,7 @@ def R1_weighted_2b(simulations, data):
                 return_list.append(1.0/denom*abs(np.sqrt(np.abs(dataset.y)) - np.sqrt(np.abs(sim)))/np.sqrt(np.abs(dataset.y)))
         return return_list
 
+@weight_fom_based_on_HKL
 def R1_weighted_3(simulations, data):
     ''' Crystallographic R-factor (R1)
     '''
@@ -334,6 +342,7 @@ def R1_weighted_3(simulations, data):
             return_list.append(1.0/denom*abs(np.log10(np.sqrt(np.abs(dataset.y))) - np.log10(np.sqrt(np.abs(sim)))))
     return return_list
 
+@weight_fom_based_on_HKL
 def logR1(simulations, data):
     ''' logarithmic crystallographic R-factor (R1)
     '''
@@ -343,6 +352,7 @@ def logR1(simulations, data):
                                         np.log10(np.sqrt(sim)))\
         for (dataset, sim) in zip(data,simulations)]
 
+@weight_fom_based_on_HKL
 def R2(simulations, data):
     ''' Crystallographic R2 factor
     '''
@@ -351,6 +361,7 @@ def R2(simulations, data):
     return [1.0/denom*np.sign(dataset.y - sim)*(dataset.y - sim)**2\
         for (dataset, sim) in zip(data,simulations)]
 
+@weight_fom_based_on_HKL
 def R2_weighted(simulations, data):
     ''' Crystallographic R2 factor
     '''
@@ -360,6 +371,7 @@ def R2_weighted(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 
 
+@weight_fom_based_on_HKL
 def logR2(simulations, data):
     ''' logarithmic crystallographic R2 factor
     '''
@@ -368,6 +380,7 @@ def logR2(simulations, data):
     return [1.0/denom*np.sign(np.log10(dataset.y) - np.log10(sim))*(np.log10(dataset.y) - np.log10(sim))**2\
         for (dataset, sim) in zip(data,simulations)]
 
+@weight_fom_based_on_HKL
 def sintth4(simulations, data):
     ''' Sin(tth)^4 scaling of the average absolute difference for reflectivity.
     '''
@@ -377,6 +390,7 @@ def sintth4(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 sintth4.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def Norm(simulations, data):
     '''  dataset normalized 1/3 scaling of the error
     '''
@@ -387,6 +401,7 @@ Norm.__div_dof__ = True
 #=======================
 # weighted FOM functions
 
+@weight_fom_based_on_HKL
 def chi2bars(simulations, data):
     ''' Weighted chi squared
     '''
@@ -394,6 +409,7 @@ def chi2bars(simulations, data):
     return [(dataset.y - sim)**2/dataset.error**2 for (dataset, sim) in zip(data,simulations)]
 chi2bars.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def chi2bars_one_time(simulations, data):
     ''' Weighted chi squared
     '''
@@ -401,6 +417,7 @@ def chi2bars_one_time(simulations, data):
     return [(dataset.y - sim)**2/(dataset.error+4.55+dataset.y*0.03)**2 for (dataset, sim) in zip(data,simulations)]
 chi2bars_one_time.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def chi2bars_w_trainor(simulations, data):
     ''' Weighted chi squared
     '''
@@ -409,6 +426,7 @@ def chi2bars_w_trainor(simulations, data):
 chi2bars_w_trainor.__div_dof__ = True
 
 #fom's are weighted with dip zones having higher wt number and bragg peak zone having lower wt number
+@weight_fom_based_on_HKL
 def chi2bars_weighted(simulations, data):
     ''' Weighted chi squared
     '''
@@ -435,6 +453,7 @@ def chi2bars_weighted(simulations, data):
 chi2bars_weighted.__div_dof__ = True
 
 
+@weight_fom_based_on_HKL
 def chibars(simulations, data):
     ''' Weighted chi squared but without the squaring
     '''
@@ -443,6 +462,7 @@ def chibars(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 chibars.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def logbars(simulations, data):
     ''' Weighted average absolute difference of the logarithm of the data
     '''
@@ -452,6 +472,7 @@ def logbars(simulations, data):
         for (dataset, sim) in zip(data,simulations)]
 logbars.__div_dof__ = True
 
+@weight_fom_based_on_HKL
 def R1bars(simulations, data):
     ''' Weighted crystallographic R-factor (R1)
     '''
@@ -461,6 +482,7 @@ def R1bars(simulations, data):
            (np.sqrt(dataset.y) - np.sqrt(sim))
         for (dataset, sim) in zip(data,simulations)]
 
+@weight_fom_based_on_HKL
 def R2bars(simulations, data):
     ''' Weighted crystallographic R2 factor
     '''
