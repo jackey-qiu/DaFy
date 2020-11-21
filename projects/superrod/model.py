@@ -718,6 +718,12 @@ class Model:
         else:
             self.fom_func = fom_func
 
+    def set_weighting_factor(self,factor):
+        fom_funcs.weight_pars.weight_factor = factor
+
+    def set_weighting_region(self,region):
+        fom_funcs.weight_pars.weight_map = region
+
     def is_compiled(self):
         '''is_compiled(self) --> compiled [boolean]
 

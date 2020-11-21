@@ -6,8 +6,10 @@ import numpy as np
 from pyqtgraph.Qt import QtGui,QtCore
 import copy
 from scipy.spatial.distance import pdist
+from scipy.stats import multivariate_normal
 import itertools
 from OpenGL.GL import *
+import matplotlib.pyplot as plt
 #color_lib = {'C':(1,0,0,1),'O':(0,1,0,1),'Cu':(1,0,1,1)}
 # color_lib = {'C':0xFFFFFF,'O':(0,1,0,1),'Cu':(1,0,1,1)}
 def color_to_rgb(hex_str):
@@ -25,6 +27,112 @@ def RotationMatrix(theta_x, theta_y, theta_z):
     Rz = np.array([[np.cos(theta_z), -np.sin(theta_z), 0],
                    [np.sin(theta_z), np.cos(theta_z), 0], [0, 0, 1]])
     return Rx.dot(Ry).dot(Rz)
+
+#cal the angle between two vectors
+def unit_vector(vector):
+    """ Returns the unit vector of the vector.  """
+    return vector / np.linalg.norm(vector)
+
+def angle_between(v1, v2):
+    """ Returns the angle in radians between vectors 'v1' and 'v2'::
+
+            >>> angle_between((1, 0, 0), (0, 1, 0))
+            1.5707963267948966
+            >>> angle_between((1, 0, 0), (1, 0, 0))
+            0.0
+            >>> angle_between((1, 0, 0), (-1, 0, 0))
+            3.141592653589793
+    """
+    v1_u = unit_vector(v1)
+    v2_u = unit_vector(v2)
+    return np.arccos(np.clip(np.dot(v1_u, v2_u), -1.0, 1.0))
+
+PILATUS_SIZE = [423.6,434.6]
+PIXEL_SIZE = [0.172,0.172]
+DISTANCE_SAMPLE_DETECTOR = 500
+PILATUS_DIM = list((np.array(PILATUS_SIZE[::-1])/PIXEL_SIZE[::-1]).astype(int))
+PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
+
+def index_on_pilatus(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE, distance_sample_detector = DISTANCE_SAMPLE_DETECTOR, delta=0, gamma =0, debug = False):
+    #default is PILATUS 6M
+    #map the index of a reciprocal vector (vertical detector angle delta (in degree), horizontal detector angle gamma (in degree)) 
+    # on a pilatus with size of pilatus_size of [width,height], pixel_size of [width, height] (all in unit mm)
+    #in a geometry defined by distance_sample_detector (mm)
+    #assume the primary beam Ki will hit the detector image (dimention of [r,c]) at [r-1,c/2] (the position of o as shown below)
+
+    #++++++++++++
+    #++++++++++++
+    #++++++++++++
+    #++++++++++++
+    #+++++o++++++
+    pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
+    primary_beam_pos = [int(pilatus_dim[0]-1), int(pilatus_dim[1]/2)]
+    horizontal_offset_in_pixels = int(np.tan(np.deg2rad(gamma))*distance_sample_detector/pixel_size[0])
+    vertical_offset_in_pixels = int(distance_sample_detector/np.cos(np.deg2rad(gamma))*np.tan(np.deg2rad(delta))/pixel_size[1])
+    pos = [primary_beam_pos[0]-vertical_offset_in_pixels, primary_beam_pos[1]-horizontal_offset_in_pixels]
+    outside_detector = False
+    if abs(horizontal_offset_in_pixels)>pilatus_dim[1]/2 or vertical_offset_in_pixels>pilatus_dim[0]:
+        outside_detector = True
+    if debug:
+        print(f'pilatus dim: {pilatus_dim}\nprimary beam position:{primary_beam_pos}\nconditions: delta={delta}, gamma = {gamma}')
+        print(f'Is the calcualted spot outside the detector:{outside_detector}\nThe calculated pixel index is {pos}')
+    else:
+        if outside_detector:
+            return []
+        else:
+            return pos
+
+def simulate_pixel_image_(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE,pos = [0,0], peak_dim = 101, sigma = 0.55):
+    def gaussian_3d_peak(peak_dim, sigma):
+        x, y = np.mgrid[-1.0:1.0:peak_dim*1j, -1.0:1.0:peak_dim*1j]
+        xy = np.column_stack([x.flat, y.flat])
+        mu = np.array([0.0, 0.0])
+        sigma = np.array([.25, .25])
+        covariance = np.diag(sigma**2)
+        z = multivariate_normal.pdf(xy, mean=mu, cov=covariance)
+        # Reshape back to a (30, 30) grid.
+        z = z.reshape(x.shape)
+        return z
+    pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
+    img = np.zeros(pilatus_dim)
+    if len(pos)==0:
+        return img
+    relative_center_of_single_peak = np.array([int((peak_dim-1)/2)+1]*2)
+    offset = np.array(pos) - relative_center_of_single_peak
+    x, y = np.mgrid[0:(peak_dim-1):peak_dim*1j, 0:(peak_dim-1):peak_dim*1j]
+    indexs = np.column_stack([x.flat, y.flat]).astype(int)
+    for each_index in indexs:
+        temp_index = each_index + offset.astype(int)
+        if (temp_index[0]>=0) and (temp_index[0]<pilatus_dim[0]) and (temp_index[1]>=0) and (temp_index[1]<pilatus_dim[1]):
+            img[temp_index[0],temp_index[1]]+= gaussian_3d_peak(peak_dim,sigma)[each_index[0],each_index[1]]
+    return img
+
+def simulate_pixel_image(pilatus_size = PILATUS_SIZE, pixel_size = PIXEL_SIZE, pos = [0,0], peak_dim = 50):
+    pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
+    return makeGaussian(pilatus_dim, fwhm = peak_dim, center = pos)
+
+def makeGaussian(size=[10,30], fwhm = 3, center=None):
+    """ Make a square gaussian kernel.
+
+    size is the length of a side of the square
+    fwhm is full-width-half-maximum, which
+    can be thought of as an effective radius.
+    """
+
+    x = np.arange(0, size[1], 1, float)
+    y = np.arange(0,size[0],1,float)[:,np.newaxis]
+
+    #y = x[:,np.newaxis]
+
+    if center is None:
+        x0 = size[1] // 2
+        y0 = size[0] // 2
+    else:
+        x0 = center[1]
+        y0 = center[0]
+
+    return np.exp(-4*np.log(2) * ((x-x0)**2 + (y-y0)**2) / fwhm**2)
+
 
 color_lib = {
     "H": "FFFFFF",
@@ -206,15 +314,18 @@ class GLViewWidget_cum(gl.GLViewWidget):
         # self.opts['fov'] = 60
         self.opts['distance'] = 2000
         self.opts['fov'] = 1
+        self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
         # self.setConfigOption('background', 'w')
         # self.setConfigOption('foreground', 'k')
-        # self.setBackgroundColor((190,190,190))
-        self.setBackgroundColor('w')
+        self.setBackgroundColor((50,50,50))
+        # self.setBackgroundColor('w')
 
         self.lines = []
         self.lines_dict = {}
         self.unit_cell_edges = {}
         self.cross_points_info = {}
+        self.cross_points_info_HKL = {}
+        self.pixel_index_of_cross_points = {}
         self.spheres = [
                         [[0,0,0],(1,0,0,0.8),0.2],
                         [[5,0,0],(1,1,0,0.8),0.2]]
@@ -229,6 +340,38 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.text_item_selected_rod = None
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
+
+    def calculate_index_on_pilatus_image_from_cross_points_info(self):
+        if len(self.ewarld_sphere)==0:
+            return
+        else:
+            self.pixel_index_of_cross_points = {}
+            center = np.array(self.ewarld_sphere[0])
+            ki = -center
+            for each in self.cross_points_info:
+                index_container = []
+                for each_item in self.cross_points_info[each]:
+                    item_vector = each_item - center
+                    item_vector_projected_on_xy_plane = item_vector*[1,1,0]
+                    delta = np.rad2deg(angle_between(item_vector,item_vector_projected_on_xy_plane))
+                    gamma = np.rad2deg(angle_between(ki, item_vector_projected_on_xy_plane))
+                    # print('delta={},gamma={}'.format(delta,gamma))
+                    #depend on the projected vector position, either on the left side of ki or right size of ki, both case the calcualted gamma is the same value
+                    #so here you need to manually differentiate the symmetry positions
+                    if item_vector[0]<0:
+                        gamma = -gamma
+                    index_container.append(index_on_pilatus(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE, distance_sample_detector = DISTANCE_SAMPLE_DETECTOR, delta=delta, gamma =gamma))
+                self.pixel_index_of_cross_points[each] = index_container
+
+    def cal_simuated_2d_pixel_image(self):
+        image_sum = 0
+        for each in self.pixel_index_of_cross_points:
+            for each_item in self.pixel_index_of_cross_points[each]:
+                if len(each_item)!=0:
+                    image_sum += simulate_pixel_image(pos = each_item)
+        return image_sum
+        #plt.imshow(image_sum)
+        #plt.show()
 
     def apply_xyz_rotation(self):
         self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(self.RM)

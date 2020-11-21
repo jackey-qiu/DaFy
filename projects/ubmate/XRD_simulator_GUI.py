@@ -49,6 +49,8 @@ def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warn
     msg.setWindowTitle(window_title)
     msg.exec_()
 
+
+
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
@@ -60,6 +62,8 @@ class MyMainWindow(QMainWindow):
         self.structures = []
         self.HKLs_dict = {}
         self.peaks_in_zoomin_viewer = {}
+        self.trajactory_pos = []
+        self.ax_simulation =None
         self.pushButton_draw.clicked.connect(lambda:self.show_structure(widget_name = 'widget_glview'))
         self.pushButton_load.clicked.connect(self.load_config_file)
         self.pushButton_extract_in_viewer.clicked.connect(self.extract_peaks_in_zoom_viewer)
@@ -82,6 +86,7 @@ class MyMainWindow(QMainWindow):
         self.timer_spin.timeout.connect(self.spin)
         self.timer_spin_sample = QtCore.QTimer(self)
         self.timer_spin_sample.timeout.connect(self.rotate_sample)
+        self.timer_spin_sample.timeout.connect(self.simulate_image)
         self.azimuth_angle = 0
         self.pushButton_azimuth0.clicked.connect(self.azimuth_0)
         self.pushButton_azimuth90.clicked.connect(self.azimuth_90)
@@ -103,6 +108,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_rotate.clicked.connect(self.rotate_sample)
         self.pushButton_spin.clicked.connect(self.spin_)
         self.pushButton_draw_real_space.clicked.connect(self.draw_real_space)
+        self.pushButton_simulate.clicked.connect(self.simulate_image)
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
         ##set style for matplotlib figures
         plt.style.use('ggplot')
@@ -124,6 +130,35 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
 
+    def simulate_image(self):
+        self.widget_mpl.canvas.figure.clear()
+        ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
+        self.widget_glview.calculate_index_on_pilatus_image_from_cross_points_info()
+        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image())
+        for each in self.widget_glview.pixel_index_of_cross_points:
+            for i in range(len(self.widget_glview.pixel_index_of_cross_points[each])):
+                pos = self.widget_glview.pixel_index_of_cross_points[each][i]
+                hkl = self.widget_glview.cross_points_info_HKL[each][i]
+                if len(pos)!=0:
+                    if pos not in self.trajactory_pos:
+                        self.trajactory_pos.append(pos)
+                    ax.text(*pos[::-1],'x',
+                            horizontalalignment='center',
+                            verticalalignment='center',color = 'r')
+                    ax.text(*(list(pos[::-1]+np.array([20,20]))), '{}{}'.format(each,hkl),color = 'y',rotation = 'vertical',fontsize=8)
+        ax.text(*self.widget_glview.primary_beam_position,'x',color = 'w')
+        ax.text(*(self.widget_glview.primary_beam_position+np.array([50,-50])),'Primary Beam Pos',color = 'r')
+        if self.timer_spin_sample.isActive():
+            for each in self.trajactory_pos:
+                ax.text(*each[::-1],'.',
+                        horizontalalignment='center',
+                        verticalalignment='center',color = 'w',fontsize = 15)
+        ax.grid(False)
+        self.widget_mpl.fig.tight_layout()
+        self.widget_mpl.canvas.draw()
+        self.ax_simulation = ax
+        
+
     def draw_real_space(self):
         super_cell_size = [self.spinBox_repeat_x.value(), self.spinBox_repeat_y.value(), self.spinBox_repeat_z.value()]
         name = self.comboBox_substrate.currentText()
@@ -135,7 +170,8 @@ class MyMainWindow(QMainWindow):
         if self.timer_spin_sample.isActive():
             self.timer_spin_sample.stop()
         else:
-            self.timer_spin_sample.start(100)
+            self.trajactory_pos = []
+            self.timer_spin_sample.start(1000)
 
     def rotate_sample(self):
         theta_x = float(self.lineEdit_rot_x.text())
@@ -150,7 +186,9 @@ class MyMainWindow(QMainWindow):
     #extract cross points between the rods and the Ewarld sphere
     def extract_cross_point_info(self):
         text = ['The cross points between rods and the Ewarld sphere is listed below']
+        self.widget_glview.cross_points_info_HKL = {}
         for each in self.widget_glview.cross_points_info:
+            self.widget_glview.cross_points_info_HKL[each] = []
             text.append('')
             text.append(each)
             structure = [self.structures[i] for i in range(len(self.structures)) if self.structures[i].name == each][0]
@@ -159,6 +197,7 @@ class MyMainWindow(QMainWindow):
             for each_q in self.widget_glview.cross_points_info[each]:
                 #H, K, L = structure.lattice.HKL(each_q)
                 H, K, L = RecTMInv.dot(each_q)
+                self.widget_glview.cross_points_info_HKL[each].append([round(H,2),round(K,2),round(L,2)])
                 text.append('HKL:{}'.format([round(H,3),round(K,3),round(L,3)]))
         self.plainTextEdit_cross_points_info.setPlainText('\n'.join(text))
 

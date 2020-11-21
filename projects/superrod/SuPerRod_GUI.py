@@ -921,12 +921,15 @@ class MyMainWindow(QMainWindow):
                 self.widget_solver.par.param('Diff.Ev.').param('Method').value(),
                 self.widget_solver.par.param('FOM').param('Figure of merit').value(),
                 self.widget_solver.par.param('FOM').param('Auto save, interval').value(),
+                self.widget_solver.par.param('FOM').param('weighting factor').value(),
+                self.widget_solver.par.param('FOM').param('weighting region').value(),
                 self.widget_solver.par.param('Fitting').param('start guess').value(),
                 self.widget_solver.par.param('Fitting').param('Generation size').value(),
                 self.widget_solver.par.param('Fitting').param('Population size').value()]
-        pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','start guess','Generation size','Population size']
+        pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
         for i in range(len(pars)):
             self.model.save_addition(pars[i],str(values[i]))
+            print(pars[i],str(values[i]))
     
     def load_addition(self):
             funcs=\
@@ -935,12 +938,14 @@ class MyMainWindow(QMainWindow):
                 self.widget_solver.par.param('Diff.Ev.').param('Method').setValue,
                 self.widget_solver.par.param('FOM').param('Figure of merit').setValue,
                 self.widget_solver.par.param('FOM').param('Auto save, interval').setValue,
+                self.widget_solver.par.param('FOM').param('weighting factor').setValue,
+                self.widget_solver.par.param('FOM').param('weighting region').setValue,
                 self.widget_solver.par.param('Fitting').param('start guess').setValue,
                 self.widget_solver.par.param('Fitting').param('Generation size').setValue,
                 self.widget_solver.par.param('Fitting').param('Population size').setValue]
 
-            types= [float,float,str,str,int,bool,int,int]
-            pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','start guess','Generation size','Population size']
+            types= [float,float,str,str,int,float,str,bool,int,int]
+            pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
             for i in range(len(pars)):
                 type_ = types[i]
                 if type_ == float:

@@ -15,6 +15,8 @@ params = [
         {'name':'Error bar level','type':'float','value':1.05},
         {'name':'Auto save, interval','type':'int','value':50},
         {'name':'save evals, buffer','type':'int','value':100000},
+        {'name': 'weighting factor','type':'float','value':1},
+        {'name': 'weighting region','type':'text','value':'{(1,1):[[1.6,2.4]],\n(2,0):[[0.8,1.4],[2.5,3.5]],\n(2,2):[[1,1.4],[2.5,3.5]],\n(3,1):[[1.5,2.5]]}'},
         # {'name': 'Limits (min=7;max=15)', 'type': 'int', 'value': 11, 'limits': (7, 15), 'default': -6},
         # {'name': 'DEC stepping', 'type': 'float', 'value': 1.2e6, 'dec': True, 'step': 1, 'siPrefix': True, 'suffix': 'Hz'},
         
@@ -47,6 +49,9 @@ class SolverParameters(ParameterTree):
         diffev_solver.set_kr(self.par.param('Diff.Ev.').param('k_r').value())
         diffev_solver.set_create_trial(self.par.param('Diff.Ev.').param('Method').value())
         parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
+        parent.model.set_weighting_factor(self.par.param('FOM').param('weighting factor').value())
+        parent.model.set_weighting_region(eval(self.par.param('FOM').param('weighting region').value()))
+
         diffev_solver.set_autosave_interval(self.par.param('FOM').param('Auto save, interval').value())
         diffev_solver.set_use_start_guess(self.par.param('Fitting').param('start guess').value())
         diffev_solver.set_max_generations(self.par.param('Fitting').param('Generation size').value())
@@ -58,6 +63,9 @@ class SolverParameters(ParameterTree):
         diffev_solver.set_kr(self.par.param('Diff.Ev.').param('k_r').value())
         diffev_solver.set_create_trial(self.par.param('Diff.Ev.').param('Method').value())
         parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
+        parent.model.set_weighting_factor(self.par.param('FOM').param('weighting factor').value())
+        parent.model.set_weighting_region(eval(self.par.param('FOM').param('weighting region').value()))
+
         diffev_solver.set_autosave_interval(self.par.param('FOM').param('Auto save, interval').value())
         diffev_solver.set_use_start_guess(self.par.param('Fitting').param('start guess').value())
         diffev_solver.set_max_generations(self.par.param('Fitting').param('Generation size').value())
