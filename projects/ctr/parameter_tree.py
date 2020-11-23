@@ -25,7 +25,7 @@ class ScalableGroup(pTypes.GroupParameter):
         self.addChild(dict(name="ScalableParam %d" % (len(self.childs)+1), type=typ, value=val, removable=True, renamable=True))
 
 
-foms_label = ["diff",'log','sqrt','R1','R1_weighted','R1_weighted_2','chi2bars_2','R1_weighted_2b','R1_weighted_3','logR1','R2','R2_wighted','logR2','sintth4','Norm','chi2bars','chi2bars_w_trainor','chi2bars_weighted','chibars','logbars','R1bars','R2bars']
+foms_label = ["diff",'log','log_debug','sqrt','R1','R1_weighted','R1_weighted_2','chi2bars_2','R1_weighted_2b','R1_weighted_3','logR1','R2','R2_wighted','logR2','sintth4','Norm','chi2bars','chi2bars_w_trainor','chi2bars_weighted','chibars','logbars','R1bars','R2bars']
 
 data_keys_petra3 =",".join(['scan_no','image_no','potential','current','peak_intensity','peak_intensity_error', \
           'bkg', 'H','K','L','phi','chi','mu', 'delta', 'gamma','omega_t','mon','transm','mask_ctr'])

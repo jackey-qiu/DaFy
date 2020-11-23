@@ -929,7 +929,7 @@ class MyMainWindow(QMainWindow):
         pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
         for i in range(len(pars)):
             self.model.save_addition(pars[i],str(values[i]))
-            print(pars[i],str(values[i]))
+            # print(pars[i],str(values[i]))
     
     def load_addition(self):
             funcs=\

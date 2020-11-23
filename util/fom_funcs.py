@@ -252,6 +252,19 @@ def log(simulations, data):
 log.__div_dof__ = True
 
 @weight_fom_based_on_HKL
+def log_debug(simulations, data):
+    ''' Average absolute logartihmic difference
+    '''
+    N = np.sum([len(dataset.y)*dataset.use for dataset in data])
+    print('start')
+    for dataset, sim in zip(data,simulations):
+        print(np.log10(dataset.y[0:4]),np.log10(sim[0:4]))
+    print('end')
+    return [(np.log10(dataset.y)-np.log10(sim))
+        for (dataset, sim) in zip(data,simulations)]
+log_debug.__div_dof__ = True
+
+@weight_fom_based_on_HKL
 def sqrt(simulations, data):
     ''' Average absolute difference of the square root
     '''

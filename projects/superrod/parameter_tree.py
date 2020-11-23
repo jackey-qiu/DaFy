@@ -3,7 +3,7 @@
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter, ParameterTree
 
-foms_label = ["diff",'log','sqrt','R1','R1_weighted','R1_weighted_2','chi2bars_2','R1_weighted_2b','R1_weighted_3','logR1','R2','R2_wighted','logR2','sintth4','Norm','chi2bars','chi2bars_w_trainor','chi2bars_weighted','chibars','logbars','R1bars','R2bars']
+foms_label = ["diff",'log','log_debug','sqrt','R1','R1_weighted','R1_weighted_2','chi2bars_2','R1_weighted_2b','R1_weighted_3','logR1','R2','R2_wighted','logR2','sintth4','Norm','chi2bars','chi2bars_w_trainor','chi2bars_weighted','chibars','logbars','R1bars','R2bars']
 params = [
     {'name': 'Diff.Ev.', 'type': 'group', 'children': [
         {'name': 'k_m', 'type': 'float', 'value': 0.9,'step':0.1},
