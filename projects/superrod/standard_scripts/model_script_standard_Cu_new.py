@@ -161,13 +161,16 @@ def Sim(data,VARS=vars()):
     total_wt = sum(wt_list)
     for i in range(num_surface_slabs):
         sample.domain['domain{}'.format(i+1)]['wt']=wt_list[i]/total_wt
-    
-    #update sorbate symmetry(not necessary)
+
+    #faster solution(a factor of two faster than using loop)
     '''
-    for i in range(num_sorbate_slabs):
-        for each in VARS['sorbate_syms_{}'.format(i+1)]:
-            for n in range(num_surface_slabs):
-                each.set_t([VARS['atm_gp_surface_1st_layer_{}'.format(n+1)].getdx(),VARS['atm_gp_surface_1st_layer_{}'.format(n+1)].getdy()]) # models.structure_tools.sxrd_dafy.AtomGroup
+    h_, k_, x_,LB_,dL_ = data.ctr_data_all[:,0], data.ctr_data_all[:,1], data.ctr_data_all[:,2],data.ctr_data_all[:,4],data.ctr_data_all[:,5]
+    rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(x_-LB_)/dL_)**2)**0.5
+    f_ = rough_*sample.calc_f_all(h_, k_, x_)
+    F_ = abs(f_*f_)*rgh.scale_nonspecular_rods
+    #you need to edit the list of extra scaling factor accordingly
+    F = data.split_fullset(F_,[rgh.scale_factor_11L,rgh.scale_factor_20L,rgh.scale_factor_22L,rgh.scale_factor_31L])
+    fom_scaler = [1]*len(F)
     '''
 
     for data_set in data:
@@ -189,15 +192,17 @@ def Sim(data,VARS=vars()):
                 if h[0]==0 and k[0]==0:#consider layered water only for specular rod if existent
                     q=np.pi*2*unitcell.abs_hkl(h,k,x)
                     pre_factor=(np.exp(-exp_const*rgh.mu/q))*(4*np.pi*re/auc)*3e6
-                    f = rgh.scale_specular_rod*rough*sample.calc_f_all(h, k, x)
+                    f = rgh.rough*sample.calc_f_all(h, k, x)
+                    F.append(abs(f*f)*rgh.scale_specular_rod)
                 else:
-                    f = rough*rgh.scale_nonspecular_rods*sample.calc_f_all(h, k, x)
-                F.append(abs(f*f))
+                    f = rough*sample.calc_f_all(h, k, x)
+                    scale_factor_extra = getattr(rgh,'scale_factor_{}{}L'.format(int(round(h[0],0)),int(round(k[0],0))))
+                    F.append(abs(f*f)*rgh.scale_nonspecular_rods*scale_factor_extra)
                 fom_scaler.append(1)
         else:
             f=np.zeros(len(y))
             F.append(f)
             fom_scaler.append(1)
 
-    panelty_factor = [sample.bond_distance_constraint(which_domain=i, max_distance =2.2) for i in range(num_surface_slabs)]
+    panelty_factor = [sample.bond_distance_constraint(which_domain=i, max_distance =1) for i in range(num_surface_slabs)]
     return F,1+sum(panelty_factor),fom_scaler

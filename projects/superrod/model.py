@@ -18,6 +18,7 @@ import numpy as np
 #import data
 import data_superrod as data
 import parameters, fom_funcs
+from fom_funcs import weight_fom_based_on_HKL
 #import dill
 
 #==============================================================================
@@ -42,6 +43,9 @@ class Model:
         #self.fom_func = default_fom_func
         self.fom_func = fom_funcs.log # The function that evaluates the fom
         self.fom = None # The value of the fom function
+        self.weight_factor = 1 #fom weighting factor
+        self.weight_map = {}#fom weighting factor map
+        self.weight_decorator = weight_fom_based_on_HKL
 
         # Registred classes that is looked for in the model
         self.registred_classes = []
@@ -94,6 +98,8 @@ class Model:
             #print 'data_type',type(new_data)
             self.data.safe_copy(new_data)
             self.data_original.safe_copy(new_data)
+            self.data.concatenate_all_ctr_datasets()
+            self.data_original.concatenate_all_ctr_datasets()
         except Exception as e:
             raise IOError('Could not locate the data section.', filename)
         try:
@@ -257,7 +263,9 @@ class Model:
         Sums up the evaluation of the fom values calculated for each
          data point to form the overall fom function for all data sets.
         '''
-        fom_raw = self.fom_func(simulated_data, self.data)
+        #fom_raw = self.fom_func(simulated_data, self.data)
+        #weight the fom value
+        fom_raw = self.weight_decorator(self.weight_factor,self.weight_map)(self.fom_func)(simulated_data,self.data)
         # Sum up a unique fom for each data set in use
         fom_indiv=[]
         if wt_list==[]:
@@ -490,13 +498,16 @@ class Model:
         model_copy.script = self.script
         model_copy.parameters = self.parameters
         model_copy.fom_func = self.fom_func
+        model_copy.weight_factor = self.weight_factor
+        model_copy.weight_map = self.weight_map
         # The most important stuff - a module is not pickable
         model_copy.script_module = None
         model_copy.filename = self.filename
         model_copy.compiled = self.compiled
         model_copy.fom = self.fom
         model_copy.saved = self.saved
-
+        # print('original',self.fom_func.__weight__.get_weight_factor())
+        # print('pickle copy',model_copy.fom_func.__weight__.get_weight_factor())
         return model_copy
 
     def get_table_as_ascii(self):
@@ -719,10 +730,14 @@ class Model:
             self.fom_func = fom_func
 
     def set_weighting_factor(self,factor):
-        fom_funcs.weight_pars.weight_factor = factor
+        # fom_funcs.weight_pars.weight_factor = factor
+        #fom_funcs.weight_pars_instance.set_weight_factor(factor)
+        self.weight_factor = factor
 
     def set_weighting_region(self,region):
-        fom_funcs.weight_pars.weight_map = region
+        # fom_funcs.weight_pars.weight_map = region
+        #fom_funcs.weight_pars_instance.set_weight_map(region)
+        self.weight_map = region
 
     def is_compiled(self):
         '''is_compiled(self) --> compiled [boolean]

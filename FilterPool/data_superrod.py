@@ -6,6 +6,7 @@ Last changed: 2008 08 22
 '''
 
 from numpy import *
+import numpy as np
 import os, time
 
 #==============================================================================
@@ -554,6 +555,31 @@ class DataList:
         ''' init function - creates a list with one DataSet'''
         self.items=[DataSet(name='Data 0')]
         self._counter=1
+        self.ctr_data_all = None#numpy array to concatenate all datasets, columns =[h, k, x, y, LD, dL, mask]
+        self.ctr_data_info = {}#store info of the datasets
+
+    def concatenate_all_ctr_datasets(self):
+        all_ctr_data = []
+        for i,each in enumerate(self.items):
+            h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
+            self.ctr_data_info[i] = len(h)
+            #mask = np.ones(len(h))[:,np.newaxis]
+            fbulk = np.zeros(len(h))[:,np.newaxis]
+            temp_data = np.hstack((h,k,x,y,LB,dL,fbulk))
+            if len(all_ctr_data)==0:
+                all_ctr_data = temp_data
+            else:
+                all_ctr_data = np.vstack((all_ctr_data,temp_data))
+        self.ctr_data_all = all_ctr_data
+        return all_ctr_data
+
+    def split_fullset(self,full_set,scale_factors):
+        sub_sets = []
+        cum_sum = np.cumsum([0]+list(self.ctr_data_info.values()))
+        assert len(scale_factors) == len(self.ctr_data_info),'The length of scale_factors and total number of ctr datasets do not match each other!'
+        for i in range(len(self.ctr_data_info)):
+            sub_sets.append(full_set[cum_sum[i]:cum_sum[i+1]]*scale_factors[i])
+        return sub_sets
 
     def __getitem__(self,key):
         '''__getitem__(self,key) --> DataSet

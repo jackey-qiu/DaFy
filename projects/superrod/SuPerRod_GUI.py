@@ -602,7 +602,7 @@ class MyMainWindow(QMainWindow):
                         rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
                     else:
                         rod_factor = 1
-                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.f_ideal[i+offset]*(scale_factor*rod_factor)**2,pen = {'color': "w", 'width': 1},clear = False)
+                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.f_ideal[i+offset]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = False)
                 except:
                     pass
                 #plot simulated results
@@ -1491,8 +1491,14 @@ class MyMainWindow(QMainWindow):
                 beta = self.model.script_module.rgh.beta
                 #rough = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(each.x-each.extra_data['LB'])/each.extra_data['dL'])**2)**0.5
                 scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in each.name)]
+                h_, k_ = int(round(each.extra_data['h'][0],0)),int(round(each.extra_data['k'][0],0))
+                extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
+                if hasattr(self.model.script_module.rgh,extra_scale_factor):
+                    rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
+                else:
+                    rod_factor = 1
                 rough = 1
-                export_data['I_bulk'] = np.append(export_data['I_bulk'],rough**2*np.array(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2*scale_factor**2))
+                export_data['I_bulk'] = np.append(export_data['I_bulk'],rough**2*np.array(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2*scale_factor*rod_factor))
             df_export_data = pd.DataFrame(export_data)
             writer_temp = pd.ExcelWriter([path+'.xlsx',path][int(path.endswith('.xlsx'))])
             df_export_data.to_excel(writer_temp, columns =['potential']+[lib_map[each_] for each_ in ['x','h','k','y','y_sim','error']]+['I_bulk','use'])

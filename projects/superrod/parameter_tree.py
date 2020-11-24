@@ -48,9 +48,9 @@ class SolverParameters(ParameterTree):
         diffev_solver.set_km(self.par.param('Diff.Ev.').param('k_m').value())
         diffev_solver.set_kr(self.par.param('Diff.Ev.').param('k_r').value())
         diffev_solver.set_create_trial(self.par.param('Diff.Ev.').param('Method').value())
-        parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
         parent.model.set_weighting_factor(self.par.param('FOM').param('weighting factor').value())
         parent.model.set_weighting_region(eval(self.par.param('FOM').param('weighting region').value()))
+        parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
 
         diffev_solver.set_autosave_interval(self.par.param('FOM').param('Auto save, interval').value())
         diffev_solver.set_use_start_guess(self.par.param('Fitting').param('start guess').value())
@@ -62,9 +62,9 @@ class SolverParameters(ParameterTree):
         diffev_solver.set_km(self.par.param('Diff.Ev.').param('k_m').value())
         diffev_solver.set_kr(self.par.param('Diff.Ev.').param('k_r').value())
         diffev_solver.set_create_trial(self.par.param('Diff.Ev.').param('Method').value())
-        parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
         parent.model.set_weighting_factor(self.par.param('FOM').param('weighting factor').value())
         parent.model.set_weighting_region(eval(self.par.param('FOM').param('weighting region').value()))
+        parent.model.set_fom_func(self.par.param('FOM').param('Figure of merit').value())
 
         diffev_solver.set_autosave_interval(self.par.param('FOM').param('Auto save, interval').value())
         diffev_solver.set_use_start_guess(self.par.param('Fitting').param('start guess').value())

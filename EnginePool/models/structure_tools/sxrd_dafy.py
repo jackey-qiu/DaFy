@@ -564,14 +564,13 @@ class Sample:
         '''
         #here the chemically equivalent domains will be added up in-coherently always
         ftot=0
-        key = (h[0],k[0],l[0],l[-1])
+        # key = (h[0],k[0],l[0],l[-1])
         # if key in self.fb:
             # fb = self.fb[key]
         # else:
             # fb = self.calc_fb(h, k, l)
             # self.fb[key] = fb
         fb = self.calc_fb(h, k, l)
-
         if self.coherence==True:
             for key in self.domain.keys():
                 if self.domain[key]['wt']!=0:

@@ -475,6 +475,7 @@ class DiffEv:
 
             self.text_output('Going into optimization ...')
             print('Going into optimization ...')
+            # print('optimize: meta weight_factor = ',self.model.fom_func.__weight__.get_weight_factor())
 
             # Update the plot data for any gui or other output
             self.plot_output(self)
@@ -499,6 +500,7 @@ class DiffEv:
                 # self.model = model
                 #print(self.trial_vec[0])
                 self.eval_fom()
+                # print('inside optimize: meta weight_factor = ',self.model.fom_func.__weight__.get_weight_factor())
                 # Calculate the fom of the trial vectors and update the population
                 [self.update_pop(index) for index in range(self.n_pop)]
 
@@ -518,15 +520,16 @@ class DiffEv:
                 # print(sim_fom)
                 # Sanity of the model does the simualtions fom agree with
                 # the best fom
-                if abs(sim_fom - self.best_fom) > self.fom_allowed_dis:
-                    self.text_output('Disagrement between two different fom'
-                                     ' evaluations')
-                    self.error = ('The disagreement between two subsequent '
-                                  'evaluations is larger than %s. Check the '
-                                  'model for circular assignments.'
-                                  %self.fom_allowed_dis)
-                    signal_fitended.emit(self.error)
-                    break
+                if gen == int(self.fom_log[-1,0]) + 1:
+                    if abs(sim_fom - self.best_fom) > self.fom_allowed_dis:
+                        self.text_output('Disagrement between two different fom'
+                                        ' evaluations')
+                        self.error = ('The disagreement between two subsequent '
+                                    'evaluations is larger than %s. Check the '
+                                    'model for circular assignments.'
+                                    %self.fom_allowed_dis)
+                        signal_fitended.emit(self.error)
+                        break
 
                 # Update the plot data for any gui or other output
                 self.plot_output(self)
@@ -715,6 +718,7 @@ class DiffEv:
         for fun,each_vec in zip(self.par_funcs,vec):
             fun(each_vec)
         fom = self.model.evaluate_fit_func()
+        # print('diffev: meta weight_factor in calc_fom= ',self.model.fom_func.__weight__.get_weight_factor())
         self.n_fom += 1
         return fom
 
@@ -746,11 +750,11 @@ class DiffEv:
         as many cpus there is available
         '''
         self.pool = processing.Pool(processes = self.processes,\
-                        initializer = parallel_init,\
-                        initargs = (self.model.pickable_copy(), ))
-        #self.pool = processing.Pool(processes = self.processes,\
-        #                initializer = parallel_init,\
-        #                initargs = (self.model,))
+                       initializer = parallel_init,\
+                       initargs = (self.model.pickable_copy(), ))
+        # self.pool = processing.Pool(processes = self.processes,\
+                        # initializer = parallel_init,\
+                        # initargs = (self.model,))
 
         print(self.processes,"Processors!")
         self.text_output("Starting a pool with %i workers ..."%\
@@ -1385,7 +1389,6 @@ def parallel_init(model_copy):
     model._reset_module()
     model.simulate()
     (par_funcs, start_guess, par_min, par_max) = model.get_fit_pars()
-    #print 'Sucess!'
 
 def parallel_calc_fom(vec):
     '''parallel_calc_fom(vec) --> fom (float)
@@ -1394,15 +1397,10 @@ def parallel_calc_fom(vec):
     It is a copy of calc_fom in the DiffEv class
     '''
     global model, par_funcs
-    #print 'Trying to set parameters'
-    # set the parameter values in the model
-    # map(lambda func, value:func(value), par_funcs, vec)
     for i in range(len(par_funcs)):
         par_funcs[i](vec[i])
-    #print 'Trying to evaluate'
     # evaluate the model and calculate the fom
     fom = model.evaluate_fit_func()
-    #print("now",vec,fom,'\n')
 
     return fom
 
