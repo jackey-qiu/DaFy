@@ -573,7 +573,8 @@ class DiffEv:
                 # print('pop_vec',type(self.pop_vec),len(self.pop_vec))
                 if signal!=None:
                     signal.emit(outputtext, self.model, save_tag)
-            # signal_fitended.emit('The model run is finished!')
+            signal_fitended.emit('The model run is finished!')
+            signal.emit(outputtext, self.model, True)
 
             if not self.error:
                 self.text_output('Stopped at Generation: %d after %d fom evaluations...'%(gen, self.n_fom))

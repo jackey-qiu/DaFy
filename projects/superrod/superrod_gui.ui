@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1967</width>
+    <width>2098</width>
     <height>1027</height>
    </rect>
   </property>
@@ -40,8 +40,94 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
+       <widget class="QWidget" name="tab_13">
+        <attribute name="title">
+         <string>Navigator</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_10">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_18">
+           <item>
+            <widget class="QLabel" name="label_10">
+             <property name="text">
+              <string>File_folder</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_folder_of_rod_files"/>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QListWidget" name="listWidget_rod_files">
+           <property name="acceptDrops">
+            <bool>true</bool>
+           </property>
+           <property name="dragEnabled">
+            <bool>true</bool>
+           </property>
+           <property name="selectionMode">
+            <enum>QAbstractItemView::ExtendedSelection</enum>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_19">
+           <item>
+            <widget class="QPushButton" name="pushButton_load_files">
+             <property name="text">
+              <string>Load folder</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_clear_selected_files">
+             <property name="text">
+              <string>Clear selected</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_open_selected_rod_file">
+             <property name="text">
+              <string>Open selected</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_hook_to_batch">
+             <property name="text">
+              <string>Hook to batch</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_purge_from_batch">
+             <property name="text">
+              <string>Purge from batch</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_4">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
        <widget class="QWidget" name="tab_5">
         <attribute name="title">
          <string>Data</string>
@@ -878,7 +964,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1967</width>
+     <width>2098</width>
      <height>24</height>
     </rect>
    </property>
@@ -1171,13 +1257,13 @@
   <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QWidget</extends>
-   <header location="global">pyqtgraph.h</header>
+   <header>pyqtgraph.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
    <class>SolverParameters</class>
    <extends>QWidget</extends>
-   <header location="global">parameter_tree.h</header>
+   <header>parameter_tree.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

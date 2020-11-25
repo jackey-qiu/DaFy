@@ -103,6 +103,9 @@ class RunBatch(QtCore.QObject):
     ----------
     updateplot : pyqtSignal be emitted to be received by main GUI thread during fit
     solver: api for model fit using differential evolution algorithm
+    multiple_files_hooker: 
+        True if you want to run sequentially the rod files in the listWidget
+        False if you want to rolling the fit on one rod files (used in fitting many RAXR spectrum)
 
     Methods
     ----------
@@ -111,16 +114,20 @@ class RunBatch(QtCore.QObject):
 
     """
     updateplot = QtCore.pyqtSignal(str,object,bool)
-    fitended = QtCore.pyqtSignal()
+    fitended = QtCore.pyqtSignal(str)
     def __init__(self,solver):
         super(RunBatch, self).__init__()
         self.solver = solver
         self.running = False
+        self.multiple_files_hooker = False
 
     def run(self):
         self.running = True
         self.solver.optimizer.stop = False
         self.solver.StartFit(self.updateplot,self.fitended)
+
+    def set_hooker(self,hooker):
+        self.multiple_files_hooker = hooker
 
     def stop(self):
         self.running = False
@@ -218,7 +225,9 @@ class MyMainWindow(QMainWindow):
         self.run_batch.updateplot.connect(self.update_par_during_fit)
         self.run_batch.updateplot.connect(self.update_status_batch)
         self.run_batch.fitended.connect(self.stop_model_batch)
+        # self.run_batch.fitended.connect(lambda:self.timer_update_structure.stop())
         self.batch_thread.started.connect(self.run_batch.run)
+        # self.batch_thread.started.connect(lambda:self.timer_update_structure.start(2000))
 
         #tool bar buttons to operate model
         self.actionNew.triggered.connect(self.init_new_model)
@@ -244,6 +253,14 @@ class MyMainWindow(QMainWindow):
         self.actionData.changed.connect(self.toggle_data_panel)
         self.actionPlot.changed.connect(self.toggle_plot_panel)
         self.actionScript.changed.connect(self.toggle_script_panel)
+
+        #pushbuttons for model file navigator 
+        self.pushButton_load_files.clicked.connect(self.load_rod_files)
+        self.pushButton_clear_selected_files.clicked.connect(self.remove_selected_rod_files)
+        self.listWidget_rod_files.itemDoubleClicked.connect(self.open_model_selected_in_listWidget)
+        self.pushButton_open_selected_rod_file.clicked.connect(self.open_model_selected_in_listWidget)
+        self.pushButton_hook_to_batch.clicked.connect(self.hook_to_batch)
+        self.pushButton_purge_from_batch.clicked.connect(self.purge_from_batch)
 
         #pushbuttons for data handeling
         self.pushButton_load_data.clicked.connect(self.load_data_ctr)
@@ -319,6 +336,40 @@ class MyMainWindow(QMainWindow):
         self.azimuth_angle = 0
         self.setup_plot()
         self._load_par()
+
+    def hook_to_batch(self):
+        self.run_batch.set_hooker(True)
+        self.run_batch.rod_files = []
+        for i in range(self.listWidget_rod_files.count()):
+            self.run_batch.rod_files.append(os.path.join(self.lineEdit_folder_of_rod_files.text(),self.listWidget_rod_files.item(i).text()))
+        self.open_model_with_path(self.run_batch.rod_files[0])
+        self.listWidget_rod_files.setCurrentRow(0)
+
+    def purge_from_batch(self):
+        self.run_batch.set_hooker(False)
+        self.run_batch.rod_files = []
+
+    def load_rod_files(self):
+        '''
+        load all rod files(*.rod) located in a selected folder
+        '''
+        folder = str(QFileDialog.getExistingDirectory(self, "Select Directory"))
+        self.lineEdit_folder_of_rod_files.setText(folder)
+        for file in os.listdir(folder):
+            if file.endswith('.rod'):
+                self.listWidget_rod_files.addItem(file)
+
+    def remove_rod_files(self):
+        '''
+        remove all files in the list
+        '''
+        self.listWidget_rod_files.clear()
+
+    def remove_selected_rod_files(self):
+        items = self.listWidget_rod_files.selectedItems()
+        if not items:return
+        for item in items:
+            self.listWidget_rod_files.takeItem(self.listWidget_rod_files.row(item))
 
     def show_plots_on_next_screen(self):
         """
@@ -692,11 +743,8 @@ class MyMainWindow(QMainWindow):
             logging.getLogger().exception('Fatal error encountered during model initiation!')
             self.tabWidget_data.setCurrentIndex(4)
 
-    def open_model(self):
-        """open a saved model file(*.rod), which is a compressed file containing data, script and fit parameters in one place"""
-        options = QFileDialog.Options()
-        options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","rod file (*.rod);;zip Files (*.rar)", options=options)
+    def open_model_with_path(self,path):
+        fileName = path
         load_add_ = 'success'
         self.rod_file = fileName
         if fileName:
@@ -748,6 +796,21 @@ class MyMainWindow(QMainWindow):
                 self.statusbar.showMessage('Failure to open a model file!')
                 logging.getLogger().exception('Fatal error encountered during openning a model file!')
                 self.tabWidget_data.setCurrentIndex(4)
+
+    def open_model(self):
+        """open a saved model file(*.rod), which is a compressed file containing data, script and fit parameters in one place"""
+        options = QFileDialog.Options()
+        options |= QFileDialog.DontUseNativeDialog
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","rod file (*.rod);;zip Files (*.rar)", options=options)
+        self.open_model_with_path(fileName)
+
+    def open_model_selected_in_listWidget(self):
+        """
+        open a saved model file(*.rod), which is a compressed file containing data, script and fit parameters in one place
+        The rod file the the selected rod file in the listWidget
+        """
+        fileName = os.path.join(self.lineEdit_folder_of_rod_files.text(),self.listWidget_rod_files.currentItem().text())
+        self.open_model_with_path(fileName)
 
     def update_combo_box_list_par_set(self):
         """atomgroup and uservars instances defined in script will be colleced and displayed in this combo box"""
@@ -1071,28 +1134,44 @@ class MyMainWindow(QMainWindow):
             self.statusbar.clearMessage()
             self.statusbar.showMessage("Parameters in solver are updated!")
             self.batch_thread.start()
+            self.timer_update_structure.start(5000)
         except Exception:
             self.statusbar.clearMessage()
             self.statusbar.showMessage('Failure to batch run a model!')
             logging.getLogger().exception('Fatal error encountered during batch run a model!')
             self.tabWidget_data.setCurrentIndex(4)
 
-
     def stop_model_batch(self):
         self.run_batch.stop()
         self.batch_thread.terminate()
+        self.timer_update_structure.stop()
         self.statusbar.clearMessage()
         self.statusbar.showMessage("Batch model run is aborted to work on next task!")
-        if self.update_fit_setup_for_batch_run():
-            self.run_model_batch()
+        if self.run_batch.multiple_files_hooker:
+            if self.rolling_to_next_rod_file():
+                self.run_model_batch()
+            else:
+                pass
         else:
-            pass
+            if self.update_fit_setup_for_batch_run():
+                self.run_model_batch()
+            else:
+                pass
 
     def terminate_model_batch(self):
         self.run_batch.stop()
         self.batch_thread.terminate()
         self.statusbar.clearMessage()
         self.statusbar.showMessage("Batch model run is aborted now!")
+
+    def rolling_to_next_rod_file(self):
+        which = self.run_batch.rod_files.index(self.rod_file)
+        if which == self.run_batch.rod_files.__len__()-1:
+            return False
+        else:
+            self.open_model_with_path(self.run_batch.rod_files[which+1])
+            self.listWidget_rod_files.setCurrentRow(which+1)
+            return True
 
     def update_fit_setup_for_batch_run(self):
         """
