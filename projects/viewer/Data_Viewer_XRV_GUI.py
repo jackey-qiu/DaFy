@@ -190,7 +190,7 @@ class MyMainWindow(QMainWindow):
             for i in range(len(lines)):
                 line = lines[i]
                 if line.startswith('primary_data'):
-                    print(current_cycle)
+                    # print(current_cycle)
                     current_cycle=current_cycle+1
                     if current_cycle == which_cycle:
                         for j in range(i+3,i+3+int(lines[i+2].rstrip())):
@@ -235,7 +235,7 @@ class MyMainWindow(QMainWindow):
         pot,current = results
         pot_filtered, current_filtered = pot, current
         pot_filtered = RHE(pot_filtered,pH=ph)
-        print(file_name,func_name,pot,current)
+        # print(file_name,func_name,pot,current)
         #smooth the current due to beam-induced spikes
         pot_filtered, current_filtered = self.cv_tool.filter_current(pot_filtered, current_filtered*cv_scale_factor, smooth_length, smooth_order)
 
@@ -1122,7 +1122,8 @@ class MyMainWindow(QMainWindow):
                 if self.plot_label_x == 'image_no':
                     if each != 'current':
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y,fmt,markersize = 3)
-                        # getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y_smooth_temp,'-')
+                        if self.checkBox_show_smoothed_curve.isChecked():
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y_smooth_temp,'-')
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([np.arange(len(y))[iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
                     else:
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y*8,fmt,markersize = 3)
@@ -1134,6 +1135,8 @@ class MyMainWindow(QMainWindow):
                         seperators = list(set(marker_index_container))
                     if each!='current':
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y,fmt,markersize = 2)
+                        if self.checkBox_show_smoothed_curve.isChecked():
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y_smooth_temp,'-')
                         if self.checkBox_plot_slope.isChecked() and self.checkBox_use_external_slope.isChecked():
                             if slope_info_temp[scan][each]!=None:
                                 p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
@@ -1224,6 +1227,7 @@ class MyMainWindow(QMainWindow):
                 if scan!=self.scans[0]:
                     getattr(self,'plot_axis_scan{}'.format(scan))[i].set_yticklabels([])
                 else:
+                    #according to relative scale
                     y_label_map = {'potential':'E / V$_{RHE}$',
                                    'current':r'j / mAcm$^{-2}$',
                                    'strain_ip':r'$\Delta\varepsilon_\parallel$  (%)',
@@ -1231,6 +1235,16 @@ class MyMainWindow(QMainWindow):
                                    'grain_size_oop':r'$\Delta d_\perp$ / nm',
                                    'grain_size_ip':r'$\Delta d_\parallel$ / nm',
                                    'peak_intensity':r'Intensity / a.u.'}
+                    #based on absolute values
+                    y_label_map_abs = {'potential':'E / V$_{RHE}$',
+                                       'current':r'j / mAcm$^{-2}$',
+                                       'strain_ip':r'$\varepsilon_\parallel$  (%)',
+                                       'strain_oop':r'$\varepsilon_\perp$  (%)',
+                                       'grain_size_oop':r'$ d_\perp$ / nm',
+                                       'grain_size_ip':r'$ d_\parallel$ / nm',
+                                       'peak_intensity':r'Intensity / a.u.'}
+                    if not self.checkBox_max.isChecked():
+                        y_label_map = y_label_map_abs
                     if each in y_label_map:
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylabel(y_label_map[each], fontsize = 13)
                     else:
@@ -1386,6 +1400,13 @@ class MyMainWindow(QMainWindow):
         getattr(ax, which_axis).set_minor_formatter(FixedFormatter(minor_tick_labels))
         getattr(ax, which_axis).set_minor_locator(FixedLocator(minor_tick_location))
         
+    def _find_reference_at_potential(self, target_pot, pot_array, y_array):
+        offset_abs = np.abs(np.array(pot_array)-target_pot)
+        #only select three smaller points
+        idx = np.argpartition(offset_abs, 4)[0:4]
+        y_sub = [y_array[each] for each in idx]
+        index_found = idx[y_sub.index(max(y_sub))]
+        return y_array[index_found]
 
     def prepare_data_to_plot_xrv(self,plot_label_list, scan_number):
         if scan_number in self.image_range_info:
@@ -1411,10 +1432,16 @@ class MyMainWindow(QMainWindow):
             else:
                 if each in ['peak_intensity','peak_intensity_error','strain_ip','strain_oop','grain_size_ip','grain_size_oop']:
                     temp_data = np.array(self.data[condition][each])[l:r]
+                    y_smooth_temp = signal.savgol_filter(temp_data,41,2)
                     # self.data_to_plot[scan_number][each] = list(temp_data-max(temp_data))
+                    target_pots = [float(each) for each in self.lineEdit_reference_potential.text().rstrip().rsplit(',')]
+                    if len(target_pots)==1:
+                        target_pots = target_pots*2
+                    target_pot = target_pots[int('size' in each)]
+                    temp_max = self._find_reference_at_potential(target_pot = target_pot, pot_array = self.data_to_plot[scan_number]['potential'], y_array = y_smooth_temp)
                     if self.checkBox_max.isChecked():
-                        self.data_to_plot[scan_number][each] = list(temp_data-max(temp_data))
-                        self.data_to_plot[scan_number][each+'_max'] = max(temp_data) 
+                        self.data_to_plot[scan_number][each] = list(temp_data-temp_max)
+                        self.data_to_plot[scan_number][each+'_max'] = temp_max 
                     else:
                         self.data_to_plot[scan_number][each] = list(temp_data)
                         self.data_to_plot[scan_number][each+'_max'] = 0 

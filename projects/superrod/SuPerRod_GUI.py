@@ -1987,7 +1987,7 @@ class MyMainWindow(QMainWindow):
     def update_par_during_fit(self,string,model,save_tag):
         """slot func to update par table widgets during fit"""
         for i in range(len(model.parameters.data)):
-            if model.parameters.data[i][0]!='':
+            if model.parameters.data[i][0] !='':
                 item_temp = self.tableWidget_pars.item(i,1)
                 item_temp.setText(str(round(model.parameters.data[i][1],5)))
         self.tableWidget_pars.resizeColumnsToContents()

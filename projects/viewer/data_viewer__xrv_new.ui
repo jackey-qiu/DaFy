@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1027</height>
+    <height>1077</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,7 +49,7 @@
            </font>
           </property>
           <property name="currentIndex">
-           <number>2</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -93,20 +93,20 @@
              </widget>
             </item>
             <item>
+             <widget class="QLabel" name="label_10">
+              <property name="font">
+               <font>
+                <weight>75</weight>
+                <bold>true</bold>
+               </font>
+              </property>
+              <property name="text">
+               <string>Plot_type</string>
+              </property>
+             </widget>
+            </item>
+            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_7">
-              <item>
-               <widget class="QLabel" name="label_10">
-                <property name="font">
-                 <font>
-                  <weight>75</weight>
-                  <bold>true</bold>
-                 </font>
-                </property>
-                <property name="text">
-                 <string>Plot_type</string>
-                </property>
-               </widget>
-              </item>
               <item>
                <spacer name="horizontalSpacer_4">
                 <property name="orientation">
@@ -179,6 +179,13 @@
                  </size>
                 </property>
                </spacer>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="checkBox_show_smoothed_curve">
+                <property name="text">
+                 <string>SmoothCurve</string>
+                </property>
+               </widget>
               </item>
              </layout>
             </item>
@@ -442,9 +449,41 @@
                 </widget>
                </item>
                <item>
+                <widget class="QLabel" name="label_30">
+                 <property name="font">
+                  <font>
+                   <weight>75</weight>
+                   <bold>true</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>Potentials (V_RHE) for Reference point (strain and size)</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QLineEdit" name="lineEdit_reference_potential">
+                 <property name="font">
+                  <font>
+                   <weight>50</weight>
+                   <bold>false</bold>
+                  </font>
+                 </property>
+                 <property name="text">
+                  <string>1.1,1.1</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <layout class="QHBoxLayout" name="horizontalLayout_21">
                  <item>
                   <widget class="QLabel" name="label_29">
+                   <property name="font">
+                    <font>
+                     <weight>75</weight>
+                     <bold>true</bold>
+                    </font>
+                   </property>
                    <property name="text">
                     <string>Tick label settings</string>
                    </property>
@@ -1245,7 +1284,7 @@ path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','0
   <customwidget>
    <class>MplWidget</class>
    <extends>QWidget</extends>
-   <header location="global">mplwidget.h</header>
+   <header>mplwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
