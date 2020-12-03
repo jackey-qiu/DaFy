@@ -962,17 +962,17 @@ class MyMainWindow(QMainWindow):
                 fmt_str = '{:4.1f}')
         self._format_ax_tick_labels(ax = ax_tafel,
                 fun_set_bounds = 'set_xlim', 
-                bounds = [1.55,1.85], 
-                bound_padding = 0.02, 
+                bounds = [1.55,1.87], 
+                bound_padding = 0.01, 
                 major_tick_location =[1.55,1.6,1.65,1.7,1.75,1.8,1.85], 
                 show_major_tick_label = True, #show major tick label for the first scan
                 num_of_minor_tick_marks=5, 
                 fmt_str = '{: 4.2f}')
         self._format_ax_tick_labels(ax = ax_order,
                 fun_set_bounds = 'set_ylim', 
-                bounds = [1.62,1.82], 
+                bounds = [1.67,1.87], 
                 bound_padding = 0.01, 
-                major_tick_location =[1.62,1.67,1.72,1.77,1.82], 
+                major_tick_location =[1.67,1.72,1.77,1.82,1.87], 
                 show_major_tick_label = True, #show major tick label for the first scan
                 num_of_minor_tick_marks=5, 
                 fmt_str = '{: 4.2f}')
@@ -1007,9 +1007,9 @@ class MyMainWindow(QMainWindow):
                                         fmt_str = '{: 3.1f}')
             self._format_ax_tick_labels(ax = each,
                                         fun_set_bounds = 'set_ylim', 
-                                        bounds = [-1.2,7.6], 
+                                        bounds = [-1.2,3.], 
                                         bound_padding = 0.1, 
-                                        major_tick_location =[0,2,4,6], 
+                                        major_tick_location =[0,1,2,3], 
                                         show_major_tick_label = True, #show major tick label for the first scan
                                         num_of_minor_tick_marks=5, 
                                         fmt_str = '{: 4.2f}')
@@ -1272,7 +1272,10 @@ class MyMainWindow(QMainWindow):
                 i = self.plot_labels_y.index(each)
                 if i==0:
                     # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
-                    _,_,_,_,_,color, _, _ = self.plot_lib[scan]
+                    try:
+                        _,_,_,_,_,color, _, _ = self.plot_lib[scan]
+                    except:
+                        color = 'b'
                     text = r'pH {}'.format(self.phs[self.scans.index(scan)])
                     tag = ''
                     '''
@@ -1281,7 +1284,7 @@ class MyMainWindow(QMainWindow):
                     elif scan == 807:
                         tag = r' (CoOOH)'
                     '''
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,text+tag,color = color,fontsize=11)
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*1.2,text+tag,color = color,fontsize=11)
                     if self.phs[self.scans.index(scan)]==13:
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),color = color,fontsize=11)
                         count_pH13_temp+=1
