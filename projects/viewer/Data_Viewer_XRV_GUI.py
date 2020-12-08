@@ -943,6 +943,8 @@ class MyMainWindow(QMainWindow):
         else:
             assert len(axs) == 2, 'You need only two axis handle here!'
             ax_tafel, ax_order = axs
+        #self.ax_tafel = ax_tafel
+        #self.ax_order = ax_order
         if self.cv_tool.info['reaction_order_mode'] == 'constant_potential':
             constant_value = self.cv_tool.info['potential_reaction_order']
         elif self.cv_tool.info['reaction_order_mode'] == 'constant_current':
@@ -952,32 +954,69 @@ class MyMainWindow(QMainWindow):
         self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle)
         self._format_axis(ax_tafel)
         self._format_axis(ax_order)
-        self._format_ax_tick_labels(ax = ax_tafel,
-                fun_set_bounds = 'set_ylim', 
-                bounds = [0.05,5], 
-                bound_padding = 0., 
-                major_tick_location =[0.1,1], 
-                show_major_tick_label = True, #show major tick label for the first scan
-                num_of_minor_tick_marks=10, 
-                fmt_str = '{:4.1f}')
-        self._format_ax_tick_labels(ax = ax_tafel,
-                fun_set_bounds = 'set_xlim', 
-                bounds = [1.55,1.87], 
-                bound_padding = 0.01, 
-                major_tick_location =[1.55,1.6,1.65,1.7,1.75,1.8,1.85], 
-                show_major_tick_label = True, #show major tick label for the first scan
-                num_of_minor_tick_marks=5, 
-                fmt_str = '{: 4.2f}')
-        self._format_ax_tick_labels(ax = ax_order,
-                fun_set_bounds = 'set_ylim', 
-                bounds = [1.67,1.87], 
-                bound_padding = 0.01, 
-                major_tick_location =[1.67,1.72,1.77,1.82,1.87], 
-                show_major_tick_label = True, #show major tick label for the first scan
-                num_of_minor_tick_marks=5, 
-                fmt_str = '{: 4.2f}')
+        #set item tag e) and f) for tafel and order
+        # ax_tafel.text(1.5, 4.4, 'e)',weight = 'bold', fontsize = 12)
+        # ax_order.text(4.8, 1.81, 'f)',weight = 'bold', fontsize = 12)
 
+        tafel_bounds_pot, tick_locs_tafel_pot, padding_tafel_pot, num_tick_marks_tafel_pot, fmt_tafel_pot, func_tafel_pot = self.cv_tool.info['tafel_bounds_pot'].rsplit('+')
+        tafel_bounds_current, tick_locs_tafel_current, padding_tafel_current, num_tick_marks_tafel_current, fmt_tafel_current, func_tafel_current = self.cv_tool.info['tafel_bounds_current'].rsplit('+')
+        self._format_ax_tick_labels(ax = ax_tafel,
+                fun_set_bounds = func_tafel_pot, 
+                bounds = eval(tafel_bounds_pot), 
+                bound_padding = float(padding_tafel_pot), 
+                major_tick_location =eval(tick_locs_tafel_pot), 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks= int(num_tick_marks_tafel_pot), 
+                fmt_str = fmt_tafel_pot)
+        self._format_ax_tick_labels(ax = ax_tafel,
+                fun_set_bounds = func_tafel_current, 
+                bounds = eval(tafel_bounds_current), 
+                bound_padding = float(padding_tafel_current), 
+                major_tick_location =eval(tick_locs_tafel_current), 
+                show_major_tick_label = True, #show major tick label for the first scan
+                num_of_minor_tick_marks= int(num_tick_marks_tafel_current), 
+                fmt_str = fmt_tafel_current)
+
+        order_bounds_ph, tick_locs_order_ph, padding_order_ph, num_tick_marks_order_ph, fmt_order_ph, func_order_ph = self.cv_tool.info['order_bounds_ph'].rsplit('+')
+        order_bounds_y, tick_locs_order_y, padding_order_y, num_tick_marks_order_y, fmt_order_y, func_order_y = self.cv_tool.info['order_bounds_y'].rsplit('+')
+        self._format_ax_tick_labels(ax = ax_order,
+                                    fun_set_bounds = func_order_ph, 
+                                    bounds = eval(order_bounds_ph), 
+                                    bound_padding = eval(padding_order_ph), 
+                                    major_tick_location =eval(tick_locs_order_ph), 
+                                    show_major_tick_label = True, #show major tick label for the first scan
+                                    num_of_minor_tick_marks= int(num_tick_marks_order_ph), 
+                                    fmt_str = fmt_order_ph)
+        self._format_ax_tick_labels(ax = ax_order,
+                                    fun_set_bounds = func_order_y, 
+                                    bounds = eval(order_bounds_y), 
+                                    bound_padding = eval(padding_order_y), 
+                                    major_tick_location =eval(tick_locs_order_y), 
+                                    show_major_tick_label = True, #show major tick label for the first scan
+                                    num_of_minor_tick_marks= int(num_tick_marks_order_y), 
+                                    fmt_str = fmt_order_y)
+
+        coord_top_left = [eval(tafel_bounds_pot)[0]-float(padding_tafel_pot),eval(tafel_bounds_current)[1]+float(padding_tafel_current)]
+        offset = np.array(self.cv_tool.info['index_header_pos_offset_tafel'])
+        coord_top_index_marker = coord_top_left+offset
+        label_map = dict(zip(range(10),list('abcdefghij')))
+        cvs_total_num = len([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())])
+        ax_tafel.text(*coord_top_index_marker, '{})'.format(label_map[cvs_total_num]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
+
+        coord_top_left = [eval(order_bounds_ph)[0]-float(padding_order_ph),eval(order_bounds_y)[1]+float(padding_order_y)]
+        offset = np.array(self.cv_tool.info['index_header_pos_offset_order'])
+        coord_top_index_marker = coord_top_left+offset
+        label_map = dict(zip(range(10),list('abcdefghij')))
+        #cvs_total_num = len([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())])
+        ax_order.text(*coord_top_index_marker, '{})'.format(label_map[cvs_total_num+1]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
+        for each in [ax_tafel,ax_order]:
+            for tick in each.xaxis.get_major_ticks():
+                tick.label.set_fontsize(int(self.cv_tool.info['fontsize_tick_label'])) 
+            for tick in each.yaxis.get_major_ticks():
+                tick.label.set_fontsize(int(self.cv_tool.info['fontsize_tick_label']))
+        
         #move labels to right side of the plot
+
         '''
         ax_tafel.yaxis.set_label_position("right")
         ax_tafel.yaxis.tick_right()
@@ -995,38 +1034,81 @@ class MyMainWindow(QMainWindow):
         else:
             axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.info['selected_scan']), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.info['selected_scan'])+1)]
             self.cv_tool.plot_cv_files_selected_scans(axs = axs, scans = self.cv_tool.info['selected_scan'])
-        for each in axs:
+        for scan, each in zip([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())],axs):
+            #index in the selected scan, if use all scans, then i=i_full
+            i = axs.index(each)
+            #index in the full sequence
+            i_full = self.cv_tool.info['sequence_id'].index(scan)
+            
+            bounds_pot, tick_locs_pot, padding_pot, num_tick_marks_pot, fmt_pot, func_pot = self.cv_tool.info['cv_bounds_pot'].rsplit('+')
+            bounds_current, tick_locs_current, padding_current, num_tick_marks_current, fmt_current, func_current = self.cv_tool.info['cv_bounds_current'].rsplit('+')
+            show_tick_label_pot = self.cv_tool.info['cv_show_tick_label_x'][i_full]
+            show_tick_label_current = self.cv_tool.info['cv_show_tick_label_y'][i_full]
+
             self._format_axis(each)
             self._format_ax_tick_labels(ax = each,
-                                        fun_set_bounds = 'set_xlim', 
-                                        bounds = [1.,1.9], 
-                                        bound_padding = 0.05, 
-                                        major_tick_location =[1,1.2,1.4,1.6,1.8], 
-                                        show_major_tick_label = True, #show major tick label for the first scan
-                                        num_of_minor_tick_marks=5, 
-                                        fmt_str = '{: 3.1f}')
+                                        fun_set_bounds = func_pot, 
+                                        bounds = eval(bounds_pot), 
+                                        bound_padding = float(padding_pot), 
+                                        major_tick_location = eval(tick_locs_pot), 
+                                        show_major_tick_label = show_tick_label_pot, #show major tick label for the first scan
+                                        num_of_minor_tick_marks=int(num_tick_marks_pot), 
+                                        fmt_str = fmt_pot)
             self._format_ax_tick_labels(ax = each,
-                                        fun_set_bounds = 'set_ylim', 
-                                        bounds = [-1.2,3.], 
-                                        bound_padding = 0.1, 
-                                        major_tick_location =[0,1,2,3], 
-                                        show_major_tick_label = True, #show major tick label for the first scan
-                                        num_of_minor_tick_marks=5, 
-                                        fmt_str = '{: 4.2f}')
-        axs[-1].set_xlabel(r'E / V$_{RHE}$')
+                                        fun_set_bounds = func_current, 
+                                        bounds = eval(bounds_current), 
+                                        bound_padding = float(padding_current), 
+                                        major_tick_location = eval(tick_locs_current), 
+                                        show_major_tick_label = show_tick_label_current, #show major tick label for the first scan
+                                        num_of_minor_tick_marks=int(num_tick_marks_current), 
+                                        fmt_str = fmt_current) 
+
+            #set the index text marker for figure (eg. a), b) and so on ... )
+            coord_top_left = [eval(bounds_pot)[0]-float(padding_pot),eval(bounds_current)[1]+float(padding_current)]
+            offset = np.array(self.cv_tool.info['index_header_pos_offset_cv'])
+            coord_top_index_marker = coord_top_left+offset
+            label_map = dict(zip(range(10),list('abcdefghij')))
+            each.text(*coord_top_index_marker, '{})'.format(label_map[i]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
+            #set pH label as title
+            pH_text = 'pH {}'.format(self.cv_tool.info['ph'][i_full])
+            which_pH13 = 0
+            if self.cv_tool.info['ph'][i_full]==13:
+                for each_scan in self.cv_tool.info['sequence_id']:
+                    if self.cv_tool.info['ph'][self.cv_tool.info['sequence_id'].index(each_scan)]==13:
+                        which_pH13 = which_pH13+1
+                        if each_scan==scan:
+                            pH_text = pH_text+'({})'.format(which_pH13)
+                            break
+            ph_marker_pos = coord_top_left-offset-[0,eval(bounds_current)[1]*0.3]
+            each.text(*ph_marker_pos, pH_text, fontsize = int(self.cv_tool.info['fontsize_text_marker']),color = self.cv_tool.info['color'][i_full])
+            #set axis label
+            each.set_ylabel(r'j / mAcm$^{-2}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
+            if each == axs[-1]:
+                each.set_xlabel(r'E / V$_{RHE}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
+            #now set the fontsize for tick marker
+            for tick in each.xaxis.get_major_ticks():
+                tick.label.set_fontsize(int(self.cv_tool.info['fontsize_tick_label'])) 
+            for tick in each.yaxis.get_major_ticks():
+                tick.label.set_fontsize(int(self.cv_tool.info['fontsize_tick_label'])) 
+
+            #add scalling factor marker on each panel
+            text_pos = (1,3)
+            if 'scale_factor_text_pos' in self.cv_tool.info:
+                if i_full < len(self.cv_tool.info['scale_factor_text_pos']):
+                    text_pos = self.cv_tool.info['scale_factor_text_pos'][i_full]
+                elif len(self.cv_tool.info['scale_factor_text_pos'])==0:
+                    print('The length of text_pos doesnot match the lenght of scans, use default pos (1,3) instead!')
+                else:
+                    text_pos = self.cv_info.info['scale_factor_text_pos'][-1]
+                    print('The length of text_pos doesnot match the lenght of scans, use the last item instead!')
+            else:
+                print('scale_factor_text_pos NOT existing in the config file, use default pos (1,3) instead!')
+            each.text(*text_pos,'x{}'.format(self.cv_tool.info['cv_scale_factor'][i_full]),color=self.cv_tool.info['color'][i_full], fontsize = int(self.cv_tool.info['fontsize_text_marker']))
+
         # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1)+1) for i in range(1,len(self.cv_tool.cv_info)+1)]
         how_many_rows = 2
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(how_many_rows, col_num, 1 + (col_num)*(i-1)+1) for i in range(1,2+1)]
         self.plot_reaction_order_and_tafel(axs = axs_2)
-        self._format_ax_tick_labels(ax = axs_2[-1],
-                                    fun_set_bounds = 'set_xlim', 
-                                    bounds = [7,13], 
-                                    bound_padding = 1, 
-                                    major_tick_location =[7,8,10,13], 
-                                    show_major_tick_label = True, #show major tick label for the first scan
-                                    num_of_minor_tick_marks=0, 
-                                    fmt_str = '{: 4.0f}')
-
         self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
         self.widget_cv_view.canvas.draw()
 
@@ -1284,10 +1366,12 @@ class MyMainWindow(QMainWindow):
                     elif scan == 807:
                         tag = r' (CoOOH)'
                     '''
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*1.2,text+tag,color = color,fontsize=11)
+                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*1.2,text+tag,color = color,fontsize=11)
                     if self.phs[self.scans.index(scan)]==13:
                         getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),color = color,fontsize=11)
                         count_pH13_temp+=1
+                    else:
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {}'.format(self.phs[self.scans.index(scan)]),color = color,fontsize=11)
                 if 'current' not in self.plot_labels_y:
                     pass
                 else:

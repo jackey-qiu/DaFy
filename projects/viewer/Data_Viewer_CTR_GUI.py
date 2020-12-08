@@ -59,6 +59,7 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.size'] = 4
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
+        plt.rcParams['savefig.dpi'] = 300
         self.open.clicked.connect(self.load_file)
         self.plot.clicked.connect(self.plot_figure)
         # self.apply.clicked.connect(self.replot_figure)
@@ -467,7 +468,13 @@ class MyMainWindow(QMainWindow):
             'CoOOH': [[1.0743117870722434, '(0, 1, 2)'], [2.685779467680608, '(0, 1, 5)'], [4.297247148288973, '(0, 1, 8)']], 
             'CoOOH_R60': [[0.5371558935361217, '(1, 0, 1)'], [2.148623574144487, '(1, 0, 4)'], [3.7600912547528518, '(1, 0, 7)'], 
             [5.371558935361216, '(1, 0, 10)']]}  
-        
+        # set the font size of tick lable first
+        getattr(self,ax_name).xaxis.label.set_size(20)
+        getattr(self,ax_name).yaxis.label.set_size(20)
+        for tick in getattr(self,ax_name).xaxis.get_major_ticks():
+            tick.label.set_fontsize(20)  
+        for tick in getattr(self,ax_name).yaxis.get_major_ticks():
+            tick.label.set_fontsize(20)
         def _format_hkl(hkl):
             h,k,l = hkl
             if h>=0:
@@ -505,23 +512,25 @@ class MyMainWindow(QMainWindow):
                     if 'CoOOH' in name:
                         getattr(self,ax_name).plot([l-0.045,l-0.045],[int_low_end,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))]],color = color_map[each])
                         if hkl==(0,1,2):
-                            getattr(self,ax_name).text(l-0.045,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))]+0.06,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                            getattr(self,ax_name).text(l-0.045,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))]+0.06,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
                         elif hkl==(0,1,1):
-                            getattr(self,ax_name).text(l-0.045-0.12,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))],'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                            getattr(self,ax_name).text(l-0.045-0.12,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))],'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
                         else:
-                            getattr(self,ax_name).text(l-0.045,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))],'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                            getattr(self,ax_name).text(l-0.045,self.data_to_save[key]['I'][np.argmin(abs(self.data_to_save[key]['L']-(l-0.045)))],'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
                     else:
                         getattr(self,ax_name).plot([l,l],[int_low_end,int_high_end],color = color_map[each])
                         if hkl==(2,-2,2):
-                            getattr(self,ax_name).text(l-0.12,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                            getattr(self,ax_name).text(l-0.22,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
                         elif hkl==(3,-1,3):
-                            getattr(self,ax_name).text(l-0.12,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
+                            getattr(self,ax_name).text(l-0.12,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
+                        elif hkl in [(4,0,0),(6,2,2)]:
+                            getattr(self,ax_name).text(l+0.06,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
                         else:
-                            getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each])
-        getattr(self,ax_name).text(2,696,'Au')
-        getattr(self,ax_name).text(5,368,'Au')
+                            getattr(self,ax_name).text(l,int_high_end,'{}{}'.format(' ',_format_hkl(hkl)),rotation ='vertical',color = color_map[each],fontsize = 20)
+        getattr(self,ax_name).text(2,696,'Au',fontsize = 20)
+        getattr(self,ax_name).text(5,368,'Au', fontsize = 20)
         getattr(self,ax_name).set_ylim(0.0005,2000)
-        # getattr(self,ax_name).set_xlim(0.,5.6)
+        getattr(self,ax_name).set_xlim(0.,5.8)
         getattr(self,ax_name).get_legend().remove()
         getattr(self,ax_name).tick_params(which = 'major', axis="x", direction="in")
         getattr(self,ax_name).tick_params(which = 'minor', axis="x", direction="in")

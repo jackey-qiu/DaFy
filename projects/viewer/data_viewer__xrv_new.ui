@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1077</height>
+    <height>1027</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -49,7 +49,7 @@
            </font>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>2</number>
           </property>
           <widget class="QWidget" name="tab_3">
            <attribute name="title">
@@ -1003,22 +1003,43 @@ p, li { white-space: pre-wrap; }
              <widget class="QPlainTextEdit" name="plainTextEdit_cv_config">
               <property name="plainText">
                <string>[Global]
-sequence_id = [216, 221,229, 231, 236, 243, 244]
-ph = [13, 10,13,8,13,7,13]
-fmt = ['-']*7
-which_cycle = [1,1,2,2,2,2,2]
-color = ['r', 'g','r','blue','r','m','r']
-method = ['extract_cv_file_fouad']*7
-pot_range = [[1,1.57],[1,1.57],[1,1.57],[1,1.57],[1,1.57],[1,1.57],[1,1.57]]
-cv_scale_factor = [30,30,30,30,30,30,30]
-cv_spike_cut = [0.002]*7
-scan_rate = [0.005]*7
-resistance = [70,80,70,40,50,90,50]
-pot_starts_tafel = [1.6,1.62,1.6,1.72,1.6,1.75,1.6]
-pot_ends_tafel = [1.65,1.75,1.65,1.85,1.65,1.83,1.65]
+fontsize_tick_label = 12
+fontsize_axis_label = 12
+fontsize_text_marker = 13
+fontsize_index_header = 13
+sequence_id = [221,229, 231, 236, 243, 244]
+selected_scan = [229,221,231,243]
+ph = [10,13,8,13,7,13]
+fmt = ['-']*6
+which_cycle = [1,2,2,2,2,2]
+color = ['g','r','blue','r','m','r']
+method = ['extract_cv_file_fouad']*6
+pot_range = [[1.05,1.57],[1.05,1.57],[1.05,1.57],[1.05,1.57],[1.05,1.57],[1.05,1.57]]
+cv_scale_factor = [30,30,30,30,30,30]
+scale_factor_text_pos = [(1.4,2.0),(1.4,3.2),(1.4,2.2),(1.4,3.2),(1.4,2.2),(1.4,3.2)]
+cv_bounds_pot = '[1, 1.2, 1.4, 1.6,1.8]+0.1+1+{: 4.1f}+set_xlim'
+cv_bounds_current = '[0, 2, 4, 6]+1+4+{: 4.2f}+set_ylim'
+cv_show_tick_label_x = [False, False, False, False, True, False]
+cv_show_tick_label_y = [True, True, True, True, True, True]
+tafel_bounds_pot = '[1.55, 1.6, 1.65, 1.7,1.8,1.85]+0.01+4+{: 4.2f}+set_xlim'
+tafel_show_tick_label_x_y = [True, True]
+order_bounds_ph = '[7,8,10,13]+1+0+{: 4.0f}+set_xlim'
+order_bounds_y = '[1.65,1.7,1.75,1.8]+0.03+4+{: 4.2f}+set_ylim'
+order_show_tick_label_x_y = [True, True]
+cv_spike_cut = [0.002]*6
+scan_rate = [0.005]*6
+resistance = [80,70,40,50,90,50]
+#resistance = [80,0,40,0,90,0]
+#pot_starts_tafel = [1.62,1.6,1.72,1.6,1.75,1.6]
+pot_starts_tafel = [1.6,1.58,1.7,1.58,1.7,1.59]
+pot_ends_tafel = [1.75,1.67,1.85,1.668,1.83,1.67]
 potential_reaction_order = 1.65
+current_reaction_order = 1
+reaction_order_mode = 'constant_current'
+current_filter_length = 19
+current_filter_order = 0
 cv_folder = '/Users/canrong/Documents/I20180835_Jul_2019_CVs'
-path = ['044_S216_CV','048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','065_S244_CV']</string>
+path = ['048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','065_S244_CV']</string>
               </property>
              </widget>
             </item>

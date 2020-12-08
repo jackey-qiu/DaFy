@@ -347,7 +347,8 @@ class cvAnalysis(object):
             axes2[i].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
             axes2[i].plot(RHE(pot_origin,pH=ph),current_origin*8,label='',color = color)
             # axes2[i].plot(RHE(pot,pH=ph),current*8,label='',color = color)
-            axes2[i].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
+
+            axes2[i].text(1.4,2.2,'x{}'.format(cv_scale_factor),color=color)
             # axes2[i].legend()
             # axes2[i].set_title('seq{}_pH {}'.format(self.info['sequence_id'][i],ph),fontsize=9)
             '''
@@ -410,16 +411,8 @@ class cvAnalysis(object):
             current_bounds_ = self._update_bounds(current_bounds, current*8*cv_scale_factor)
             current_bounds[0] = current_bounds_[0]
             axes2[scans.index(scan)].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
-            axes2[scans.index(scan)].plot(RHE(pot_origin,pH=ph),current_origin*8,label='',color = color)
-            axes2[scans.index(scan)].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
-            axes2[scans.index(scan)].set_ylabel(r'j / mAcm$^{-2}$')
-            if scan == scans[-1]:
-                axes2[-1].set_xlabel(r'E / V$_{RHE}$')
-
-        for i in range(len(scans)):
-            axes2[i].set_xlim(*pot_bounds)
-            axes2[i].set_ylim(-1.5, 8.)
-        plt.show()
+            axes2[scans.index(scan)].plot(RHE(pot_origin,pH=ph),current_origin*8,ls = ':',label='',color = color)
+            #remove axis tick lable
 
     #plot tafel slope for one scan
     def plot_tafel_from_formatted_cv_info_one_scan_2(self,scan, ax, forward_cycle = True):
@@ -439,9 +432,9 @@ class cvAnalysis(object):
         else:
             half = 1
         ax.set_yscale('log')
-        ax.set_xlabel(r'E / V$_{RHE}$')
+        ax.set_xlabel(r'E / V$_{RHE}$',fontsize = int(self.info['fontsize_axis_label']))
         # ax.set_ylabel(f"pH {cv_info[scan]['pH']}")
-        ax.set_ylabel(r'j / mAcm$^{-2}$')
+        ax.set_ylabel(r'j / mAcm$^{-2}$',fontsize = int(self.info['fontsize_axis_label']))
         # ax.yaxis.tick_right()
         # ax.yaxis.set_label_position("right")
         over_E = round(potential_for_reaction_order-1.23,2)
@@ -478,10 +471,17 @@ class cvAnalysis(object):
             indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
             ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],color = color)
             if cv_info[scans[i]]['pH']==13:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = 8)
+                if self.pH13_count==1:
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.4, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color)
+                elif self.pH13_count==3:
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color)
+                else:
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color)
                 self.pH13_count+=1
+            elif cv_info[scans[i]]['pH']==10:
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'left',fontsize=int(self.info['fontsize_text_marker']), color = color)
             else:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize = 8)
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color)
             # ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
             # ax.plot(pot_fit[indx1-offset:indx1]-resistance[i]*(current_fit[indx1-offset:indx1]/8*0.001),current_fit[indx1-offset:indx1],':',label=label,color = color)
             min_x, max_x = min(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001)),max(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001))
@@ -588,7 +588,7 @@ class cvAnalysis(object):
             ax = fig.add_subplot(111)
         else:
             pass
-        ax.set_xlabel(r'pH')
+        ax.set_xlabel(r'pH',fontsize = int(self.info['fontsize_axis_label']))
         pHs = []
         values = [] #either pot values or current density values depending on the mode 
         mode = self.info['reaction_order_mode']
@@ -611,9 +611,9 @@ class cvAnalysis(object):
         if mode == 'constant_potential':
             #potential_for_reaction_order = self.info['potential_reaction_order']
             over_E = round(constant_value-1.23,2)
-            ax.set_ylabel(r'log(j / mAcm$^{-2}$)'+r',$\eta$= {}V'.format(over_E))
+            ax.set_ylabel(r'log(j / mAcm$^{-2}$)'+r',$\eta$= {}V'.format(over_E),fontsize = int(self.info['fontsize_axis_label']))
         elif mode == 'constant_current':
-            ax.set_ylabel(r'E / V$_{RHE}$' + f'at j = {constant_value}'+r'mAcm$^{-2}$')
+            ax.set_ylabel(r'E / V$_{RHE}$' + f'at j = {constant_value}'+r'mAcm$^{-2}$',fontsize = int(self.info['fontsize_axis_label']))
         for i, scan in enumerate(self.info['sequence_id']):
             pot_fit, current_fit = _get_pot_current(scan, self.info['resistance'][i], half)
             pHs.append(self.cv_info[scan]['pH'])
@@ -637,7 +637,7 @@ class cvAnalysis(object):
         for j,pH in enumerate(pHs):
             ax.plot(pH, values[j], 'o', color = self.info['color'][j])
             if pH ==13:
-                ax.text(pH+0.1,values[j],str(pH13_count))
+                ax.text(pH+0.1,values[j],str(pH13_count),fontsize=int(self.info['fontsize_text_marker']))
                 pH13_count+=1
         slope_, intercept_, r_value_, *_ = stats.linregress(pHs, values)
         f = lambda x: slope_*x + intercept_
