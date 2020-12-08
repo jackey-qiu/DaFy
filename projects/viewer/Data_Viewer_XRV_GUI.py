@@ -1028,12 +1028,22 @@ class MyMainWindow(QMainWindow):
     def plot_cv_data(self):
         self.widget_cv_view.canvas.figure.clear()
         col_num = 2
+        row_num = len(self.cv_tool.cv_info)
+        if not self.checkBox_use_all.isChecked():
+            row_num = len(self.cv_tool.info['selected_scan'])
+        gs_left = plt.GridSpec(row_num,col_num,hspace=self.cv_tool.info['hspace'][0],wspace=self.cv_tool.info['wspace'][0])
+        gs_right = plt.GridSpec(row_num,col_num, hspace=self.cv_tool.info['hspace'][1],wspace=self.cv_tool.info['wspace'][1])
         if self.checkBox_use_all.isChecked():
-            axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
+            # axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.cv_info)+1)]
+            axs = [self.widget_cv_view.canvas.figure.add_subplot(gs_left[i, 0]) for i in range(0,len(self.cv_tool.cv_info))]
+            #self.cv_tool.plot_cv_files(axs = axs)
             self.cv_tool.plot_cv_files(axs = axs)
         else:
-            axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.info['selected_scan']), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.info['selected_scan'])+1)]
+            # axs = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.info['selected_scan']), col_num, 1 + col_num*(i-1) ) for i in range(1,len(self.cv_tool.info['selected_scan'])+1)]
+            axs = [self.widget_cv_view.canvas.figure.add_subplot(gs_left[i, 0]) for i in range(0,len(self.cv_tool.info['selected_scan']))]
+            #self.cv_tool.plot_cv_files_selected_scans(axs = axs, scans = self.cv_tool.info['selected_scan'])
             self.cv_tool.plot_cv_files_selected_scans(axs = axs, scans = self.cv_tool.info['selected_scan'])
+
         for scan, each in zip([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())],axs):
             #index in the selected scan, if use all scans, then i=i_full
             i = axs.index(each)
@@ -1064,7 +1074,7 @@ class MyMainWindow(QMainWindow):
                                         fmt_str = fmt_current) 
 
             #set the index text marker for figure (eg. a), b) and so on ... )
-            coord_top_left = [eval(bounds_pot)[0]-float(padding_pot),eval(bounds_current)[1]+float(padding_current)]
+            coord_top_left = np.array([eval(bounds_pot)[0]-float(padding_pot),eval(bounds_current)[1]+float(padding_current)])
             offset = np.array(self.cv_tool.info['index_header_pos_offset_cv'])
             coord_top_index_marker = coord_top_left+offset
             label_map = dict(zip(range(10),list('abcdefghij')))
@@ -1079,7 +1089,7 @@ class MyMainWindow(QMainWindow):
                         if each_scan==scan:
                             pH_text = pH_text+'({})'.format(which_pH13)
                             break
-            ph_marker_pos = coord_top_left-offset-[0,eval(bounds_current)[1]*0.3]
+            ph_marker_pos = coord_top_left-[-0.1,eval(bounds_current)[1]*0.3]
             each.text(*ph_marker_pos, pH_text, fontsize = int(self.cv_tool.info['fontsize_text_marker']),color = self.cv_tool.info['color'][i_full])
             #set axis label
             each.set_ylabel(r'j / mAcm$^{-2}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
@@ -1106,10 +1116,11 @@ class MyMainWindow(QMainWindow):
             each.text(*text_pos,'x{}'.format(self.cv_tool.info['cv_scale_factor'][i_full]),color=self.cv_tool.info['color'][i_full], fontsize = int(self.cv_tool.info['fontsize_text_marker']))
 
         # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1)+1) for i in range(1,len(self.cv_tool.cv_info)+1)]
-        how_many_rows = 2
-        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(how_many_rows, col_num, 1 + (col_num)*(i-1)+1) for i in range(1,2+1)]
+        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:2,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[2:,1])]
+        #axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(how_many_rows, col_num, 1 + (col_num)*(i-1)+1) for i in range(1,2+1)]
         self.plot_reaction_order_and_tafel(axs = axs_2)
-        self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
+        #self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
+        self.widget_cv_view.canvas.figure.set_size_inches(self.cv_tool.info['figsize'])
         self.widget_cv_view.canvas.draw()
 
     #plot the master figure

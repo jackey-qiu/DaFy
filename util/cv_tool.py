@@ -472,14 +472,16 @@ class cvAnalysis(object):
             ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],color = color)
             if cv_info[scans[i]]['pH']==13:
                 if self.pH13_count==1:
-                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.4, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color)
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.4, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation =30)
                 elif self.pH13_count==3:
-                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color)
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation=30)
                 else:
-                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color)
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation=30)
                 self.pH13_count+=1
             elif cv_info[scans[i]]['pH']==10:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'left',fontsize=int(self.info['fontsize_text_marker']), color = color)
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH '+str(cv_info[scans[i]]['pH']), ha = 'left',fontsize=int(self.info['fontsize_text_marker']), color = color,rotation = 0)
+            elif cv_info[scans[i]]['pH']==7:
+                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.2, 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color,rotation = 0)
             else:
                 ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color)
             # ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
