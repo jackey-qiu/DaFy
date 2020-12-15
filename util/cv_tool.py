@@ -244,8 +244,9 @@ class cvAnalysis(object):
 
     #data format based on the output of IVIUM potentiostat
     #note first cycle corresponds to which_cycle = 1
+    #for potential step results, you need to use_all = True
     @staticmethod
-    def extract_cv_file_ivium(file_path,which_cycle=3):
+    def extract_cv_file_ivium(file_path,which_cycle=3, use_all = False):
         if which_cycle == 0:
             which_cycle = 1
         data = []
@@ -257,12 +258,16 @@ class cvAnalysis(object):
                 if line.startswith('primary_data'):
                     print(current_cycle)
                     current_cycle=current_cycle+1
-                    if current_cycle == which_cycle:
+                    if not use_all:
+                        if current_cycle == which_cycle:
+                            for j in range(i+3,i+3+int(lines[i+2].rstrip())):
+                                data.append([float(each) for each in lines[j].rstrip().rsplit()])
+                            break
+                        else:
+                            pass
+                    else:
                         for j in range(i+3,i+3+int(lines[i+2].rstrip())):
                             data.append([float(each) for each in lines[j].rstrip().rsplit()])
-                        break
-                    else:
-                        pass
                 else:
                     pass
         #one more step to format the data so that the starting point is at the lowest potential
@@ -276,7 +281,7 @@ class cvAnalysis(object):
 
     #data format based on Fouad's potentiostat
     @staticmethod
-    def extract_cv_file_fouad(file_path='/home/qiu/apps/048_S221_CV', which_cycle=1):
+    def extract_cv_file_fouad(file_path='/home/qiu/apps/048_S221_CV', which_cycle=1, use_all = False):
         #return: pot(V), current (mA)
         skiprows = 0
         with open(file_path,'r') as f:
@@ -294,15 +299,18 @@ class cvAnalysis(object):
                 if data[i,1]<data[i+1,1] and data[i,1]<data[i-1,1]:
                     nodes.append(i)
         nodes.append(len(data[:,1]))
-        if which_cycle>len(nodes):
-            print('Cycle number lager than the total cycles! Use the first cycle instead!')
-            return data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
+        if use_all:
+            return data[:,1], data[:,2]
         else:
-            return data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
+            if which_cycle>len(nodes):
+                print('Cycle number lager than the total cycles! Use the first cycle instead!')
+                return data[nodes[1]:nodes[2],1],data[nodes[1]:nodes[2],2]
+            else:
+                return data[nodes[which_cycle]:nodes[which_cycle+1],1],data[nodes[which_cycle]:nodes[which_cycle+1],2]
 
     #only one cycle, which can be manually exported from BioLogic software
     @staticmethod
-    def extract_cv_file_biologic(file_path ='', which_cycle =1):
+    def extract_cv_file_biologic(file_path ='', which_cycle =1,use_all = False):
         #return: time(s), potential(V), current(mA)
         #skip three rows for header info
         def format_pot_current(pot, current):

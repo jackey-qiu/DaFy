@@ -248,12 +248,13 @@ class DiffEv:
         that sets the variables  and stores a reference to the model.
         '''
         # Retrive parameters from the model
-        (par_funcs, start_guess, par_min, par_max) = model.get_fit_pars()
+        (par_funcs, start_guess, par_min, par_max, par_funcs_link) = model.get_fit_pars()
 
         # Control parameter setup
         self.par_min = array(par_min)
         self.par_max = array(par_max)
         self.par_funcs = par_funcs
+        self.par_funcs_link = par_funcs_link
         self.model = model
         self.n_dim = len(par_funcs)
         if not self.setup_ok:
@@ -716,8 +717,10 @@ class DiffEv:
 
         # Set the parameter values
         #map(lambda func, value:func(value), self.par_funcs, vec)
-        for fun,each_vec in zip(self.par_funcs,vec):
+        for fun,fun_link,each_vec in zip(self.par_funcs,self.par_funcs_link,vec):
             fun(each_vec)
+            if fun_link !=None:
+                fun_link(each_vec)
         fom = self.model.evaluate_fit_func()
         # print('diffev: meta weight_factor in calc_fom= ',self.model.fom_func.__weight__.get_weight_factor())
         self.n_fom += 1
@@ -738,8 +741,10 @@ class DiffEv:
         #for each in self.par_funcs:
         #    print(each.__name__)
         #map(lambda func, value:func(value), self.par_funcs, vec)
-        for fun, each_vec in zip(self.par_funcs,vec):
+        for fun, fun_link,each_vec in zip(self.par_funcs,self.par_funcs_link,vec):
             fun(each_vec)
+            if fun_link!=None:
+                fun_link(each_vec)
 
         self.model.evaluate_sim_func()
         return self.model.fom
@@ -1385,11 +1390,11 @@ def parallel_init(model_copy):
     pickle safe copy of the model and resets the script module and the compiles
     the script and creates function to set the variables.
     '''
-    global model, par_funcs
+    global model, par_funcs, par_funcs_link
     model = model_copy
     model._reset_module()
     model.simulate()
-    (par_funcs, start_guess, par_min, par_max) = model.get_fit_pars()
+    (par_funcs, start_guess, par_min, par_max, par_funcs_link) = model.get_fit_pars()
 
 def parallel_calc_fom(vec):
     '''parallel_calc_fom(vec) --> fom (float)
@@ -1397,9 +1402,11 @@ def parallel_calc_fom(vec):
     function that is used to calculate the fom in a parallel process.
     It is a copy of calc_fom in the DiffEv class
     '''
-    global model, par_funcs
+    global model, par_funcs, par_funcs_link
     for i in range(len(par_funcs)):
         par_funcs[i](vec[i])
+        if par_funcs_link[i]!=None:
+            par_funcs_link[i](vec[i])
     # evaluate the model and calculate the fom
     fom = model.evaluate_fit_func()
 

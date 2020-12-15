@@ -2215,13 +2215,8 @@ class Sample:
                 sorbate = slabs[key]['sorbate']
             else:
                 sorbate = [slabs[key]['sorbate']]
-            x, y, z, u_par, u_ver, oc, el = self._surf_pars(slab)
-            x_, y_, z_, u_par_, u_ver_, oc_, el_ = self._surf_pars(sorbate)
-            #not u is in B unit, B = 8pi**2u**2
-            #we use component whichever is larger as an approximation of total B
-            #here we need u
-            u = np.sqrt(np.max([u_ver,u_par],axis=0)/(8*np.pi**2))
-            u_ = np.sqrt(np.max([u_ver_,u_par_],axis=0)/(8*np.pi**2))
+            x, y, z, u, oc, el = self._surf_pars(slab)
+            x_, y_, z_, u_, oc_, el_ = self._surf_pars(sorbate)
             x = np.concatenate((x,x_))
             y = np.concatenate((y,y_))
             z = np.concatenate((z,z_))
@@ -2522,8 +2517,7 @@ class Sample:
         '''Calculate the structure factors from the surface
         '''
         dinv = self.unit_cell.abs_hkl(h, k, l)
-        q_par,q_ver = self.unit_cell.q_par_q_ver(h,k,l)
-        x, y, z, B_par,B_ver, oc, el = self._surf_pars(slabs)
+        x, y, z, u, oc, el = self._surf_pars(slabs)
         #Note that the u here has been recalculated to represent for the Gaussian distribution width of the thermal vibration (ie sigma in Angstrom)
         f=self._get_f(el, dinv)
         #print x, y,z
@@ -2532,7 +2526,7 @@ class Sample:
         #change mark 3
         #delta_l=1
         #if self.delta1==[]:delta_l=0
-        fs = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
+        fs = np.sum(oc*f*np.exp(-2*np.pi**2*u**2*dinv[:,np.newaxis]**2)\
             *np.sum([np.exp(2.0*np.pi*1.0J*(
                  h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
                  k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
@@ -2555,11 +2549,10 @@ class Sample:
         '''Calculate the structure factors from the surface
         '''
         dinv = self.unit_cell.abs_hkl(h, k, l)
-        q_par,q_ver = self.unit_cell.q_par_q_ver(h,k,l)
-        x, y, z, B_par,B_ver, oc, el = self._surf_pars(slabs)
+        x, y, z, u, oc, el = self._surf_pars(slabs)
         #Note that the u here has been recalculated to represent for the Gaussian distribution width of the thermal vibration (ie sigma in Angstrom)
         f=self._get_f(el, dinv)
-        fs = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
+        fs = np.sum(oc*f*np.exp(-2*np.pi**2*u**2*dinv[:,np.newaxis]**2)\
             *np.sum([np.exp(2.0*np.pi*1.0J*(
                 h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
                 k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
@@ -2837,8 +2830,7 @@ class Sample:
         fb = None
         if key not in self.fb:
             dinv = self.unit_cell.abs_hkl(h, k, l)
-            q_par, q_ver = self.unit_cell.q_par_q_ver(h,k,l)
-            x, y, z, el, B_par,B_ver, oc, c = self.bulk_slab._extract_values()
+            x, y, z, el, u, oc, c = self.bulk_slab._extract_values()
             oc = oc/float(len(self.bulk_sym))
             f = self._get_f(el, dinv)
             # Calculate the "shape factor" for the CTRs
@@ -2851,13 +2843,11 @@ class Sample:
             delta_funcs=(abs(h - np.round(h)) < 1e-12)*(
                 abs(k - np.round(k)) < 1e-12)
             # Sum up the uc struct factors
-            #DWF = exp(-M) M = (B_ver * square(Q_ver) + B_par * square(Q_par))/(16*pi**2)
-            # print(B_par,B_ver)
-            f_u = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))*
+            f_u = np.sum(oc*f*np.exp(-2*np.pi**2*u**2*dinv[:, np.newaxis]**2)*
                         np.sum([np.exp(2.0*np.pi*1.0J*(
                                 h[:,np.newaxis]*sym_op.trans_x(x, y) +
                                 k[:,np.newaxis]*sym_op.trans_y(x, y) +
-                                l[:,np.newaxis]*z[np.newaxis, :]))
+                                l[:,np.newaxis]*z [np.newaxis, :]))
                         for sym_op in self.bulk_sym], 0)
                         ,1)
             # Putting it all togheter
@@ -2892,7 +2882,7 @@ class Sample:
         '''
         # Extract the parameters we need
         # the star in zip(*... transform the list elements to arguments
-        xt, yt, zt, elt, ut_par, ut_ver, oct, ct = zip(*[slab._extract_values()
+        xt, yt, zt, elt, ut, oct, ct = zip(*[slab._extract_values()
                                   for slab in slabs])
         #x1 = np. r_[xt]
         #y1 = np.r_[yt]
@@ -2905,14 +2895,13 @@ class Sample:
         y = np.concatenate([ys + c_cum*self.delta2
                             for ys, c_cum, c_s in zip(yt, cn, ct)])
         el = np.r_[elt]
-        u_par = np.r_[ut_par]
-        u_ver = np.r_[ut_ver]
+        u = np.r_[ut]
         # Account for overlapping atoms
         oc = np.r_[oct]/float(len(self.surface_sym))
         #print x,y,z, u
         #print y-y1
 
-        return x, y, z, u_par,u_ver, oc, el
+        return x, y, z, u, oc, el
 
     def _surf_pars_offspecular(self,slabs):
         '''Extracts the necessary parameters for simulating the surface part
@@ -3183,8 +3172,7 @@ class lattice():
     def q(self, h, k, l):
         h, k, l = np.array(h)[:,np.newaxis], np.array(k)[:,np.newaxis], np.array(l)[:,np.newaxis]
         HKL = np.hstack((h,k,l))
-        q_return = self.RecTM.dot(HKL.transpose())
-        return q_return
+        return self.RecTM.dot(HKL)
 
     #return q_parallel and q_vertical(i.e. qz) from HKL 
     def q_par_q_ver(self, h, k, l):
@@ -3193,7 +3181,7 @@ class lattice():
 
 class Slab:
     par_names = ['dx1','dx2','dx3','dx4','dy1','dy2','dy3','dy4','dz1','dz2','dz3','dz4',\
-                          'u', 'du', 'u_par', 'du_par','u_ver','du_ver','oc','doc', 'm']
+                          'u', 'du','oc','doc', 'm']
     def __init__(self, name = '', c = 1.0, slab_oc = 1.0, T_factor='u'):
         try:
             self.c = float(c)
@@ -3220,12 +3208,8 @@ class Slab:
         self.dz3 = np.array([], dtype = np.float64)
         self.dz4 = np.array([], dtype = np.float64)
         self.u = np.array([], dtype = np.float64)
-        self.u_par = np.array([], dtype = np.float64)
-        self.u_ver = np.array([], dtype = np.float64)
         self.oc = np.array([], dtype = np.float64)
         self.du = np.array([], dtype = np.float64)
-        self.du_par = np.array([], dtype = np.float64)
-        self.du_ver = np.array([], dtype = np.float64)
         self.doc = np.array([], dtype = np.float64)
         self.m = np.array([], dtype = np.float64)
         self.id = np.array([], dtype = np.str)
@@ -3239,13 +3223,13 @@ class Slab:
     def copy(self):
         '''Returns a copy of the object.
         '''
-        #T_factor must be 'B', not matter what's that for the original one, since they have been transfered to B already.
+        #T_factor must be 'u', not matter what's that for the original one, since they have been transfered to u already.
         self.id = list(self.id)
         cpy = Slab(c = self.c, slab_oc = self.slab_oc,T_factor=self.T_factor)
         for i in range(len(self.id)):
             cpy.add_atom(str(self.id[i]), str(self.el[i]),
                          self.x[i], self.y[i],
-                         self.z[i], self.u[i], self.oc[i], self.m[i], self.u_par[i], self.u_ver[i])
+                         self.z[i], self.u[i], self.oc[i], self.m[i])
             cpy.dz1[-1] = self.dz1[i]
             cpy.dz2[-1] = self.dz2[i]
             cpy.dz3[-1] = self.dz3[i]
@@ -3259,12 +3243,10 @@ class Slab:
             cpy.dy3[-1] = self.dy3[i]
             cpy.dy4[-1] = self.dy4[i]
             cpy.du[-1] = self.du[i]
-            cpy.du_par[-1] = self.du_par[i]
-            cpy.du_ver[-1] = self.du_ver[i]
             cpy.doc[-1] = self.doc[i]
         return cpy
 
-    def add_atom(self,id,  element, x, y, z, u = 0.0, oc = 1.0, m = 1.0, u_par = None, u_ver = None):
+    def add_atom(self,id,  element, x, y, z, u = 0.0, oc = 1.0, m = 1.0):
         '''Add an atom to the slab.
 
         id - a unique id for this atom (string)
@@ -3294,16 +3276,8 @@ class Slab:
         self.dz3 = np.append(self.dz3, 0.)
         self.dz4 = np.append(self.dz4, 0.)
         self.du = np.append(self.du, 0.)
-        self.du_par = np.append(self.du_par, 0.)
-        self.du_ver = np.append(self.du_ver, 0.)
         self.doc = np.append(self.doc, 0.)
         self.u = np.append(self.u, u)
-        if u_par==None:
-            self.u_ver = np.append(self.u_ver, u)
-            self.u_par = np.append(self.u_par, u)
-        else:
-            self.u_ver = np.append(self.u_ver, u_ver)
-            self.u_par = np.append(self.u_par, u_par)
         self.oc = np.append(self.oc, oc)
         self.m = np.append(self.m, m)
         self.id = np.append(self.id, id)
@@ -3317,7 +3291,7 @@ class Slab:
 
         return AtomGroup(self, id)
 
-    def insert_atom(self,index,id,element, x, y, z, u = 0.0, oc = 1.0, m = 1.0, u_par = None, u_ver = None):
+    def insert_atom(self,index,id,element, x, y, z, u = 0.0, oc = 1.0, m = 1.0):
         '''Add an atom to the slab.
 
         id - a unique id for this atom (string)
@@ -3347,16 +3321,8 @@ class Slab:
         self.dz3 = np.insert(self.dz3, [index+1],0.)
         self.dz4 = np.insert(self.dz4, [index+1],0.)
         self.du = np.insert(self.du, [index+1],0.)
-        self.du_par = np.insert(self.du_par, [index+1],0.)
-        self.du_ver = np.insert(self.du_ver, [index+1],0.)
         self.doc = np.insert(self.doc, [index+1],0.)
         self.u = np.insert(self.u,[index+1],u)
-        if u_par==None:
-            self.u_par = np.insert(self.u_par,[index+1],u)
-            self.u_ver = np.insert(self.u_ver,[index+1],u)
-        else:
-            self.u_par = np.insert(self.u_par,[index+1],u_par)
-            self.u_ver = np.insert(self.u_ver,[index+1],u_ver)
         self.oc = np.insert(self.oc,[index+1],oc)
         self.m = np.insert(self.m,[index+1],m)
         self.id = np.insert(self.id,[index+1],id)
@@ -3534,22 +3500,12 @@ class Slab:
     def _extract_values(self):
         #B=8*pi*pi*u*u in A2
         #u in A
-        #note all DWF will be converted to value based on B
         if self.T_factor=='B':
-            '''
             return  self.x + self.dx1+self.dx2+self.dx3+self.dx4, self.y + self.dy1+self.dy2+self.dy3+self.dy4, self.z + self.dz1+ self.dz2+ self.dz3+self.dz4,\
                     self.el, (self.u/(8*np.pi**2))**0.5+self.du, (self.oc+self.doc)*self.m*self.slab_oc, self.c
-            '''
-            #we consider B_par and B_ver for DWF in parallel and vertical direction
-            return  self.x + self.dx1+self.dx2+self.dx3+self.dx4, self.y + self.dy1+self.dy2+self.dy3+self.dy4, self.z + self.dz1+ self.dz2+ self.dz3+self.dz4,\
-                    self.el, self.u_par+self.du_par, self.u_ver+self.du_ver, (self.oc+self.doc)*self.m*self.slab_oc, self.c
         elif self.T_factor=='u':
-            '''
             return  self.x + self.dx1+self.dx2+self.dx3+self.dx4, self.y + self.dy1+self.dy2+self.dy3+self.dy4, self.z + self.dz1+ self.dz2+ self.dz3+self.dz4,\
                    self.el, (self.u)**0.5+self.du, (self.oc+self.doc)*self.m*self.slab_oc, self.c
-            '''
-            return  self.x + self.dx1+self.dx2+self.dx3+self.dx4, self.y + self.dy1+self.dy2+self.dy3+self.dy4, self.z + self.dz1+ self.dz2+ self.dz3+self.dz4,\
-                   self.el, np.square(self.u_par+self.du_par)*8*np.pi**2, np.square(self.u_ver+self.du_ver)*8*np.pi**2, (self.oc+self.doc)*self.m*self.slab_oc, self.c
 
     def _extract_values_offspecular(self):
         ids=self.id
@@ -3576,7 +3532,7 @@ class Slab:
         return [self.name + '.' + str(id) for id in self.id]
 
 class AtomGroup:
-    par_names = ['dx', 'dy', 'dz', 'u', 'u_par','u_ver','oc']
+    par_names = ['dx', 'dy', 'dz', 'u', 'oc']
     def __init__(self, slab = None, id = None,matrix=[1,0,0,0,1,0,0,0,1]):
 
         self.ids = []

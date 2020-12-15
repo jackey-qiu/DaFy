@@ -392,7 +392,7 @@ class Model:
         set the paraemters, the guess value (values), minimum allowed values
         and the maximum allowed values
         '''
-        (row_numbers, sfuncs, vals, minvals, maxvals) =\
+        (row_numbers, sfuncs, vals, minvals, maxvals, sfuncs_link) =\
             self.parameters.get_fit_pars()
         if len(sfuncs) == 0:
             raise ParameterError(sfuncs, 0, 'None', 4)
@@ -408,13 +408,22 @@ class Model:
         """
         # Compile the strings to create the functions..
         funcs = []
+        funcs_link = []
         # print(sfuncs)
         for func in sfuncs:
             try:
                 funcs.append(self.create_fit_func(func))
             except Exception as e:
                 raise ParameterError(func, row_numbers[len(funcs)], str(e),0)
-        return (funcs, vals, minvals, maxvals)
+        for func in sfuncs_link:
+            if func=='':
+                funcs_link.append(None)
+            else:
+                try:
+                    funcs_link.append(self.create_fit_func(func))
+                except Exception as e:
+                    raise ParameterError(func, row_numbers[len(funcs_link)], str(e),0)
+        return (funcs, vals, minvals, maxvals,funcs_link)
 
     def get_fit_values(self):
         '''get_fit_values(self) --> values
@@ -433,17 +442,27 @@ class Model:
         set the parameters, the guess value (values). Used for simulation,
         for fitting see get_fit_pars(self).s
         '''
-        (sfuncs, vals) = self.parameters.get_sim_pars()
+        (sfuncs, vals, sfuncs_link) = self.parameters.get_sim_pars()
         # Compile the strings to create the functions..
         funcs = []
+        funcs_link = []
         for func in sfuncs:
             # funcs.append(self.create_fit_func(func))
             try:
                 funcs.append(self.create_fit_func(func))
             except Exception as e:
                 raise ParameterError(func, len(funcs), str(e),0)
-
-        return (funcs, vals)
+        #funcs of linked parameters
+        for func_link in sfuncs_link:
+            if func_link=='':
+                funcs_link.append(None)
+            else:
+                try:
+                    funcs_link.append(self.create_fit_func(func_link))
+                    # print('Linking {} successfully!'.format(func_link))
+                except:
+                    funcs_link.append('None')
+        return (funcs, vals, funcs_link)
 
     def simulate(self, compile = True):
         '''simulate(self, compile = True) --> None
@@ -453,19 +472,24 @@ class Model:
         '''
         if compile:
             self.compile_script()
-        (funcs, vals) = self.get_sim_pars()
+        (funcs, vals, funcs_link) = self.get_sim_pars()
         # print 'Functions to evulate: ', funcs
         # Set the parameter values in the model
         #[func(val) for func,val in zip(funcs, vals)]
         i = 0
-        for func, val in zip(funcs,vals):
+        for func, val, func_link in zip(funcs,vals,funcs_link):
             try:
                 func(val)
             except Exception as e:
-                (sfuncs_tmp, vals_tmp) = self.parameters.get_sim_pars()
+                (sfuncs_tmp, vals_tmp, sfuncs_link_temp) = self.parameters.get_sim_pars()
                 raise ParameterError(sfuncs_tmp[i], i, str(e), 1)
+            try:
+                if func_link!=None:
+                    func_link(val)
+            except Exception as e:
+                (sfuncs_tmp, vals_tmp, sfuncs_link_temp) = self.parameters.get_sim_pars()
+                raise ParameterError(sfuncs_link_tmp[i], i, str(e), 1)
             i += 1
-
         self.evaluate_sim_func()
 
     def new_model(self):

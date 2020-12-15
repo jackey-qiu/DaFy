@@ -1,10 +1,45 @@
 import pyqtgraph as pg
 import pyqtgraph.opengl as gl
 import numpy as np
-from pyqtgraph.Qt import QtGui
+from pyqtgraph.Qt import QtGui, QtCore
 import copy
 from scipy.spatial.distance import pdist
 import itertools
+
+class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
+    def __init__(self, X, Y, Z, text, color = QtCore.Qt.white, font_size = 10):
+        gl.GLGraphicsItem.GLGraphicsItem.__init__(self)
+        self.text = text
+        self.X = X
+        self.Y = Y
+        self.Z = Z
+        self.color = color
+        self.font_size = font_size
+
+    def setGLViewWidget(self, GLViewWidget):
+        self.GLViewWidget = GLViewWidget
+
+    def setText(self, text):
+        self.text = text
+        self.update()
+
+    def setX(self, X):
+        self.X = X
+        self.update()
+
+    def setY(self, Y):
+        self.Y = Y
+        self.update()
+
+    def setZ(self, Z):
+        self.Z = Z
+        self.update()
+
+    def paint(self):
+        font = QtGui.QFont("Arial")
+        font.setPointSize(self.font_size)
+        self.GLViewWidget.qglColor(self.color)
+        self.GLViewWidget.renderText(self.X, self.Y, self.Z, self.text, font)
 
 #color_lib = {'C':(1,0,0,1),'O':(0,1,0,1),'Cu':(1,0,1,1)}
 # color_lib = {'C':0xFFFFFF,'O':(0,1,0,1),'Cu':(1,0,1,1)}
@@ -170,7 +205,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         c = np.dot([0,0,1],v2-v1)/np.linalg.norm(v2-v1)
         ang = np.arccos(np.clip(c,-1,1))/np.pi*180
         vec_norm = np.cross([0,0,1],v2-v1)
-        md = gl.MeshData.cylinder(rows=10, cols=20, radius=[0.25,0.25],length = dist)
+        md = gl.MeshData.cylinder(rows=10, cols=20, radius=[0.1,0.1],length = dist)
         if mesh_item == None:
             mesh_item = gl.GLMeshItem(meshdata=md, smooth=True,color=color, shader='shaded', glOptions='opaque')
         else:
@@ -183,7 +218,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
         v12 = (np.array(v1)+np.array(v2))/2
         item1 = self.draw_chemical_bond(v1,v12,colors[0],mesh_items[0])
         item2 = self.draw_chemical_bond(v12,v2,colors[1],mesh_items[1]) 
-        return item1, item2
+        text = CustomTextItem(*v12, '{} Å'.format(round(np.linalg.norm(np.array(v1)-np.array(v2)),2)),font_size = 10)
+        return item1, item2, text
 
     def make_super_cell(self,super_cell_size = [3,3,1]):
         a,b,c = self.abc
@@ -238,6 +274,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         ii=0
         xyz_values = []
         el_list = []
+        self.text_item = []
         if len(self.items)==0:
             for each in self.make_super_cell():
                 self.addItem(each)
@@ -247,7 +284,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color_to_rgb(color_lib[e.upper()]), shader='shaded', glOptions='opaque')
                 # print(dir(m1.metaObject()))
                 m1.translate(x, y, z)
-                m1.scale(0.6, 0.6, 0.6)
+                m1.scale(0.3, 0.3, 0.3)
                 self.addItem(m1)
                 xyz_values.append([x,y,z])
                 el_list.append(e)
@@ -274,7 +311,11 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
                     color2= color_to_rgb(color_lib[xyz[each_bond_index[1]][0].upper()])
                     items = self.draw_two_chemical_bonds(v1, v2, [color1,color2])
-                    [self.addItem(item) for item in items]
+                    items[-1].setGLViewWidget(self)
+                    self.text_item.append(items[-1])
+                    [self.addItem(item) for item in items[0:2]]
+            #append text item at the end
+            [self.addItem(item) for item in self.text_item]
 
         else:
             for each in xyz:
@@ -282,9 +323,12 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 #first item is grid net
                 self.items[ii+self.grid_num].resetTransform()
                 self.items[ii+self.grid_num].translate(x,y,z)
-                self.items[ii+self.grid_num].scale(0.5, 0.5, 0.5)
+                self.items[ii+self.grid_num].scale(0.3, 0.3, 0.3)
                 ii += 1
             if self.bond_index!=None:
+                #remove text item first
+                [self.removeItem(each) for each in self.text_item]
+                self.text_item = []
                 for each_bond_index in self.bond_index:
                     self.items[ii+self.grid_num].resetTransform()
                     self.items[ii+self.grid_num+1].resetTransform()
@@ -293,8 +337,12 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
                     color2= color_to_rgb(color_lib[xyz[each_bond_index[1]][0].upper()])
                     items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+self.grid_num],self.items[ii+self.grid_num+1]])
-                    self.items[ii+self.grid_num], self.items[ii+self.grid_num+1]= items
+                    items[-1].setGLViewWidget(self)
+                    self.text_item.append(items[-1])
+                    self.items[ii+self.grid_num], self.items[ii+self.grid_num+1]= items[0:2]
                     ii +=2
+            #append text item at the end
+            [self.addItem(item) for item in self.text_item]
         self.setProjection()
 
     def update_structure(self, xyz):
@@ -303,9 +351,11 @@ class GLViewWidget_cum(gl.GLViewWidget):
             #first item is grid net
             self.items[i+self.grid_num].resetTransform()
             self.items[i+self.grid_num].translate(x,y,z)
-            self.items[i+self.grid_num].scale(0.5, 0.5, 0.5)
+            self.items[i+self.grid_num].scale(0.3, 0.3, 0.3)
         if self.bond_index!=None:
             ii=1
+            [self.removeItem(each) for each in self.text_item]
+            self.text_item = []
             for each_bond_index in self.bond_index:
                 self.items[ii+i+self.grid_num].resetTransform()
                 self.items[ii+i+self.grid_num+1].resetTransform()
@@ -314,6 +364,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 color1= color_to_rgb(color_lib[xyz[each_bond_index[0]][0].upper()])
                 color2= color_to_rgb(color_lib[xyz[each_bond_index[1]][0].upper()])
                 items = self.draw_two_chemical_bonds(v1, v2, [color1,color2],[self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1]])
-                self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1] = items
-                # self.items[ii+i+grid_number].scale(0.3,0.3,0.3)
-                ii +=2
+                self.items[ii+i+self.grid_num],self.items[ii+i+self.grid_num+1] = items[0:2]
+                items[-1].setGLViewWidget(self)
+                self.text_item.append(items[-1])
+                i +=2
+            #append text item at the end
+            [self.addItem(item) for item in self.text_item]
+

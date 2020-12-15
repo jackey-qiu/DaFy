@@ -298,7 +298,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_save_table.clicked.connect(self.save_par)
         self.pushButton_remove_rows.clicked.connect(self.remove_selected_rows)
         self.pushButton_add_one_row.clicked.connect(self.append_one_row)
-        self.pushButton_add_par_set.clicked.connect(self.append_par_set)
+        self.pushButton_add_par_set.clicked.connect(lambda:self.append_par_set(par_selected=None))
         self.pushButton_add_all_pars.clicked.connect(self.append_all_par_sets)
         self.pushButton_fit_all.clicked.connect(self.fit_all)
         self.pushButton_fit_none.clicked.connect(self.fit_none)
@@ -710,7 +710,7 @@ class MyMainWindow(QMainWindow):
             index_list = [i for i in range(total_num_par) if self.model.parameters.data[i][2]]
 
             for i in range(len(error_bars)):
-                self.model.parameters.data[index_list[i]][-1] = error_bars[i]
+                self.model.parameters.data[index_list[i]][-2] = error_bars[i]
             
             self.update_par_upon_load()
         except diffev.ErrorBarError as e:
@@ -1030,6 +1030,7 @@ class MyMainWindow(QMainWindow):
         self.update_par_upon_change()
         self.model.script = (self.plainTextEdit_script.toPlainText())
         self.widget_solver.update_parameter_in_solver(self)
+        self.tableWidget_pars.setShowGrid(True)
         try:
             self.model.simulate()
             self.update_structure_view()
@@ -1049,6 +1050,7 @@ class MyMainWindow(QMainWindow):
                 self.init_structure_view()
             self.statusbar.clearMessage()
             self.update_combo_box_list_par_set()
+            self.textBrowser_error_msg.clear()
             self.statusbar.showMessage("Model is simulated successfully!")
         except model.ModelError as e:
             self.statusbar.clearMessage()
@@ -1076,7 +1078,7 @@ class MyMainWindow(QMainWindow):
         if len(selected_rows)>0:
             #only get the first selected item
             par_set = self.model.parameters.data[selected_rows[0].row()]
-            par_min, par_max = par_set[-3], par_set[-2]
+            par_min, par_max = par_set[-4], par_set[-3]
             value = (par_max - par_min)*self.horizontalSlider_par.value()/100 + par_min
             self.model.parameters.set_value(selected_rows[0].row(), 1, value)
             self.lineEdit_scan_par.setText('{}:{}'.format(par_set[0],value))
@@ -1099,7 +1101,7 @@ class MyMainWindow(QMainWindow):
             self.statusbar.clearMessage()
             self.statusbar.showMessage('Failure to launch a model fit!')
             logging.getLogger().exception('Fatal error encountered during init model fitting!')
-            self.tabWidget_data.setCurrentIndex(4)
+            self.tabWidget_data.setCurrentIndex(5)
 
     def stop_model(self):
         self.run_fit.stop()
@@ -1112,7 +1114,7 @@ class MyMainWindow(QMainWindow):
     def stop_model_slot(self,message):
         self.stop_model()
         logging.getLogger().exception(message)
-        self.tabWidget_data.setCurrentIndex(4)
+        self.tabWidget_data.setCurrentIndex(5)
 
     def _stop_model(self):
         self.run_batch.stop()
@@ -1687,7 +1689,7 @@ class MyMainWindow(QMainWindow):
         else:
             row_index = rows[-1].row()
         self.tableWidget_pars.insertRow(row_index+1)
-        for i in range(6):
+        for i in range(7):
             if i==2:
                 check_box = QCheckBox()
                 check_box.setChecked(False)
@@ -1704,7 +1706,7 @@ class MyMainWindow(QMainWindow):
     def append_one_row_at_the_end(self):
         row_index = self.tableWidget_pars.rowCount()
         self.tableWidget_pars.insertRow(row_index)
-        for i in range(6):
+        for i in range(7):
             if i==2:
                 check_box = QCheckBox()
                 check_box.setChecked(False)
@@ -1725,14 +1727,18 @@ class MyMainWindow(QMainWindow):
         label_tag=1
         for i in range(self.tableWidget_pars.rowCount()):
             if self.tableWidget_pars.item(i,0)==None:
-                items = ['',0,False,0,0,'-']
+                items = ['',0,False,0,0,'-','']
                 vertical_label.append('')
             elif self.tableWidget_pars.item(i,0).text()=='':
-                items = ['',0,False,0,0,'-']
+                items = ['',0,False,0,0,'-','']
                 vertical_label.append('')
             else:
                 items = [self.tableWidget_pars.item(i,0).text(),float(self.tableWidget_pars.item(i,1).text()),self.tableWidget_pars.cellWidget(i,2).isChecked(),\
                          float(self.tableWidget_pars.item(i,3).text()), float(self.tableWidget_pars.item(i,4).text()), self.tableWidget_pars.item(i,5).text()]
+                if self.tableWidget_pars.item(i,6)==None:
+                    items.append('')
+                else:
+                    items.append(self.tableWidget_pars.item(i,6).text())
                 self.model.parameters.data.append(items)
                 vertical_label.append(str(label_tag))
                 label_tag += 1
@@ -1816,8 +1822,8 @@ class MyMainWindow(QMainWindow):
         how_many_pars = len(lines)
         self.tableWidget_pars.clear()
         self.tableWidget_pars.setRowCount(how_many_pars)
-        self.tableWidget_pars.setColumnCount(6)
-        self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error'])
+        self.tableWidget_pars.setColumnCount(7)
+        self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error','Link'])
         for i in range(len(lines)):
             items = lines[i]
             j = 0
@@ -1854,8 +1860,8 @@ class MyMainWindow(QMainWindow):
                             qtablewidget.setForeground(QBrush(QColor(255,0,255)))
                         self.tableWidget_pars.setItem(i,j,qtablewidget)
                     j += 1
-        # self.tableWidget_pars.resizeColumnsToContents()
-        # self.tableWidget_pars.resizeRowsToContents()
+        self.tableWidget_pars.resizeColumnsToContents()
+        self.tableWidget_pars.resizeRowsToContents()
         """
         header = self.tableWidget_pars.horizontalHeader()       
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
@@ -1872,17 +1878,17 @@ class MyMainWindow(QMainWindow):
         vertical_labels = []
         self.tableWidget_pars.setRowCount(1)
         self.tableWidget_pars.setColumnCount(6)
-        self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error'])
-        items = ['par',0,'False',0,0,'-']
+        self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error','Link'])
+        items = ['par',0,'False',0,0,'-','']
         for i in [0]:
             j = 0
             if items[0] == '':
-                self.model.parameters.data.append([items[0],0,False,0, 0,'-'])
+                self.model.parameters.data.append([items[0],0,False,0, 0,'-',''])
                 vertical_labels.append('')
                 j += 1
             else:
                 #add items to parameter attr
-                self.model.parameters.data.append([items[0],float(items[1]),items[2]=='True',float(items[3]), float(items[4]),items[5]])
+                self.model.parameters.data.append([items[0],float(items[1]),items[2]=='True',float(items[3]), float(items[4]),items[5],items[6]])
                 #add items to table view
                 if len(vertical_labels)==0:
                     vertical_labels.append('1')
@@ -1921,19 +1927,21 @@ class MyMainWindow(QMainWindow):
                 lines = [each for each in lines if not each.startswith('#')]
                 how_many_pars = len(lines)
                 self.tableWidget_pars.setRowCount(how_many_pars)
-                self.tableWidget_pars.setColumnCount(6)
-                self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error'])
+                self.tableWidget_pars.setColumnCount(7)
+                self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error','Link'])
                 for i in range(len(lines)):
                     line = lines[i]
                     items = line.rstrip().rsplit('\t')
                     j = 0
                     if items[0] == '':
-                        self.model.parameters.data.append([items[0],0,False,0, 0,'-'])
+                        self.model.parameters.data.append([items[0],0,False,0, 0,'-',''])
                         vertical_labels.append('')
                         j += 1
                     else:
                         #add items to parameter attr
-                        self.model.parameters.data.append([items[0],float(items[1]),items[2]=='True',float(items[3]), float(items[4]),items[5]])
+                        if len(items)==6:
+                            items.append('')
+                        self.model.parameters.data.append([items[0],float(items[1]),items[2]=='True',float(items[3]), float(items[4]),items[5],items[6]])
                         #add items to table view
                         if len(vertical_labels)==0:
                             vertical_labels.append('1')
@@ -1956,8 +1964,8 @@ class MyMainWindow(QMainWindow):
                                     qtablewidget.setForeground(QBrush(QColor(255,0,255)))
                                 self.tableWidget_pars.setItem(i,j,qtablewidget)
                             j += 1
-        # self.tableWidget_pars.resizeColumnsToContents()
-        # self.tableWidget_pars.resizeRowsToContents()
+        self.tableWidget_pars.resizeColumnsToContents()
+        self.tableWidget_pars.resizeRowsToContents()
         """
         header = self.tableWidget_pars.horizontalHeader()       
         header.setSectionResizeMode(0, QtWidgets.QHeaderView.Stretch)
@@ -1975,11 +1983,15 @@ class MyMainWindow(QMainWindow):
         self.model.parameters.data = []
         for each_row in range(self.tableWidget_pars.rowCount()):
             if self.tableWidget_pars.item(each_row,0)==None:
-                items = ['',0,False,0,0,'-']
+                items = ['',0,False,0,0,'-','']
             elif self.tableWidget_pars.item(each_row,0).text()=='':
-                items = ['',0,False,0,0,'-']
+                items = ['',0,False,0,0,'-','']
             else:
                 items = [self.tableWidget_pars.item(each_row,0).text()] + [float(self.tableWidget_pars.item(each_row,i).text()) for i in [1,3,4]] + [self.tableWidget_pars.item(each_row,5).text()]
+                if self.tableWidget_pars.item(each_row,6)!=None:
+                    items.append(self.tableWidget_pars.item(each_row,6).text())
+                else:
+                    items.append('')
                 items.insert(2, self.tableWidget_pars.cellWidget(each_row,2).isChecked())
             self.model.parameters.data.append(items)
 

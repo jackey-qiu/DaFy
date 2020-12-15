@@ -13,7 +13,7 @@ class Parameters:
     Class for storing the fitting parameters in GenX
     '''
     def __init__(self):
-        self.data_labels = ['Parameter', 'Value', 'Fit', 'Min', 'Max', 'Error','Linked_par']
+        self.data_labels = ['Parameter', 'Value', 'Fit', 'Min', 'Max', 'Error']
         #self.init_data = ['', 0.0, False, 0.0, 0.0, 'None']
         self.data = []
 
@@ -70,10 +70,9 @@ class Parameters:
                 not self.data[nmb][0]=='']
         funcs=[row[0] for row in self.data if row[2] and not row[0] == '']
         mytest=[row[1] for row in self.data if row[2] and not row[0] == '']
-        min_=[row[3] for row in self.data if row[2] and not row[0] == '']
-        max_=[row[4] for row in self.data if row[2] and not row[0] == '']
-        funcs_link=[row[6] for row in self.data if row[2] and not row[0] == '']
-        return (row_nmb, funcs, mytest, min_, max_, funcs_link)
+        min=[row[3] for row in self.data if row[2] and not row[0] == '']
+        max=[row[4] for row in self.data if row[2] and not row[0] == '']
+        return (row_nmb, funcs, mytest, min, max)
 
     def get_pos_from_row(self, row):
         '''get_pos_from_row(self) --> pos [int]
@@ -89,8 +88,7 @@ class Parameters:
         ''' Returns the variables needed for simulation '''
         funcs = [str(row[0]) for row in self.data if not row[0] == '']
         mytest = [row[1] for row in self.data if not row[0] == '']
-        funcs_link = [str(row[6]) for row in self.data if not row[0] == '']
-        return (funcs, mytest, funcs_link)
+        return (funcs, mytest)
 
     def get_sim_pos_from_row(self, row):
         '''Transform a row to a psoitions in the sim list
@@ -267,14 +265,6 @@ class Parameters:
 
         Does a safe copy from object into this object.
         '''
-        #fix the compatibiltiy issue here
-        #before: 6 columns
-        #new: 7 columns (last column is the link_func str)
-        for i in range(len(object.data)):
-            if len(object.data[i])==6:
-                object.data[i].append('')
-            elif len(object.data[i])==7:
-                pass
         self.data = object.data[:]
 
     def copy(self):
