@@ -387,7 +387,9 @@ class SolverController(QtCore.QObject):
         Method that calculates the errorbars for the fit that has been
         done. Note that the fit has to been conducted before this is runned.
         '''
-        if self.optimizer.start_guess != None and not self.optimizer.running:
+        # if self.optimizer.start_guess != None and not self.optimizer.running:
+        #if not self.optimizer.running:
+        try:
             n_elements = len(self.optimizer.start_guess)
             #print 'Number of elemets to calc errobars for ', n_elements
             error_values = []
@@ -404,7 +406,7 @@ class SolverController(QtCore.QObject):
                 error_str = '(%.3e, %.3e)'%(error_low, error_high)
                 error_values.append(error_str)
             return error_values
-        else:
+        except:
             raise ErrorBarError()
 
     def ProjectEvals(self, parameter):

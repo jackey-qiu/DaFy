@@ -477,6 +477,22 @@ class MyMainWindow(QMainWindow):
     #do this after model is loaded, so that you know len(data)
     def update_plot_dimension(self, current_index_plot_screen = 0):
         """Setting the layout of data profiles"""
+        def _get_index(index_in_use):
+            use_or_not = []
+            for i in range(len(self.model.data)):
+                if self.tableWidget_data.cellWidget(i,2).isChecked():
+                    use_or_not.append(True)
+                else:
+                    use_or_not.append(False)
+            index_in_sequence = index_in_use
+            total = -1
+            for i, each in enumerate(use_or_not):
+                if total<index_in_use:
+                    if not each:
+                        index_in_sequence += 1
+                    else:
+                        total += 1
+            return index_in_sequence
         sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
         height, width = sizeObject.height()*25.4/dpi,sizeObject.width()*25.4/dpi
         #maximum number of plots allowd to be fit in one screen
@@ -489,7 +505,9 @@ class MyMainWindow(QMainWindow):
         self.widget_data.ci.currentCol = 0
 
         self.data_profiles = []
-        total_datasets = len(self.model.data)
+        #only consider the data in use
+        total_datasets = len([1 for i in range(len(self.model.data)) if self.tableWidget_data.cellWidget(i,2).isChecked()])
+        #total_datasets = len([each for each in self.model.data if each.use])
 
         if total_datasets<self.max_num_plots_per_screen:
             self.num_screens_plot = 1
@@ -527,7 +545,7 @@ class MyMainWindow(QMainWindow):
         offset = self.current_index_plot_screen*self.max_num_plots_per_screen
         for i in range(num_plots_on_current_screen):
             if 1:
-                hk_label = '{}{}_{}'.format(str(int(self.model.data[i+offset].extra_data['h'][0])),str(int(self.model.data[i+offset].extra_data['k'][0])),str(self.model.data[i+offset].extra_data['Y'][0]))
+                hk_label = '{}{}_{}'.format(str(int(self.model.data[_get_index(i+offset)].extra_data['h'][0])),str(int(self.model.data[_get_index(i+offset)].extra_data['k'][0])),str(self.model.data[_get_index(i+offset)].extra_data['Y'][0]))
                 if (i%columns)==0 and (i!=0):
                     self.widget_data.nextRow()
                     self.data_profiles.append(self.widget_data.addPlot(title=hk_label))
@@ -564,6 +582,17 @@ class MyMainWindow(QMainWindow):
 
     def update_plot_data_view(self):
         """update views of all figures if script is compiled, while only plot data profiles if otherwise"""
+        def _get_index(index_in_use):
+            index_in_sequence = index_in_use
+            total = -1
+            for i, each in enumerate(self.model.data):
+                if total<index_in_use:
+                    if not each.use:
+                        index_in_sequence += 1
+                    else:
+                        total += 1
+            return index_in_sequence
+
         if self.model.compiled:
             self.update_data_check_attr()
             self.update_plot_data_view_upon_simulation()
@@ -573,8 +602,8 @@ class MyMainWindow(QMainWindow):
             for i in range(self.num_plots_on_current_screen):
                 fmt = self.tableWidget_data.item(i+offset,4).text()
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
-                self.data_profiles[i].plot(self.model.data[i+offset].x, self.model.data[i+offset].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = True)
-            [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each),1).isChecked()) for each in self.data_profiles]
+                self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2], clear = True)
+            [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(_get_index(self.data_profiles.index(each)),1).isChecked()) for each in self.data_profiles]
             [each.autoRange() for each in self.data_profiles]
 
     def update_electron_density_profile(self):
@@ -601,24 +630,27 @@ class MyMainWindow(QMainWindow):
                 HKL_raxs_list[0].append(each.extra_data['h'][0])
                 HKL_raxs_list[1].append(each.extra_data['k'][0])
                 HKL_raxs_list[2].append(each.extra_data['Y'][0])
+        if hasattr(self.model.script_module, "RAXR_EL"):
+            raxs_el = getattr(self.model.script_module, "RAXR_EL")
+        else:
+            raxs_el = None
         try:
             if self.run_fit.running or self.run_batch.running:
-                # edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200, freeze=self.model.script_module.freeze)
-                # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
-                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=50,resolution =200)
-                #z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=200,water_scaling=0.33)
+                #if model is running, disable showing e profile
+                pass
             else:
                 # edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
                 # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
                 #edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
-                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000)
+                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
                 # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
-            #eden_plot = [each*int(each>0) for each in eden_plot]
-            self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],pen = {'color': "w", 'width': 1},clear = True)
-            self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],fillLevel=0, brush = (0,200,0,100),clear = False)
-            #self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
-            #self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
-            self.fom_scan_profile.autoRange()
+                #eden_plot = [each*int(each>0) for each in eden_plot]
+                #here only plot the total electron density (last item) profile
+                self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],pen = {'color': "w", 'width': 1},clear = True)
+                self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],fillLevel=0, brush = (0,200,0,100),clear = False)
+                #self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
+                #self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
+                self.fom_scan_profile.autoRange()
         except:
             self.statusbar.clearMessage()
             self.statusbar.showMessage('Failure to draw e density profile!')
@@ -626,20 +658,31 @@ class MyMainWindow(QMainWindow):
             self.tabWidget_data.setCurrentIndex(4)
 
     def update_plot_data_view_upon_simulation(self):
+        def _get_index(index_in_use):
+            index_in_sequence = index_in_use
+            total = -1
+            for i, each in enumerate(self.model.data):
+                if total<index_in_use:
+                    if not each.use:
+                        index_in_sequence += 1
+                    else:
+                        total += 1
+            return index_in_sequence
+
         offset = self.max_num_plots_per_screen*self.current_index_plot_screen
         for i in range(self.num_plots_on_current_screen):
             if 1:
                 fmt = self.tableWidget_data.item(i+offset,4).text()
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
                 line_symbol = list(fmt.rstrip().rsplit(';')[1].rsplit(':')[1])
-                self.data_profiles[i].plot(self.model.data[i+offset].x, self.model.data[i+offset].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
-                if self.tableWidget_data.cellWidget(i+offset,3).isChecked():
+                self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
+                if self.tableWidget_data.cellWidget(_get_index(i+offset),3).isChecked():
                     #create error bar data, graphiclayout widget doesn't have a handy api to plot lines along with error bars
                     #disable this while the model is running
                     if not self.run_fit.solver.optimizer.running:
-                        x = np.append(self.model.data[i+offset].x[:,np.newaxis],self.model.data[i+offset].x[:,np.newaxis],axis=1)
-                        y_d = self.model.data[i+offset].y[:,np.newaxis] - self.model.data[i+offset].error[:,np.newaxis]/2
-                        y_u = self.model.data[i+offset].y[:,np.newaxis] + self.model.data[i+offset].error[:,np.newaxis]/2
+                        x = np.append(self.model.data[_get_index(i+offset)].x[:,np.newaxis],self.model.data[_get_index(i+offset)].x[:,np.newaxis],axis=1)
+                        y_d = self.model.data[_get_index(i+offset)].y[:,np.newaxis] - self.model.data[_get_index(i+offset)].error[:,np.newaxis]/2
+                        y_u = self.model.data[_get_index(i+offset)].y[:,np.newaxis] + self.model.data[_get_index(i+offset)].error[:,np.newaxis]/2
                         y = np.append(y_d,y_u,axis = 1)
                         for ii in range(len(y)):
                             self.data_profiles[i].plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
@@ -647,21 +690,21 @@ class MyMainWindow(QMainWindow):
                 #plot ideal structure factor
                 try:
                     scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
-                    h_, k_ = int(round(self.model.data[i+offset].extra_data['h'][0],0)),int(round(self.model.data[i+offset].extra_data['k'][0],0))
+                    h_, k_ = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0)),int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))
                     extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
                     if hasattr(self.model.script_module.rgh,extra_scale_factor):
                         rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
                     else:
                         rod_factor = 1
-                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.f_ideal[i+offset]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = False)
+                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = False)
                 except:
                     pass
                 #plot simulated results
-                if self.tableWidget_data.cellWidget(i+offset,2).isChecked():
-                    self.data_profiles[i].plot(self.model.data[i+offset].x, self.model.data[i+offset].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
+                if self.tableWidget_data.cellWidget(_get_index(i+offset),2).isChecked():
+                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
                 else:
                     pass
-        [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(self.data_profiles.index(each)+offset,1).isChecked()) for each in self.data_profiles]
+        [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(_get_index(self.data_profiles.index(each)+offset),1).isChecked()) for each in self.data_profiles]
         [each.autoRange() for each in self.data_profiles]
         fom_log = np.array(self.run_fit.solver.optimizer.fom_log)
         self.fom_evolution_profile.plot(fom_log[:,0],fom_log[:,1],pen={'color': 'r', 'width': 2}, clear = True)
@@ -705,21 +748,23 @@ class MyMainWindow(QMainWindow):
         each fit parameter, you can run a further NLLS fit using the the best fit parameters, which is not implemented in the program.
         """
         try:
-            error_bars = self.run_fit.solver.CalcErrorBars()
+            try:
+                error_bars = self.run_fit.solver.CalcErrorBars()
+            except:
+                try:
+                    error_bars = self.run_batch.solver.CalcErrorBars()
+                except:
+                    return
             total_num_par = len(self.model.parameters.data)
             index_list = [i for i in range(total_num_par) if self.model.parameters.data[i][2]]
-
             for i in range(len(error_bars)):
                 self.model.parameters.data[index_list[i]][-2] = error_bars[i]
-            
             self.update_par_upon_load()
         except diffev.ErrorBarError as e:
-
             self.statusbar.clearMessage()
             self.statusbar.showMessage('Failure to calculate error bar!')
             logging.getLogger().exception('Fatal error encountered during error calculation!')
             self.tabWidget_data.setCurrentIndex(4)
-
             _ = QMessageBox.question(self, 'Runtime error message', str(e), QMessageBox.Ok)
 
 
@@ -751,7 +796,6 @@ class MyMainWindow(QMainWindow):
             try:
                 self.setWindowTitle('Data analysis factory: CTR data modeling-->{}'.format(fileName))
                 self.model.load(fileName)
-                self.update_plot_dimension()
                 try:
                     self.load_addition()
                 except:
@@ -773,6 +817,7 @@ class MyMainWindow(QMainWindow):
                 # self.widget_msv_top.items = []
                 #update other pars
                 self.update_table_widget_data()
+                self.update_plot_dimension()
                 self.update_combo_box_dataset()
                 self.update_plot_data_view()
                 self.update_par_upon_load()
@@ -926,8 +971,11 @@ class MyMainWindow(QMainWindow):
     def auto_save_model(self):
         """model will be saved automatically during fit, for which you need to set the interval generations for saving automatically"""
         #the model will be renamed this way
+        self.update_par_upon_change()
         path = self.rod_file.replace(".rod","_ran.rod")
         if path:
+            #update the error bar
+            self.calculate_error_bars()
             self.model.script = (self.plainTextEdit_script.toPlainText())
             self.model.save(path)
             save_add_ = 'success'
@@ -943,6 +991,7 @@ class MyMainWindow(QMainWindow):
         #the model will be renamed this way
         try:
             path = self.rod_file
+            self.calculate_error_bars()
             self.model.script = (self.plainTextEdit_script.toPlainText())
             self.model.save(path)
             save_add_ = 'success'
@@ -964,6 +1013,7 @@ class MyMainWindow(QMainWindow):
         if path:
             #update the rod_file attribute
             self.rod_file = path
+            self.calculate_error_bars()
             self.model.script = (self.plainTextEdit_script.toPlainText())
             self.model.save(path)
             save_add_ = 'success'
@@ -1027,6 +1077,7 @@ class MyMainWindow(QMainWindow):
         script will be updated and compiled to make name spaces in script_module
         """
         self.update_data_check_attr()
+        self.update_plot_dimension()
         self.update_par_upon_change()
         self.model.script = (self.plainTextEdit_script.toPlainText())
         self.widget_solver.update_parameter_in_solver(self)
@@ -1144,9 +1195,22 @@ class MyMainWindow(QMainWindow):
             self.tabWidget_data.setCurrentIndex(4)
 
     def stop_model_batch(self):
+        #now need to distinguish how the thread is stopped
+        #stop after the finishing all generations
+        finish_normal = not self.run_batch.solver.optimizer.stop
+        self.update_par_upon_change()
+        # self.run_batch.solver.model.simulate()#update the error bar info in the model
+        #stop the batch run
         self.run_batch.stop()
         self.batch_thread.terminate()
         self.timer_update_structure.stop()
+        #save model first before rolling to next one
+        self.calculate_error_bars()
+        self.save_model()
+        self.auto_save_model()
+        #if the run is terminated by user then stop here, otherwise continue on
+        if not finish_normal:
+            return
         self.statusbar.clearMessage()
         self.statusbar.showMessage("Batch model run is aborted to work on next task!")
         if self.run_batch.multiple_files_hooker:
@@ -1851,7 +1915,7 @@ class MyMainWindow(QMainWindow):
                         self.tableWidget_pars.setCellWidget(i,2,check_box)
                     else:
                         if j == 1:
-                            qtablewidget = QTableWidgetItem(str(round(item,5)))
+                            qtablewidget = QTableWidgetItem(str(round(item,10)))
                         else:
                             qtablewidget = QTableWidgetItem(str(item))
                         if j == 0:
@@ -2001,7 +2065,7 @@ class MyMainWindow(QMainWindow):
         for i in range(len(model.parameters.data)):
             if model.parameters.data[i][0] !='':
                 item_temp = self.tableWidget_pars.item(i,1)
-                item_temp.setText(str(round(model.parameters.data[i][1],5)))
+                item_temp.setText(str(round(model.parameters.data[i][1],8)))
         self.tableWidget_pars.resizeColumnsToContents()
         self.tableWidget_pars.resizeRowsToContents()
         self.tableWidget_pars.setShowGrid(False)

@@ -2015,6 +2015,111 @@ class Sample:
         e_data.append(np.array([list(e_data[0])[0],e_total]))
         pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
 
+    def plot_electron_density_superrod(self,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19,'Zr':40,"Th":90,"Rb":37},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,raxs_el = None, height_offset=0, **kwargs):
+        """[summary]
+
+        Args:
+            el_lib (dict, optional): [description]. Defaults to {'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19,'Zr':40,"Th":90,"Rb":37}.
+            z_min ([type], optional): [min in z, Angstrom unit]. Defaults to 0..
+            z_max ([type], optional): [min in z, Angstrom unit]. Defaults to 28..
+            N_layered_water (int, optional): [the number of water layers]. Defaults to 10.
+            resolution (int, optional): [how many data points to render]. Defaults to 1000.
+        Returns:
+            labels: eg ['domain1','domain2','Total electron density']
+            e_data: eg [[z,e_density,e_raxs,e_layered_water],[z,e_density,e_raxs,e_layered_water],[z,e_density,e_raxs,e_layered_water]]
+            [type]: [description]
+        """
+        #print dinv
+        slabs = self.domain
+        e_data=[]
+        labels=[]
+        e_total=np.zeros(resolution)
+        e_total_raxs=np.zeros(resolution)
+        e_total_layer_water=np.zeros(resolution)
+        keys_sorted=[each for each in slabs.keys()]
+        keys_sorted.sort()
+        for key in keys_sorted:
+            slab=[slabs[key].domainA]
+            wt=slabs[key].wt
+            #raxs_el=raxs_el
+            x, y, z, u, oc, el = self._surf_pars(slab)
+            try:
+                sig_eff=slabs[key]['sig_eff']
+            except:
+                sig_eff=0.203
+            u=(u**2+sig_eff**2)**0.5
+            index_raxs=np.where(np.array(el)==raxs_el)[0]
+            z_raxs=np.array([(z[i]+1.)*self.unit_cell.c for i in index_raxs])
+            u_raxs=np.array([u[i] for i in index_raxs])
+            oc_raxs=np.array([oc[i] for i in index_raxs])
+            f_raxs=el_lib[raxs_el]
+            eden_raxs=[]
+            eden_layer_water=[]
+
+            #total electron density for current domain
+            z=(z+1.)*self.unit_cell.c#z is offseted by 1 unit since such offset is explicitly considered in the calculatino of structure factor
+            f=np.array([el_lib[each] for each in el])
+            Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
+            z_min,z_max=z_min,z_max
+            eden=[]
+            z_plot=[]
+            #layered water pars
+            layered_water,z_layered_water,sigma_layered_water,d_w,water_density=None,[],[],None,None
+            layered_water=[getattr(slabs[key].new_var_module,attr) for attr in ['u0','ubar','d_w','first_layer_height','density_w']]
+            if layered_water!=[]:
+                d_w=layered_water[2]
+                water_density=layered_water[-1]
+                for i in range(N_layered_water):
+                    z_layered_water.append((1+layered_water[3])*self.unit_cell.c+i*layered_water[2])#offset by one unit cell length
+                    sigma_layered_water.append((layered_water[0]**2+i*layered_water[1]**2+sig_eff**2)**0.5)
+            #consider the e density of layered sorbate
+            '''
+            #layered sorbate is not implemented yet!
+            layered_sorbate,z_layered_sorbate,sigma_layered_sorbate,sorbate_damping_factors,d_s,sorbate_density=None,[],[],[],None,None
+            layered_sorbate_keys=['u0_s','ubar_s','d_s','first_layer_height_s','density_s','oc_damping_factor','F1F2']
+            layered_sorbate=slabs[key]['layered_sorbate']
+            if layered_sorbate!=[]:
+                d_s=layered_sorbate[2]
+                sorbate_density=layered_sorbate[4]
+                damping_factor=layered_sorbate[5]
+                for i in range(N_layered_water):#assume the number of sorbate layer equal to that for water layers
+                    z_layered_sorbate.append((1+layered_sorbate[3])*self.unit_cell.c+i*layered_sorbate[2])#first layer is offseted by 1 unit cell (7.3707 A) accordingly
+                    sigma_layered_sorbate.append((layered_sorbate[0]**2+i*layered_sorbate[1]**2+sig_eff**2)**0.5)
+                    sorbate_damping_factors.append(damping_factor*i)#first layer no damping, second will be damped with a factor of exp(-damping_factor), third will exp(-2*damping_factor) and so on.
+            #print u,f,z
+            '''
+            for i in range(resolution):
+                z_each=float(z_max-z_min)/resolution*i+z_min
+                z_plot.append(z_each)
+                #normalized with occupancy and weight factor (thus normalized to the whole surface area containing multiple domains)
+                #here considering the e density for each atom layer will be distributed within a volume of Auc*1, so the unit here is e/A3
+                eden.append(np.sum(wt*2*oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
+                eden_raxs.append(np.sum(wt*2*oc_raxs*f_raxs/Auc*(2*np.pi*u_raxs**2)**-0.5*np.exp(-0.5/u_raxs**2*(z_each-z_raxs)**2)))
+                if layered_water!=[]:
+                    eden[-1]=eden[-1]+np.sum(10*wt*2*water_density*layered_water[2]*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                    eden_layer_water.append(np.sum(10*wt*2*water_density*layered_water[2]*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2)))
+                '''
+                if layered_sorbate!=[]:
+                    eden[-1]=eden[-1]+np.sum(el_lib[raxs_el]*wt*2*sorbate_density*np.exp(-np.array(sorbate_damping_factors))*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
+                    eden_raxs[-1]=eden_raxs[-1]+np.sum(el_lib[raxs_el]*wt*2*sorbate_density*np.exp(-np.array(sorbate_damping_factors))*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
+                '''
+            labels.append(key)
+            #e_data.append(np.array([z_plot,eden,eden_raxs,eden_layer_water]))
+            normalized_factor=3.03#3.03:1 electron per 3.03 cubic A
+            e_data.append(np.array([np.array(z_plot)-height_offset,np.array(eden)*normalized_factor,np.array(eden_raxs)*normalized_factor,np.array(eden_layer_water)*normalized_factor]))
+            e_total=e_total+np.array(eden)
+            #if layered_sorbate!=[]:
+            e_total_raxs=e_total_raxs+np.array(eden_raxs)
+            #if layered_water!=[]:
+            e_total_layer_water=e_total_layer_water+np.array(eden_layer_water)
+        labels.append('Total electron density')
+        #e_data.append(np.array([list(e_data[0])[0],e_total,e_total_raxs,e_total_layer_water]))
+        e_data.append(np.array([list(e_data[0])[0],e_total*normalized_factor,e_total_raxs*normalized_factor,e_total_layer_water*normalized_factor]))
+
+        #water_scaling=0.33
+        #pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
+        return labels, e_data
+
     def plot_electron_density_hematite(self,slabs,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19,'Zr':40,"Th":90,"Rb":37},z_min=0.,z_max=28.,N_layered_water=100,resolution=1000,file_path="D:\\",height_offset=0,version=1.0,freeze=False,raxs_el='Pb'):
         #print dinv
         z_min=z_min

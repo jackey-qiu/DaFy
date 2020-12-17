@@ -2201,7 +2201,7 @@ class Sample:
             eden_domain_plot.append(eden_domains)
         return z_plot,eden_plot,eden_domain_plot
 
-    def plot_electron_density_superrod(self,el_lib={'C':6,'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\"):
+    def plot_electron_density_superrod(self,el_lib={'C':6,'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\",**kwargs):
         #print dinv
         slabs = self.domain
         e_data=[]
@@ -2217,11 +2217,15 @@ class Sample:
                 sorbate = [slabs[key]['sorbate']]
             x, y, z, u_par, u_ver, oc, el = self._surf_pars(slab)
             x_, y_, z_, u_par_, u_ver_, oc_, el_ = self._surf_pars(sorbate)
-            #not u is in B unit, B = 8pi**2u**2
+            #take in to account the symmetry copies
+            oc_ = oc_ * len(slabs[key]['sorbate_sym'])
+            #note u is in B unit, B = 8pi**2u**2
             #we use component whichever is larger as an approximation of total B
             #here we need u
-            u = np.sqrt(np.max([u_ver,u_par],axis=0)/(8*np.pi**2))
-            u_ = np.sqrt(np.max([u_ver_,u_par_],axis=0)/(8*np.pi**2))
+            #we add in an arbitrary sig_eff = 0.203 due to limited resolution
+            sig_eff = 0.203
+            u = np.sqrt(np.max([u_ver,u_par],axis=0)/(8*np.pi**2)+sig_eff**2)
+            u_ = np.sqrt(np.max([u_ver_,u_par_],axis=0)/(8*np.pi**2)+sig_eff**2)
             x = np.concatenate((x,x_))
             y = np.concatenate((y,y_))
             z = np.concatenate((z,z_))
@@ -2258,15 +2262,14 @@ class Sample:
             for i in range(resolution):
                 z_each=float(z_max-z_min)/resolution*i+z_min
                 z_plot.append(z_each)
-                #normalized with occupancy and weight factor (manually scaled by a factor 2 to consider the half half of domainA and domainB)
+                #normalized with occupancy and weight factor 
                 #here considering the e density for each atom layer will be distributed within a volume of Auc*1, so the unit here is e/A3
                 eden.append(np.sum(slabs[key]['wt']*oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
                 if 'layered_water' in slabs[key].keys():
-                    #eden[-1]=eden[-1]+np.sum(8*slabs[key]['wt']*2*Auc*d_w*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
-                    eden[-1]=eden[-1]+np.sum(8*slabs[key]['wt']*2*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                    eden[-1]=eden[-1]+np.sum(10*slabs[key]['wt']*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
                 if 'layered_sorbate' in slabs[key].keys():
                     if slabs[key]['layered_sorbate']!=[]:
-                        eden[-1]=eden[-1]+np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*slabs[key]['wt']*2*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
+                        eden[-1]=eden[-1]+np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*slabs[key]['wt']*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
 
             labels.append(key)
             e_data.append(np.array([z_plot,eden]))
@@ -2276,7 +2279,7 @@ class Sample:
         #pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
         return labels, e_data
 
-    def plot_electron_density(self,slabs,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\"):
+    def plot_electron_density(self,slabs,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,**kwargs):
         #print dinv
         e_data=[]
         labels=[]

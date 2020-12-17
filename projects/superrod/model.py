@@ -96,6 +96,7 @@ class Model:
             new_data = pickle.loads(loadfile.read('data'),fix_imports=True, encoding = 'latin1')
             # new_data = pickle.loads(open(loadfile.read('data'),'rb'),fix_imports=True, encoding = 'latin1')
             #print 'data_type',type(new_data)
+            # print('new_data',len(new_data))
             self.data.safe_copy(new_data)
             self.data_original.safe_copy(new_data)
             self.data.concatenate_all_ctr_datasets()
@@ -488,7 +489,7 @@ class Model:
                     func_link(val)
             except Exception as e:
                 (sfuncs_tmp, vals_tmp, sfuncs_link_temp) = self.parameters.get_sim_pars()
-                raise ParameterError(sfuncs_link_tmp[i], i, str(e), 1)
+                raise ParameterError(sfuncs_link_temp[i], i, str(e), 1)
             i += 1
         self.evaluate_sim_func()
 

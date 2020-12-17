@@ -560,6 +560,7 @@ class DataList:
 
     def concatenate_all_ctr_datasets(self):
         all_ctr_data = []
+        self.ctr_data_info = {}
         for i,each in enumerate(self.items):
             h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
             self.ctr_data_info[i] = len(h)
@@ -626,6 +627,7 @@ class DataList:
             self._counter+=1
         else:
             self.items.append(DataSet(name,copy_from=self.items[-1]))
+        self.concatenate_all_ctr_datasets()
         #print "An empty dataset is appended at postition %i."%(len(self.items)-1)
 
     def add_new_list(self,name_list=['']):
@@ -637,6 +639,7 @@ class DataList:
             self.items[-1].loadfile_new(name)
         self.items=self.items[1:]
         self._counter=self._counter-1
+        self.concatenate_all_ctr_datasets()
         #print "An empty dataset is appended at postition %i."%(len(self.items)-1)
 
     def delete_item(self,pos):
@@ -647,10 +650,11 @@ class DataList:
         '''
         if pos<len(self.items) and len(self.items)>1:
             self.items.pop(pos)
-            #print "Data set number %i have been removed."%pos
+            print("Data set number %i have been removed."%pos)
+            self.concatenate_all_ctr_datasets()
             return True
         else:
-            #print 'Can not remove dataset number %i.'%pos
+            print('Can not remove dataset number %i.'%pos)
             return False
 
     def move_up(self, pos):

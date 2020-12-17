@@ -253,6 +253,17 @@ class Sample:
                 xyz_list.append((el, x, y, z))
         return xyz_list
 
+    def extract_xyz_top(self, which_domain = 0):
+        xyz_list = []
+        for i in range(len(self.domain['domains'][0].id)):
+            el = self.domain['domains'][0].el[i]
+            x_, y_, z_ = self._extract_coord(self.domain['domains'][0], self.domain['domains'][0].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+            translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+            for each in translation_offsets:
+                x, y, z = np.dot(self.domain['coord_T'], np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c])
+                xyz_list.append((el, x, y, z))
+        return xyz_list, []
+
     def calc_f(self, h, k, l):
         '''Calculate the structure factors for the sample
         '''
@@ -2135,7 +2146,7 @@ class Sample:
         pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
         return water_scaling
 
-    def plot_electron_density_muscovite_new(self,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19,'Zr':40,"Th":90,"Rb":37},z_min=-5,z_max=20.,N_layered_water=10,resolution=1000,height_offset=-2.6685,version=1.2,freeze=True):
+    def plot_electron_density_superrod(self,el_lib={'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19,'Zr':40,"Th":90,"Rb":37},z_min=-5,z_max=20.,N_layered_water=10,resolution=1000,height_offset=-2.6685,version=1.2,freeze=True, **kwargs):
         slabs = self.domain
         #print dinv
         e_data=[]
@@ -2230,8 +2241,9 @@ class Sample:
 
         #water_scaling=0.33
         #pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
-        return {'labels':labels,'e_data':e_data,'e_total':e_total,'e_total_raxs':e_total_raxs,'e_total_layer_water':e_total_layer_water}
-        #return e_data[0][0],e_data[]
+        #return {'labels':labels,'e_data':e_data,'e_total':e_total,'e_total_raxs':e_total_raxs,'e_total_layer_water':e_total_layer_water}
+        return labels, e_data
+
     def calc_fs(self, h, k, l,slabs):
         '''Calculate the structure factors from the surface
         '''
