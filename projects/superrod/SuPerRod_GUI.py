@@ -31,6 +31,7 @@ import data_superrod as data
 import model
 import solvergui
 import time
+import datetime
 import matplotlib
 # matplotlib.use("TkAgg")
 import _tkinter
@@ -44,6 +45,7 @@ from pyqtgraph.Qt import QtGui
 import syntax_pars
 from models.structure_tools import sorbate_tool
 import logging
+from superrod_ui import Ui_MainWindow
 
 #redirect the error stream to qt widget
 class QTextEditLogger(logging.Handler):
@@ -182,6 +184,7 @@ class MyMainWindow(QMainWindow):
     """
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
+        # self.setupUi(self)
         #pyqtgraph preference setting
         pg.setConfigOptions(imageAxisOrder='row-major', background = (50,50,100))
         pg.mkQApp()
@@ -2104,6 +2107,11 @@ if __name__ == "__main__":
     hightlight = syntax_pars.PythonHighlighter(myWin.plainTextEdit_script.document())
     myWin.plainTextEdit_script.show()
     myWin.plainTextEdit_script.setPlainText(myWin.plainTextEdit_script.toPlainText())
-    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    #which style would you like to use?
+    now = datetime.datetime.now()
+    today8am = now.replace(hour=8, minute=0, second=0, microsecond=0)
+    today5pm = now.replace(hour=17, minute=0, second=0, microsecond=0)
+    if not (today5pm>now>today8am):
+        app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())

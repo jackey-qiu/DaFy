@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2074</width>
+    <width>2082</width>
     <height>1027</height>
    </rect>
   </property>
@@ -40,7 +40,7 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab_13">
         <attribute name="title">
@@ -78,8 +78,14 @@
           <layout class="QHBoxLayout" name="horizontalLayout_19">
            <item>
             <widget class="QPushButton" name="pushButton_load_files">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
-              <string>Load folder</string>
+              <string>Load</string>
              </property>
             </widget>
            </item>
@@ -100,29 +106,16 @@
            <item>
             <widget class="QPushButton" name="pushButton_hook_to_batch">
              <property name="text">
-              <string>Hook to batch</string>
+              <string>Hook to queue</string>
              </property>
             </widget>
            </item>
            <item>
             <widget class="QPushButton" name="pushButton_purge_from_batch">
              <property name="text">
-              <string>Purge from batch</string>
+              <string>Purge from queue</string>
              </property>
             </widget>
-           </item>
-           <item>
-            <spacer name="horizontalSpacer_4">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
-             </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
            </item>
           </layout>
          </item>
@@ -519,7 +512,7 @@
             <enum>QTabWidget::South</enum>
            </property>
            <property name="currentIndex">
-            <number>4</number>
+            <number>0</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -964,7 +957,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>2074</width>
+     <width>2082</width>
      <height>24</height>
     </rect>
    </property>
