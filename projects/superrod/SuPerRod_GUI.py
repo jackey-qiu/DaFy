@@ -264,6 +264,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_open_selected_rod_file.clicked.connect(self.open_model_selected_in_listWidget)
         self.pushButton_hook_to_batch.clicked.connect(self.hook_to_batch)
         self.pushButton_purge_from_batch.clicked.connect(self.purge_from_batch)
+        self.actionpreviousModel.triggered.connect(self.load_previous_rod_file_in_batch)
+        self.actionnextModel.triggered.connect(self.load_next_rod_file_in_batch)
 
         #pushbuttons for data handeling
         self.pushButton_load_data.clicked.connect(self.load_data_ctr)
@@ -373,6 +375,32 @@ class MyMainWindow(QMainWindow):
         if not items:return
         for item in items:
             self.listWidget_rod_files.takeItem(self.listWidget_rod_files.row(item))
+
+    def load_next_rod_file_in_batch(self):
+        if not hasattr(self.run_batch,'rod_files'):
+            pass
+        else:
+            #if you are now at the last rod file, then roll back to the first one
+            if self.run_batch.rod_files.index(self.rod_file)==(len(self.run_batch.rod_files)-1):
+                self.open_model_with_path(self.run_batch.rod_files[0])
+                self.listWidget_rod_files.setCurrentRow(0)
+            else:
+                target_index = self.run_batch.rod_files.index(self.rod_file) + 1
+                self.open_model_with_path(self.run_batch.rod_files[target_index])
+                self.listWidget_rod_files.setCurrentRow(target_index)
+
+    def load_previous_rod_file_in_batch(self):
+        if not hasattr(self.run_batch,'rod_files'):
+            pass
+        else:
+            #if you are now at the first rod file, then roll forward to the last one
+            if self.run_batch.rod_files.index(self.rod_file)==0:
+                self.open_model_with_path(self.run_batch.rod_files[-1])
+                self.listWidget_rod_files.setCurrentRow(len(self.run_batch.rod_files)-1)
+            else:
+                target_index = self.run_batch.rod_files.index(self.rod_file) - 1
+                self.open_model_with_path(self.run_batch.rod_files[target_index])
+                self.listWidget_rod_files.setCurrentRow(target_index)
 
     def show_plots_on_next_screen(self):
         """
@@ -652,7 +680,9 @@ class MyMainWindow(QMainWindow):
                 self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],pen = {'color': "w", 'width': 1},clear = True)
                 self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],fillLevel=0, brush = (0,200,0,100),clear = False)
                 #self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
-                #self.fom_scan_profile.plot(edf['e_data'][-1][0],edf['e_data'][-1][3],fillLevel=0, brush = (0,0,200,100),clear = False)
+                if len(edf[-1])==4:
+                    self.fom_scan_profile.plot(edf[-1][0],edf[-1][2],fillLevel=0, brush = (200,0,0,100),clear = False)
+                    self.fom_scan_profile.plot(edf[-1][0],edf[-1][3],fillLevel=0, brush = (0,0,250,100),clear = False)
                 self.fom_scan_profile.autoRange()
         except:
             self.statusbar.clearMessage()
@@ -1091,6 +1121,7 @@ class MyMainWindow(QMainWindow):
             try:
                 self.calc_f_ideal()
             except:
+                # self.calc_f_ideal()
                 pass
             self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,self.model.fom))
             self.update_plot_data_view_upon_simulation()

@@ -148,6 +148,8 @@ import pickle,copy
 import pandas as pd
 from scipy.spatial import distance
 from numpy.linalg import inv
+from numba import jit,float64,float32, int32, complex128
+import numba
 try:
     from scipy import weave
     _turbo_sim = True
@@ -156,6 +158,27 @@ except:
     _turb_sim = False
 
 __pars__ = ['Sample', 'UnitCell', 'Slab', 'AtomGroup', 'Instrument']
+
+USE_NUMBA = True
+#speed up by numba!
+# @jit(complex128[::1](complex128[::1,:],float64[:],float64[:],float64[:],float64[::1],float64[::1],float64[::1],float64[::1],float64[::1],float64[::1],float64[::1],float64[::1]),nopython = True, nogil = True, cache= True)
+@jit(nopython=True, nogil = True, cache=True)
+def cal_f_numba(f,h,k,l,x, y, z, oc,B_par,B_ver, q_par,q_ver):
+    return np.sum(oc*f*np.exp(-(B_par*np.expand_dims(np.square(q_par),1)+B_ver*np.expand_dims(np.square(q_ver),1))/(16*np.pi**2))\
+                    *np.exp(2.0*np.pi*1.0J*(
+                                            np.expand_dims(h,1)*x +
+                                            np.expand_dims(k,1)*y +
+                                            np.expand_dims(l,1)*z))
+                   ,1)
+
+@jit(nopython=True, nogil = True, cache=True)
+def cal_fs_numba(f,h,k,l,x, y, z, oc,B_par,B_ver, q_par,q_ver, delta1, delta2):
+    return np.sum(oc*f*np.exp(-(B_par*np.expand_dims(np.square(q_par),1)+B_ver*np.expand_dims(np.square(q_ver),1))/(16*np.pi**2))\
+                    *np.exp(2.0*np.pi*1.0J*(
+                                            np.expand_dims(h,1)*(x+delta1) +
+                                            np.expand_dims(k,1)*(y+delta2) +
+                                            np.expand_dims(l,1)*(z+1)))
+                   ,1)
 
 class Sample:
     def __init__(self, inst, bulk_slab, slabs,unit_cell,surface_parms={'delta1':0,'delta2':0},
@@ -2218,7 +2241,7 @@ class Sample:
             x, y, z, u_par, u_ver, oc, el = self._surf_pars(slab)
             x_, y_, z_, u_par_, u_ver_, oc_, el_ = self._surf_pars(sorbate)
             #take in to account the symmetry copies
-            oc_ = oc_ * len(slabs[key]['sorbate_sym'])
+            #oc_ = oc_
             #note u is in B unit, B = 8pi**2u**2
             #we use component whichever is larger as an approximation of total B
             #here we need u
@@ -2516,11 +2539,11 @@ class Sample:
         labels.append('Total electron density')
         #e_data.append(np.array([list(e_data[0])[0],e_total,e_total_raxs,e_total_layer_water]))
         e_data.append(np.array([list(e_data[0])[0],e_total*normalized_factor,e_total_raxs*normalized_factor,e_total_layer_water*normalized_factor]))
-
         water_scaling=0.33
         pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
         return water_scaling
 
+    # @jit(nopython=True,parallel=True)
     def calc_fs(self, h, k, l,slabs):
         '''Calculate the structure factors from the surface
         '''
@@ -2534,26 +2557,21 @@ class Sample:
         #print f.shape, h.shape, oc.shape, x.shape, y.shape, z.shape,el.shape
         #change mark 3
         #delta_l=1
-        #if self.delta1==[]:delta_l=0
-        fs = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
-            *np.sum([np.exp(2.0*np.pi*1.0J*(
-                 h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
-                 k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
-                 l[:,np.newaxis]*(z[np.newaxis, :]+1)))
-              for sym_op in self.surface_sym], 0)
-                    ,1)
-        """
-        for id in slabs[0].id:
-            if "Pb" in str(id):
+        if USE_NUMBA:
+            fs_list = []
+            for sym_op in self.surface_sym:
+                fs_list.append(cal_fs_numba(f,h,k,l,sym_op.trans_x(x,y), sym_op.trans_y(x,y), z, oc,B_par,B_ver, q_par,q_ver,self.delta1, self.delta2))
+            return sum(fs_list)
+        else:
+            return np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
+                *np.sum([np.exp(2.0*np.pi*1.0J*(
+                    h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
+                    k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
+                    l[:,np.newaxis]*(z[np.newaxis, :]+1)))
+                for sym_op in self.surface_sym], 0)
+                        ,1)
 
-                print id, np.sum([np.exp(2.0*np.pi*1.0J*(\
-                    1*(sym_op.trans_x(x, y)+self.delta1) +\
-                    1*(sym_op.trans_y(x, y)+self.delta2) +\
-                    1.3*(z[np.newaxis, :]+1)))\
-                    for sym_op in self.surface_sym][0][0])#[np.where(slabs[0].id==id)[0][0]]
-        """
-        return fs
-
+    # @jit(nopython=True,parallel=True)
     def calc_fs_sorbate(self, h, k, l,slabs, sorbate_sym):
         '''Calculate the structure factors from the surface
         '''
@@ -2562,14 +2580,19 @@ class Sample:
         x, y, z, B_par,B_ver, oc, el = self._surf_pars(slabs)
         #Note that the u here has been recalculated to represent for the Gaussian distribution width of the thermal vibration (ie sigma in Angstrom)
         f=self._get_f(el, dinv)
-        fs = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
-            *np.sum([np.exp(2.0*np.pi*1.0J*(
-                h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
-                k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
-                l[:,np.newaxis]*(z[np.newaxis, :]+1)))
-            for sym_op in sorbate_sym], 0)
-                    ,1)
-        return fs
+        if USE_NUMBA:
+            fs_list = []
+            for sym_op in sorbate_sym:
+                fs_list.append(cal_fs_numba(f,h,k,l,sym_op.trans_x(x,y), sym_op.trans_y(x,y), z, oc,B_par,B_ver, q_par,q_ver,self.delta1, self.delta2))
+            return sum(fs_list)
+        else:
+            return np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
+                *np.sum([np.exp(2.0*np.pi*1.0J*(
+                    h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
+                    k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
+                    l[:,np.newaxis]*(z[np.newaxis, :]+1)))
+                for sym_op in sorbate_sym], 0)
+                        ,1)
 
     def calc_fs_hematite_RAXR_MD(self, h, k, l,slabs,f1f2,res_el='Pb'):
         '''Calculate the structure factors from the surface
@@ -2833,6 +2856,7 @@ class Sample:
         #print t2-t1
         return fs
 
+    # @jit("float32[:](float32[:],float32[:],float32[:])",nopython=True,parallel=True)
     def calc_fb(self, h, k, l):
         '''Calculate the structure factors from the bulk
         '''
@@ -2844,6 +2868,8 @@ class Sample:
             x, y, z, el, B_par,B_ver, oc, c = self.bulk_slab._extract_values()
             oc = oc/float(len(self.bulk_sym))
             f = self._get_f(el, dinv)
+            # print(f.shape)
+            # print(f)
             # Calculate the "shape factor" for the CTRs
             eff_thick = self.unit_cell.c/np.sin(self.inst.alpha*np.pi/180.0)
             alpha = (2.82e-5*self.inst.wavel*eff_thick/self.unit_cell.vol()*
@@ -2856,13 +2882,19 @@ class Sample:
             # Sum up the uc struct factors
             #DWF = exp(-M) M = (B_ver * square(Q_ver) + B_par * square(Q_par))/(16*pi**2)
             # print(B_par,B_ver)
-            f_u = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))*
-                        np.sum([np.exp(2.0*np.pi*1.0J*(
-                                h[:,np.newaxis]*sym_op.trans_x(x, y) +
-                                k[:,np.newaxis]*sym_op.trans_y(x, y) +
-                                l[:,np.newaxis]*z[np.newaxis, :]))
-                        for sym_op in self.bulk_sym], 0)
-                        ,1)
+            if USE_NUMBA: 
+                f_u_list = []
+                for sym_op in self.bulk_sym:
+                    f_u_list.append(cal_f_numba(f,h,k,l,sym_op.trans_x(x,y), sym_op.trans_y(x,y), z, oc,B_par,B_ver, q_par,q_ver))
+                f_u = sum(f_u_list)
+            else:
+                f_u = np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))*
+                            np.sum([np.exp(2.0*np.pi*1.0J*(
+                                    h[:,np.newaxis]*sym_op.trans_x(x, y) +
+                                    k[:,np.newaxis]*sym_op.trans_y(x, y) +
+                                    l[:,np.newaxis]*z[np.newaxis, :]))
+                            for sym_op in self.bulk_sym], 0)
+                            ,1)
             # Putting it all togheter
             fb = f_u/denom*delta_funcs
             self.fb[key] = fb

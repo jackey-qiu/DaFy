@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2082</width>
+    <width>2031</width>
     <height>1027</height>
    </rect>
   </property>
@@ -957,7 +957,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>2082</width>
+     <width>2031</width>
      <height>24</height>
     </rect>
    </property>
@@ -1021,6 +1021,8 @@
    <addaction name="actionStop"/>
    <addaction name="actionCalculate"/>
    <addaction name="separator"/>
+   <addaction name="actionpreviousModel"/>
+   <addaction name="actionnextModel"/>
    <addaction name="actionRun_batch_script"/>
    <addaction name="actionStopBatch"/>
    <addaction name="separator"/>
@@ -1237,6 +1239,24 @@
    </property>
    <property name="text">
     <string>Save</string>
+   </property>
+  </action>
+  <action name="actionpreviousModel">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/previous.png</normaloff>icons/previous.png</iconset>
+   </property>
+   <property name="text">
+    <string>previousModel</string>
+   </property>
+  </action>
+  <action name="actionnextModel">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/next.png</normaloff>icons/next.png</iconset>
+   </property>
+   <property name="text">
+    <string>nextModel</string>
    </property>
   </action>
  </widget>
