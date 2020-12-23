@@ -6,3 +6,5 @@ dump_file/*.tab
 !dump_files/locate_path.py
 legacy/*
 *.pyc
+*.nbc
+*.nbi
