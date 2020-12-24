@@ -1763,9 +1763,9 @@ class Sample:
         #the u0_s and ubar_s here are in A
         #note f1f2 is not used in the function, it serves as a purpose for easy pasting arguments in script
         if h[0]==0 and k[0]==0:#layered structure has effect only on specular rod
-            el,u0_s,ubar_s,d_s,first_layer_height_s,density_s=self.domain['el'],args['u0_s'],args['ubar_s'],args['d_s'],args['first_layer_height_s'],args['density_s']
+            el,u0_s,ubar_s,d_s,first_layer_height_s,density_s=self.domain['el'],args.getU0_s(),args.getUbar_s(),args.getD_s(),args.getFirst_layer_height_s(),args.getDensity_s()
             try:
-                oc_bar=args['oc_damping_factor']
+                oc_bar=args.getOc_damping_factor()
             except:
                 oc_bar=0
             dinv = self.unit_cell.abs_hkl(h, k, l)
@@ -1797,9 +1797,10 @@ class Sample:
         #In addition, the occupancy of layered sorbate molecules was correctly calculated here by Auc*d_s*density_s
         #the u0_s and ubar here are in A
         if h[0]==0 and k[0]==0:#layered structure has effect only on specular rod
-            el,u0_s,ubar_s,d_s,first_layer_height_s,density_s=self.domain['el'],args['u0_s'],args['ubar_s'],args['d_s'],args['first_layer_height_s'],args['density_s']
+            el,u0_s,ubar_s,d_s,first_layer_height_s,density_s=self.domain['el'],args.getU0_s(),args.getUbar_s(),args.getD_s(),args.getFirst_layer_height_s(),args.getDensity_s()
+            # el,u0_s,ubar_s,d_s,first_layer_height_s,density_s=self.domain['el'],args['u0_s'],args['ubar_s'],args['d_s'],args['first_layer_height_s'],args['density_s']
             try:
-                oc_bar=args['oc_damping_factor']
+                oc_bar=args.getOc_damping_factor()
             except:
                 oc_bar=0
             try:
@@ -2323,7 +2324,7 @@ class Sample:
         x, y, z, u, oc, el = self._surf_pars(slabs)
         try:
             if self.domain['freeze']:
-                sub_space_index=[i for i in range(len(slabs[0].id)) if slabs[0].id[i][0:11]!='Freezed_el_']
+                sub_space_index=[i for i in range(len(slabs[0].id)) if not slabs[0].id[i].startswith('Freezed_el_')]
                 x,y,z,u,oc,el=x[sub_space_index],y[sub_space_index],z[sub_space_index],u[sub_space_index],oc[sub_space_index],el[sub_space_index]
         except:
             pass

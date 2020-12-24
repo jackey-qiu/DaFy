@@ -1075,6 +1075,10 @@ class MyMainWindow(QMainWindow):
         pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
         for i in range(len(pars)):
             self.model.save_addition(pars[i],str(values[i]))
+        model_info = ''
+        if hasattr(self,'textEdit_note'):
+            model_info = self.textEdit_note.toPlainText()
+        self.model.save_addition('model_info',model_info)
             # print(pars[i],str(values[i]))
     
     def load_addition(self):
@@ -1103,6 +1107,13 @@ class MyMainWindow(QMainWindow):
                 else:
                     value = type_(self.model.load_addition(pars[i]))
                 funcs[i](value)
+            model_info = ''
+            try:
+                model_info = self.model.load_addition('model_info').decode('utf-8')
+            except:
+                pass
+            if hasattr(self,'textEdit_note'):
+                self.textEdit_note.setPlainText(model_info)
 
     def simulate_model(self):
         """
