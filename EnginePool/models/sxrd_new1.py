@@ -597,7 +597,7 @@ class Sample:
             return ftot*self.inst.inten
 
     def calc_f4_muscovite_RAXR_MD(self,h,k,x,y,index,height_offset=0,version=1):
-        h, k, l, E, E0, f1f2, a, b, c, resonant_el=h,k,y,x,self.domain['E0'],self.domain['F1F2'],self.domain['raxs_vars']['a'+str(index)],self.domain['raxs_vars']['b'+str(index)],self.domain['raxs_vars']['c'+str(index)],self.domain['el']
+        h, k, l, E, E0, f1f2, a, b, c, resonant_el=h,k,y,x,self.domain['E0'],self.domain['F1F2'],getattr(self.domain['raxs_vars'],'a'+str(index)),getattr(self.domain['raxs_vars'],'b'+str(index)),getattr(self.domain['raxs_vars'],'c'+str(index)),self.domain['el']
         ftot=0
 
         def _extract_f1f2(f1f2,E):
@@ -1838,10 +1838,12 @@ class Sample:
         q_list_sorted.sort()
         q_list_sorted=np.array(q_list_sorted)*np.pi*2#note that q=2pi/d
         delta_q=np.average([q_list_sorted[i+1]-q_list_sorted[i] for i in range(len(q_list_sorted)-1)])
+        # delta_q = 2
         Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
         z_plot=[]
         eden_plot=[]
         eden_domain_plot=[]
+        # print(Auc, delta_q,ZR)
         for i in range(resolution):
             z_each=float(z_max-z_min)/resolution*i+z_min
             z_plot.append(z_each)
@@ -1850,7 +1852,7 @@ class Sample:
             eden_each_domain=ZR/Auc/np.pi/2*np.sum(A_list*np.cos(2*np.pi*P_list-np.array(q_list_sorted)*z_each)*delta_q)/water_scaling
             eden_domains.append(eden_each_domain)
             eden+=eden_each_domain
-            eden_plot.append(eden)
+            eden_plot.append(eden*int(eden>0))
             eden_domain_plot.append(eden_domains)
         return z_plot,eden_plot,eden_domain_plot
 
@@ -2157,7 +2159,7 @@ class Sample:
         e_total_layer_water=np.zeros(resolution)
         #only one domain
         for domain_index in range(len(slabs['domains'])):
-            #wt=getattr(slabs['global_vars'],'wt'+str(domain_index+1))
+            # wt=getattr(slabs['global_vars'],'wt'+str(domain_index+1))
             wt=1
             raxs_el=slabs['el']
             slab=[slabs['domains'][domain_index]]
@@ -2210,23 +2212,21 @@ class Sample:
                 #here considering the e density for each atom layer will be distributed within a volume of Auc*1, so the unit here is e/A3
                 eden.append(np.sum(wt*oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
                 eden_raxs.append(np.sum(wt*oc_raxs*f_raxs/Auc*(2*np.pi*u_raxs**2)**-0.5*np.exp(-0.5/u_raxs**2*(z_each-z_raxs)**2)))
-                bulk_water=0
-                if z_each>0:
-                    bulk_water=1
-                eden[-1]=eden[-1]+np.sum(10*wt*water_density*layered_water[2]*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))+(.33-0.16233394)*wt*bulk_water*0
-                eden_layer_water.append(np.sum(10*wt*water_density*layered_water[2]*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))+(.33-0.16233394)*wt*bulk_water*0)
-                #eden[-1]=eden[-1]+np.sum(10*wt*water_density*(np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2)))
+                eden[-1]=eden[-1]+np.sum(10*wt*water_density*layered_water[2]*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                eden_layer_water.append(np.sum(10*wt*water_density*layered_water[2]*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2)))
                 eden[-1]=eden[-1]+np.sum(el_lib[raxs_el]*wt*sorbate_density*np.exp(-np.array(sorbate_damping_factors))*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
-
                 eden_raxs[-1]=eden_raxs[-1]+np.sum(el_lib[raxs_el]*wt*sorbate_density*np.exp(-np.array(sorbate_damping_factors))*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
 
             labels.append('Domain'+str(domain_index+1))
             #e_data.append(np.array([z_plot,eden,eden_raxs,eden_layer_water]))
             normalized_factor=3.03#3.03:1 electron per 3.03 cubic A
+            e_data.append(np.array([z_plot,np.array(eden)*normalized_factor,np.array(eden_raxs)*normalized_factor,np.array(eden_layer_water)*normalized_factor]))
+            '''
             if domain_index==0:#domain1 has a 0.25 weighting factor
                 e_data.append(np.array([z_plot,np.array(eden)*normalized_factor,np.array(eden_raxs)*normalized_factor,np.array(eden_layer_water)*normalized_factor]))
             elif domain_index==1:#domain2 has a 0.75 weighting factor
                 e_data.append(np.array([z_plot,np.array(eden)*normalized_factor,np.array(eden_raxs)*normalized_factor,np.array(eden_layer_water)*normalized_factor]))
+            '''
             if version==1.0:
                 e_total=e_total+np.array(eden)
             elif version>=1.1:

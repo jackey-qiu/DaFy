@@ -8,7 +8,7 @@ Last changed: 2008 06 24
 
 # Standard libraries
 import shelve, os,zipfile
-import types
+import types,sys
 #import _pickle as pickle
 import pickle
 from io import StringIO
@@ -16,6 +16,18 @@ import pdb, traceback
 import numpy as np
 # GenX libraries
 #import data
+try:
+    from . import locate_path
+except:
+    import locate_path
+script_path = locate_path.module_path_locator()
+DaFy_path = os.path.dirname(os.path.dirname(script_path))
+sys.path.append(DaFy_path)
+sys.path.append(os.path.join(DaFy_path,'dump_files'))
+sys.path.append(os.path.join(DaFy_path,'EnginePool'))
+sys.path.append(os.path.join(DaFy_path,'FilterPool'))
+sys.path.append(os.path.join(DaFy_path,'util'))
+sys.path.append(os.path.join(DaFy_path,'projects'))
 import data_superrod as data
 import parameters, fom_funcs
 from fom_funcs import weight_fom_based_on_HKL

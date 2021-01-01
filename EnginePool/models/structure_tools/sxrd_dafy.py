@@ -432,6 +432,7 @@ class Sample:
         xyz_substrate = []
         xyz_sorbate = []
         which_key = list(self.domain.keys())[which_domain]
+        # t0 = time.time()
         for key in self.domain.keys():
             #print(key)
             if key == which_key:
@@ -458,13 +459,16 @@ class Sample:
                         xyz_sorbate.append([x_,y_,z_])
             else:
                 pass
+        # t1 = time.time()
         for each in xyz_sorbate:
             for i in range(len(xyz_substrate)):
                 temp_dist = distance.euclidean(each, xyz_substrate[i])
                 if temp_dist<max_distance:
+                    # print(time.time()-t1,t1-t0)
                     return p_factor
                 else:
                     pass
+        # print(time.time()-t1,t1-t0)
         return 1
 
     def inter_atom_distance_report(self, which_domain = 0, atm_id = None, max_distance = 3):

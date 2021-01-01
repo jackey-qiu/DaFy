@@ -370,7 +370,13 @@ class Sample:
 
         return abs(ftot)*self.inst.inten
 
-    def calc_f4(self, h, k, l):
+    def calc_f4_all(self, h, k, l, raxr_el):
+        if (int(h[0]) == 0) and (int(k[0]) == 0):
+            return self.calc_f4_specular(h, k, l, raxr_el)
+        else:
+            return self.calc_f4(h, k, l)
+
+    def calc_f4(self, h, k, l, **kwargs):
         #now the coherence looks like [{True:[0,1]},{False:[2,3]}] which means adding up first two domains coherently
         #and last two domains in-coherently. After calculation of structure factor for each item of the list, absolute
         #value of SF will be calculated followed by being summed up
@@ -394,6 +400,78 @@ class Sample:
                     ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
                     ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
             ftot=ftot+abs(ftot_A_C)+ftot_A_IC+ftot_B_IC+abs(ftot_B_C)
+            #ftot=ftot+ftot_A_C+ftot_A_IC+ftot_B_IC+ftot_B_C
+        return abs(ftot)*self.inst.inten
+
+    def calc_f4_new(self, h, k, l, **kwargs):
+        #now the coherence looks like [{True:[0,1]},{False:[2,3]}] which means adding up first two domains coherently
+        #and last two domains in-coherently. After calculation of structure factor for each item of the list, absolute
+        #value of SF will be calculated followed by being summed up
+        #so [{True:[0,1]},{True:[2,3]}] is different from [{True:[0,1,2,3]}]
+        ftot=0
+        coherence=self.coherence
+        fb = self.calc_fb(h, k, l)
+        f_surface=self.calc_fs
+        for n in range(len(coherence)):
+            ftot_A_C, ftot_A_IC=0,0
+            #ftot_B_C, ftot_B_IC=0,0
+            keys_domain=[]
+
+            for i in list(coherence[n].values())[0]:
+                keys_domain.append('domain'+str(i+1))
+            for i in keys_domain:
+                if list(coherence[n].keys())[0]:
+                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
+                    #ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
+                else:
+                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA]))*self.domain[i].wt
+                    #ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB]))*self.domain[i].wt
+            ftot=ftot+abs(ftot_A_C)
+            #ftot=ftot+ftot_A_C+ftot_A_IC+ftot_B_IC+ftot_B_C
+        return abs(ftot)*self.inst.inten
+
+    def calc_f4_specular_new(self, h, k, l,raxr_el):
+        #now the coherence looks like [{True:[0,1]},{False:[2,3]}] which means adding up first two domains coherently
+        #and last two domains in-coherently. After calculation of structure factor for each item of the list, absolute
+        #value of SF will be calculated followed by being summed up
+        #so [{True:[0,1]},{True:[2,3]}] is different from [{True:[0,1,2,3]}]
+        ftot=0
+        coherence=self.coherence
+        fb = self.calc_fb(h, k, l)
+        f_surface=self.calc_fs
+
+        for n in range(len(coherence)):
+            ftot_A_C, ftot_A_IC=0,0
+            ftot_B_C, ftot_B_IC=0,0
+            keys_domain = []
+
+            for i in list(coherence[n].values())[0]:
+                keys_domain.append('domain'+str(i+1))
+
+            for i in keys_domain:
+                f_layered_water_A = 0
+                f_layered_sorbate_A = 0
+                if self.domain[i].water_info['layered_water_pars']['yes_OR_no']:
+                    par_water = [getattr(self.domain[i].new_var_module,par) for par in ['u0','ubar','d_w','first_layer_height','density_w']]
+                    ref_height_water = self.domain[i].water_info['layered_water_pars']['ref_layer_height']*self.unit_cell.c
+                    par_water_domainA = np.array(par_water)+[0,0,0,ref_height_water,0]
+                    #par_water_domainB = np.array(par_water)+[0,0,0,ref_height_water-self.unit_cell.c/2,0]
+                    f_layered_water_A=self.calc_f_layered_water(h,k,l,*par_water_domainA)
+                    #f_layered_water_B=self.calc_f_layered_water(h,k,l,*par_water_domainB)
+                if self.domain[i].water_info['layered_sorbate_pars']['yes_OR_no']:
+                    par_sorbate = [getattr(self.domain[i].new_var_module,par) for par in ['u0_s','ubar_s','d_s','first_layer_height_s','density_s','oc_damping_factor']]
+                    ref_height_sorbate = self.domain[i].water_info['layered_sorbate_pars']['ref_layer_height']*self.unit_cell.c
+                    par_sorbate_domainA = np.array(par_sorbate)+[0,0,0,ref_height_sorbate,0,0]
+                    #par_sorbate_domainB = np.array(par_water)+[0,0,0,ref_height_sorbate-self.unit_cell.c/2,0,0]
+                    f_layered_sorbate_A=self.calc_f_layered_sorbate(h,k,l,raxr_el,*par_sorbate_domainA)
+                    #f_layered_sorbate_B=self.calc_f_layered_sorbate(h,k,l,raxr_el,*par_sorbate_domainB)
+                if list(coherence[n].keys())[0]:
+                    ftot_A_C=ftot_A_C+(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A+f_layered_sorbate_A)*self.domain[i].wt
+                    #ftot_B_C=ftot_B_C+(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B+f_layered_sorbate_B)*self.domain[i].wt
+                else:
+                    ftot_A_IC=ftot_A_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainA])+f_layered_water_A+f_layered_sorbate_A)*self.domain[i].wt
+                    #ftot_B_IC=ftot_B_IC+abs(fb+f_surface(h, k, l,[self.domain[i].domainB])+f_layered_water_B+f_layered_sorbate_B)*self.domain[i].wt
+            ftot=ftot+abs(ftot_A_C)+ftot_A_IC
             #ftot=ftot+ftot_A_C+ftot_A_IC+ftot_B_IC+ftot_B_C
         return abs(ftot)*self.inst.inten
 

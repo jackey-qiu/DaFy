@@ -11,6 +11,8 @@ MPI_RUN=False
 from numpy import *
 import _thread as thread
 import time
+import psutil
+import numpy as np
 import random as random_mod
 import sys, os, pickle
 from PyQt5 import QtCore
@@ -31,9 +33,10 @@ else:
 
 if not MPI_RUN:
     try:
-        import multiprocessing as processing
+        import ray
+        _cpu_count = psutil.cpu_count(logical=False) 
+        ray.init(num_cpus=_cpu_count)
         __parallel_loaded__ = True
-        _cpu_count = processing.cpu_count()
     except:
         pass
 #__parallel_loaded__ = False
@@ -755,18 +758,18 @@ class DiffEv:
         setup for parallel proccesing. Creates a pool of workers with
         as many cpus there is available
         '''
+        '''
         self.pool = processing.Pool(processes = self.processes,\
                        initializer = parallel_init,\
                        initargs = (self.model.pickable_copy(), ))
-        # self.pool = processing.Pool(processes = self.processes,\
-                        # initializer = parallel_init,\
-                        # initargs = (self.model,))
-
+        '''
         print(self.processes,"Processors!")
         self.text_output("Starting a pool with %i workers ..."%\
                             (self.processes, ))
-        time.sleep(1.0)
-        #print "Starting a pool with ", self.processes, " workers ..."
+        self._make_task_map()
+        self.streaming_actors = [mpi_engine_ray.remote(self.model.pickable_copy()) for _ in range(self.processes)]
+        
+        #time.sleep()
 
     def setup_parallel_mpi(self):
         '''setup_parallel(self) --> None
@@ -792,8 +795,11 @@ class DiffEv:
         ''' dismount_parallel(self) --> None
         Used to close the pool and all its processes
         '''
-        self.pool.close()
-        self.pool.join()
+        try:
+            self.pool.close()
+            self.pool.join()
+        except:
+            pass
 
         #del self.pool
 
@@ -816,14 +822,39 @@ class DiffEv:
             fom_temp.append(parallel_calc_fom(self.trial_vec[i]))
         self.trial_fom=fom_temp
 
+    def _make_task_map(self):
+        extra_tasks = len(self.trial_vec)%self.processes
+        tasks_even_portion = int(len(self.trial_vec)/self.processes)
+        tasks_list = [tasks_even_portion for i in range(self.processes)]
+        for i in range(extra_tasks):
+            tasks_list[i] += 1
+        tasks_list = np.cumsum([0]+tasks_list)
+        task_map = {}
+        for i in range(self.processes):
+            task_map[i] = [tasks_list[i],tasks_list[i+1]]
+        self.task_map = task_map
+
+    def _assign_task(self, which):
+        for key, value in self.task_map.items():
+            if value[1]>which>=value[0]:
+                return key
+
     def calc_trial_fom_parallel(self):
         '''calc_trial_fom_parallel(self) --> None
 
         Function to calculate the fom in parallel using the pool
         '''
-        self.trial_fom = self.pool.map(parallel_calc_fom, self.trial_vec)
-        self.n_fom += len(self.trial_vec) 
-        # print("chunksize", self.chunksize)
+        #self.trial_fom = self.pool.map(parallel_calc_fom, self.trial_vec)
+        #self.n_fom += len(self.trial_vec) 
+        [actor.reset_fom.remote() for actor in self.streaming_actors]
+        for i in range(len(self.trial_vec)):
+            self.streaming_actors[self._assign_task(i)].calc_fom.remote(self.trial_vec[i])
+        results = ray.get([actor.get_fom.remote() for actor in self.streaming_actors])
+        foms = []
+        for each in results:
+            foms = foms + each
+        self.trial_fom = foms
+        self.n_fom += len(self.trial_vec)
 
     def calc_error_bar(self, index, fom_level):
         '''calc_error_bar(self, parameter) --> (error_bar_low, error_bar_high)
@@ -1380,6 +1411,29 @@ class DiffEv:
         '''
         self.fom_allowed_dis = float(val)
 
+@ray.remote
+class mpi_engine_ray(object):
+    def __init__(self, model):
+        self.model = model
+        self.model._reset_module()
+        self.model.simulate()
+        self.fom = []
+        self.par_funcs, self.start_guess, self.par_min, self.par_max, self.par_funcs_link = self.model.get_fit_pars()
+
+    def calc_fom(self, vec):
+        for i in range(len(self.par_funcs)):
+            self.par_funcs[i](vec[i])
+            if self.par_funcs_link[i]!=None:
+                self.par_funcs_link[i](vec[i])
+        # evaluate the model and calculate the fom
+        fom = self.model.evaluate_fit_func()
+        self.fom.append(fom)
+
+    def get_fom(self):
+        return self.fom
+
+    def reset_fom(self):
+        self.fom = []
 
 #==============================================================================
 # Functions that is needed for parallel processing!

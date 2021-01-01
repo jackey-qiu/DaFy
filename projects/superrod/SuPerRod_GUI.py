@@ -655,12 +655,15 @@ class MyMainWindow(QMainWindow):
         else:
             raxs_A_list.append(0)
             raxs_P_list.append(0)
+        # raxs_A_list = raxs_A_list[0:2]
+        # raxs_P_list = raxs_P_list[0:2]
         HKL_raxs_list = [[],[],[]]
         for each in self.model.data:
             if each.x[0]>100:
                 HKL_raxs_list[0].append(each.extra_data['h'][0])
                 HKL_raxs_list[1].append(each.extra_data['k'][0])
                 HKL_raxs_list[2].append(each.extra_data['Y'][0])
+        # HKL_raxs_list = [HKL_raxs_list[0][0:2],HKL_raxs_list[1][0:2],HKL_raxs_list[2][0:2]]
         if hasattr(self.model.script_module, "RAXR_EL"):
             raxs_el = getattr(self.model.script_module, "RAXR_EL")
         else:
@@ -674,15 +677,20 @@ class MyMainWindow(QMainWindow):
                 # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
                 #edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
                 label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
-                # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
                 #eden_plot = [each*int(each>0) for each in eden_plot]
                 #here only plot the total electron density (last item) profile
                 self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],pen = {'color': "w", 'width': 1},clear = True)
                 self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],fillLevel=0, brush = (0,200,0,100),clear = False)
-                #self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,0,100),clear = False)
                 if len(edf[-1])==4:
                     self.fom_scan_profile.plot(edf[-1][0],edf[-1][2],fillLevel=0, brush = (200,0,0,100),clear = False)
                     self.fom_scan_profile.plot(edf[-1][0],edf[-1][3],fillLevel=0, brush = (0,0,250,100),clear = False)
+                if hasattr(self.model.script_module, "rgh_raxs"):
+                    # print(HKL_raxs_list)
+                    # print(raxs_P_list) 
+                    # print(raxs_A_list)
+                    # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
+                    z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
+                    self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,200,100),clear = False)
                 self.fom_scan_profile.autoRange()
         except:
             self.statusbar.clearMessage()
@@ -2139,7 +2147,7 @@ class MyMainWindow(QMainWindow):
             f.write(self.model.parameters.get_ascii_output())
 
 if __name__ == "__main__":
-    QApplication.setStyle("windows")
+    QApplication.setStyle("fusion")
     app = QApplication(sys.argv)
     #get dpi info: dots per inch
     screen = app.screens()[0]
