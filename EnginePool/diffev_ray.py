@@ -847,13 +847,17 @@ class DiffEv:
         #self.trial_fom = self.pool.map(parallel_calc_fom, self.trial_vec)
         #self.n_fom += len(self.trial_vec) 
         [actor.reset_fom.remote() for actor in self.streaming_actors]
+        for i in range(self.processes):
+            self.streaming_actors[i].calc_fom.remote(self.trial_vec[self.task_map[i][0]:self.task_map[i][1]])
+        '''
         for i in range(len(self.trial_vec)):
             self.streaming_actors[self._assign_task(i)].calc_fom.remote(self.trial_vec[i])
+        '''
         results = ray.get([actor.get_fom.remote() for actor in self.streaming_actors])
-        foms = []
-        for each in results:
-            foms = foms + each
-        self.trial_fom = foms
+        #foms = []
+        #for each in results:
+        #    foms = foms + each
+        self.trial_fom = np.array(results).flatten()
         self.n_fom += len(self.trial_vec)
 
     def calc_error_bar(self, index, fom_level):
@@ -1420,14 +1424,15 @@ class mpi_engine_ray(object):
         self.fom = []
         self.par_funcs, self.start_guess, self.par_min, self.par_max, self.par_funcs_link = self.model.get_fit_pars()
 
-    def calc_fom(self, vec):
-        for i in range(len(self.par_funcs)):
-            self.par_funcs[i](vec[i])
-            if self.par_funcs_link[i]!=None:
-                self.par_funcs_link[i](vec[i])
-        # evaluate the model and calculate the fom
-        fom = self.model.evaluate_fit_func()
-        self.fom.append(fom)
+    def calc_fom(self, vecs):
+        for vec in vecs:
+            for i in range(len(self.par_funcs)):
+                self.par_funcs[i](vec[i])
+                if self.par_funcs_link[i]!=None:
+                    self.par_funcs_link[i](vec[i])
+            # evaluate the model and calculate the fom
+            self.fom.append(self.model.evaluate_fit_func())
+            #self.fom.append(fom)
 
     def get_fom(self):
         return self.fom
@@ -1437,6 +1442,7 @@ class mpi_engine_ray(object):
 
 #==============================================================================
 # Functions that is needed for parallel processing!
+
 def parallel_init(model_copy):
     '''parallel_init(model_copy) --> None
 
