@@ -50,6 +50,7 @@ def angle_between(v1, v2):
 PILATUS_SIZE = [423.6,434.6]
 PIXEL_SIZE = [0.172,0.172]
 DISTANCE_SAMPLE_DETECTOR = 500
+
 PILATUS_DIM = list((np.array(PILATUS_SIZE[::-1])/PIXEL_SIZE[::-1]).astype(int))
 PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
 
@@ -341,7 +342,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
 
-    def calculate_index_on_pilatus_image_from_cross_points_info(self):
+    def calculate_index_on_pilatus_image_from_cross_points_info(self, pilatus_size, pixel_size, distance_sample_detector):
+        PILATUS_DIM = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))
+        PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
+        self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
         if len(self.ewarld_sphere)==0:
             return
         else:
@@ -360,15 +364,15 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     #so here you need to manually differentiate the symmetry positions
                     if item_vector[0]<0:
                         gamma = -gamma
-                    index_container.append(index_on_pilatus(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE, distance_sample_detector = DISTANCE_SAMPLE_DETECTOR, delta=delta, gamma =gamma))
+                    index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma))
                 self.pixel_index_of_cross_points[each] = index_container
 
-    def cal_simuated_2d_pixel_image(self):
+    def cal_simuated_2d_pixel_image(self, pilatus_size, pixel_size):
         image_sum = 0
         for each in self.pixel_index_of_cross_points:
             for each_item in self.pixel_index_of_cross_points[each]:
                 if len(each_item)!=0:
-                    image_sum += simulate_pixel_image(pos = each_item)
+                    image_sum += simulate_pixel_image(pilatus_size = pilatus_size,pixel_size = pixel_size,pos = each_item)
         return image_sum
         #plt.imshow(image_sum)
         #plt.show()

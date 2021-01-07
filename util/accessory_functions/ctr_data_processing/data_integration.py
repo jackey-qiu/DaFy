@@ -1158,32 +1158,7 @@ class data_integration:
                 ax.errorbar(LL,normdata,yerr=normeb,fmt=None)
                 for each_l_bragg in range(2,17,2):
                     ax.plot([each_l_bragg,each_l_bragg],[y_min,y_max],'r:')
-        delta,c_off,scale=self.fit_q_correction(lam,R_tth,L_Bragg_container,scale_container)
-        offtth=2/R_tth*np.cos(tth/2)*(delta+c_off)-c_off/R_tth
-        Q=4*np.pi/lam*np.sin((tth-offtth)/2)
-        clat_corrt=clat/scale
-        normcalc = (np.sin(Q*clat_corrt/4))**2
-        normdata = data*normcalc
-        y_max,y_min=normdata.max(),normdata.min()
-        normeb = eb*normcalc
-        LL=Q*clat_corrt/2./np.pi
-        pyplot.close()
-        fig,ax=pyplot.subplots(1,figsize=(16,4))
-        ax.set_yscale('log')
-        ax.scatter(LL,normdata,marker='s',s=5)
-        ax.errorbar(LL,normdata,yerr=normeb,fmt=None)
-        for each_l_bragg in range(2,17,2):
-            ax.plot([each_l_bragg,each_l_bragg],[y_min,y_max],'r:')
-        input_items=raw_input("Are you happy with the q correction results (y or n):")
-        if input_items=='y':
-            print ('Update c lattice...')
-            self.data_info['cell'][scan_index][2]=clat_corrt/np.sin(np.deg2rad(cell[4]))#update c lattice parameters
-            print ('Update L column...')
-            self.data_info['L'][scan_index]=Q*clat_corrt/(2*np.pi)
-            print ('q correction is completed!')
-        return delta,c_off,scale
-
-    def fit_q_correction(self,lam,R_tth,L_container,scale_container,clat=19.9490):
+        delta,c_off,scale=self.q_correction(self,lam,R_tth,L_container,scale_container,clat=19.9490):
         tth = 2*np.arcsin(np.array(L_container)*lam/2/clat)
         data=4*np.pi/lam*np.sin( tth/2 )/np.array(scale_container)
         def _cal_q(tth,delta,c,s):

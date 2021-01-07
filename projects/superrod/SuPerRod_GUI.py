@@ -25,6 +25,7 @@ from UtilityFunctions import apply_modification_of_code_block as script_block_mo
 from models.structure_tools.sxrd_dafy import AtomGroup
 from models.utils import UserVars
 import diffev
+from diffev import fit_model_NLLS
 from fom_funcs import *
 import parameters
 import data_superrod as data
@@ -33,8 +34,8 @@ import solvergui
 import time
 import datetime
 import matplotlib
-# matplotlib.use("TkAgg")
-import _tkinter
+matplotlib.use("TkAgg")
+# import _tkinter
 import pyqtgraph as pg
 import pyqtgraph.exporters
 from PyQt5 import QtCore
@@ -210,6 +211,7 @@ class MyMainWindow(QMainWindow):
         self.f_ideal=[]
         self.data_profiles = []
         self.model = model.Model()
+        self.nlls_fit = fit_model_NLLS(self.model)
         #init run_fit
         self.run_fit = RunFit(solvergui.SolverController(self.model))
         self.fit_thread = QtCore.QThread()

@@ -104,6 +104,8 @@ class MyMainWindow(QMainWindow):
         self.pushButton_pandown_4.clicked.connect(lambda:self.pan_view([0,0,1],'widget_real_space'))
 
         self.pushButton_rotate.clicked.connect(self.rotate_sample)
+        self.pushButton_rotate.clicked.connect(self.simulate_image)
+
         self.pushButton_spin.clicked.connect(self.spin_)
         self.pushButton_draw_real_space.clicked.connect(self.draw_real_space)
         self.pushButton_simulate.clicked.connect(self.simulate_image)
@@ -129,10 +131,16 @@ class MyMainWindow(QMainWindow):
         #style.use('ggplot','regular')
 
     def simulate_image(self):
+        pilatus_size = [float(self.lineEdit_detector_hor.text()), float(self.lineEdit_detector_ver.text())]
+        pixel_size = [float(self.lineEdit_pixel.text())]*2
         self.widget_mpl.canvas.figure.clear()
         ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
-        self.widget_glview.calculate_index_on_pilatus_image_from_cross_points_info()
-        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image())
+        self.widget_glview.calculate_index_on_pilatus_image_from_cross_points_info(
+             pilatus_size = pilatus_size,
+             pixel_size = pixel_size,
+             distance_sample_detector = float(self.lineEdit_sample_detector_distance.text())
+        )
+        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image(pilatus_size = pilatus_size, pixel_size = pixel_size))
         for each in self.widget_glview.pixel_index_of_cross_points:
             for i in range(len(self.widget_glview.pixel_index_of_cross_points[each])):
                 pos = self.widget_glview.pixel_index_of_cross_points[each][i]
@@ -178,6 +186,7 @@ class MyMainWindow(QMainWindow):
         self.widget_glview.theta_x = theta_x
         self.widget_glview.theta_y = theta_y
         self.widget_glview.theta_z = theta_z
+        self.lineEdit_rotation.setText(str(round(float(self.lineEdit_rotation.text())+theta_z,1)))
         self.widget_glview.update_structure()
         self.extract_cross_point_info()
 
