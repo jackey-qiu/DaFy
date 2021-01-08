@@ -543,7 +543,7 @@ p, li { white-space: pre-wrap; }
             <enum>QTabWidget::South</enum>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>4</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -1049,6 +1049,7 @@ p, li { white-space: pre-wrap; }
    <addaction name="separator"/>
    <addaction name="actionSimulate"/>
    <addaction name="actionRun"/>
+   <addaction name="actionNLLS"/>
    <addaction name="actionStop"/>
    <addaction name="actionCalculate"/>
    <addaction name="separator"/>
@@ -1290,12 +1291,27 @@ p, li { white-space: pre-wrap; }
     <string>nextModel</string>
    </property>
   </action>
+  <action name="actionNLLS">
+   <property name="icon">
+    <iconset>
+     <normaloff>icons/nlls4.png</normaloff>icons/nlls4.png</iconset>
+   </property>
+   <property name="text">
+    <string>NLLS</string>
+   </property>
+  </action>
  </widget>
  <customwidgets>
   <customwidget>
    <class>TerminalWidget</class>
    <extends>QWidget</extends>
    <header>terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>GLViewWidget_cum</class>
+   <extends>QWidget</extends>
+   <header>glview.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -1314,12 +1330,6 @@ p, li { white-space: pre-wrap; }
    <class>QCodeEditor</class>
    <extends>QPlainTextEdit</extends>
    <header>code_editor.h</header>
-  </customwidget>
-  <customwidget>
-   <class>GLViewWidget_cum</class>
-   <extends>QWidget</extends>
-   <header>glview.h</header>
-   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>

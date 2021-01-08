@@ -43,6 +43,7 @@ from PyQt5.QtWidgets import QCheckBox, QRadioButton, QTableWidgetItem, QHeaderVi
 from PyQt5.QtCore import Qt, QTimer
 from PyQt5.QtGui import QTransform, QFont, QBrush, QColor, QIcon
 from pyqtgraph.Qt import QtGui
+from threading import Thread
 import syntax_pars
 from models.structure_tools import sorbate_tool
 import logging
@@ -212,6 +213,9 @@ class MyMainWindow(QMainWindow):
         self.data_profiles = []
         self.model = model.Model()
         self.nlls_fit = fit_model_NLLS(self.model)
+        
+        self.timer_nlls = QTimer(self)
+        self.timer_nlls.timeout.connect(self.update_status_nlls)
         #init run_fit
         self.run_fit = RunFit(solvergui.SolverController(self.model))
         self.fit_thread = QtCore.QThread()
@@ -251,6 +255,7 @@ class MyMainWindow(QMainWindow):
         self.actionSave_model.triggered.connect(self.save_model_as)
         self.actionSimulate_2.triggered.connect(self.simulate_model)
         self.actionStart_fit.triggered.connect(self.run_model)
+        self.actionNLLS.triggered.connect(self.start_nlls)
         self.actionStop_fit.triggered.connect(self.stop_model)
         self.actionSave_table.triggered.connect(self.save_par)
         self.actionSave_script.triggered.connect(self.save_script)
@@ -343,6 +348,28 @@ class MyMainWindow(QMainWindow):
         self.azimuth_angle = 0
         self.setup_plot()
         self._load_par()
+
+    def start_nlls(self):
+        self.thread_nlls_fit = Thread(target = self.nlls_fit.fit_model, args = ())
+        self.thread_nlls_fit.start()
+        self.timer_nlls.start(50)
+
+    def update_status_nlls(self):
+        if not self.nlls_fit.running:
+            self.timer_nlls.stop()
+            self.statusbar.showMessage('Finish running model based on NLLS: fom = {} at trial_{}'.format(self.nlls_fit.fom,self.nlls_fit.run_num))
+            self.update_error_bars_from_nlls()
+        else:
+            self.statusbar.showMessage('Running model based on NLLS: fom = {} at trial_{}'.format(self.nlls_fit.fom,self.nlls_fit.run_num))
+
+    def update_error_bars_from_nlls(self):
+        errors = self.nlls_fit.perr
+        accum_fit_par = -1
+        for i in range(self.tableWidget_pars.rowCount()):
+            if self.tableWidget_pars.cellWidget(i,2).isChecked():
+                accum_fit_par = accum_fit_par+1
+                #we only change the error but the values are maintained from DE fit results
+                self.tableWidget_pars.item(i,5).setText(str(round(errors[accum_fit_par],9)))
 
     def hook_to_batch(self):
         self.run_batch.set_hooker(True)
