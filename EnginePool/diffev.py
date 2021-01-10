@@ -449,6 +449,9 @@ class DiffEv:
         '''
         # global model
         # self.model = model
+        #accumulated speed: adding up all speed for each gengeration
+        #self.accum_speed/total_generation is the average speed
+        self.accum_speed = 0
         if not MPI_RUN:
             self.text_output('Calculating start FOM ...')
             print('Calculating start FOM ...')
@@ -558,9 +561,9 @@ class DiffEv:
                     speed = self.n_pop/t
                 else:
                     speed = 999999
-
-                outputtext = 'FOM: %.3f Generation: %d Speed: %.1f'%\
-                                            (self.best_fom, gen, speed)
+                self.accum_speed = self.accum_speed + speed
+                outputtext = 'FOM: %.3f Generation: %d Speed: %.1f, Avg. Speed: %.1f'%\
+                                            (self.best_fom, gen, speed, self.accum_speed/gen)
 
                 self.text_output('FOM: %.3f Generation: %d Speed: %.1f'%\
                                     (self.best_fom, gen, speed))
@@ -854,13 +857,18 @@ class DiffEv:
         for i in range(len(self.trial_vec)):
             self.streaming_actors[self._assign_task(i)].calc_fom.remote(self.trial_vec[i])
         '''
-        results = ray.get([actor.get_fom.remote() for actor in self.streaming_actors])
-        #print(len(results),results)
+        #results = ray.get([actor.get_fom.remote() for actor in self.streaming_actors])
+        foms = []
+        for actor in self.streaming_actors:
+            foms = foms + ray.get(actor.get_fom.remote())
+        '''
         foms = []
         for each in results:
             foms = foms + each
         self.trial_fom = foms
+        '''
         #self.trial_fom = np.array(results).flatten()
+        self.trial_fom = foms
         # print(len(self.trial_fom))
         self.n_fom += len(self.trial_vec)
 
