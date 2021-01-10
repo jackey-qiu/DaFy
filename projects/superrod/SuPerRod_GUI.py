@@ -1886,8 +1886,11 @@ class MyMainWindow(QMainWindow):
                 else:
                     items.append(self.tableWidget_pars.item(i,6).text())
                 self.model.parameters.data.append(items)
-                vertical_label.append(str(label_tag))
-                label_tag += 1
+                if self.tableWidget_pars.cellWidget(i,2).isChecked():
+                    vertical_label.append(str(label_tag))
+                    label_tag += 1
+                else:
+                    vertical_label.append('')
         self.tableWidget_pars.setVerticalHeaderLabels(vertical_label)
 
     def fit_all(self):
@@ -1972,25 +1975,30 @@ class MyMainWindow(QMainWindow):
         self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error','Link'])
         for i in range(len(lines)):
             items = lines[i]
-            j = 0
+            #j = 0
             if items[0] == '':
                 vertical_labels.append('')
-                j += 1
+                # j += 1
             else:
                 #add items to table view
                 if len(vertical_labels)==0:
-                    vertical_labels.append('1')
+                    if items[2]:
+                        vertical_labels.append('1')
+                    else:
+                        vertical_labels.append('')
                 else:
                     #if vertical_labels[-1] != '':
-                    jj=0
-                    while vertical_labels[-1-jj]=='':
-                        jj = jj + 1
-                    vertical_labels.append('{}'.format(int(vertical_labels[-1-jj])+1))
-
-                    #vertical_labels.append('{}'.format(int(vertical_labels[-1])+1))
-                    #else:
-                    #    vertical_labels.append('{}'.format(int(vertical_labels[-2])+1))
-                for item in items:
+                    if items[2]:#ture or false
+                        if '1' not in vertical_labels:
+                            vertical_labels.append('1')
+                        else:
+                            jj=0
+                            while vertical_labels[-1-jj]=='':
+                                jj = jj + 1
+                            vertical_labels.append('{}'.format(int(vertical_labels[-1-jj])+1))
+                    else:
+                        vertical_labels.append('')
+                for j,item in enumerate(items):
                     if j == 2:
                         check_box = QCheckBox()
                         check_box.setChecked(item==True)
@@ -2005,7 +2013,7 @@ class MyMainWindow(QMainWindow):
                         elif j == 1:
                             qtablewidget.setForeground(QBrush(QColor(255,0,255)))
                         self.tableWidget_pars.setItem(i,j,qtablewidget)
-                    j += 1
+                    #j += 1
         self.tableWidget_pars.resizeColumnsToContents()
         self.tableWidget_pars.resizeRowsToContents()
         """
