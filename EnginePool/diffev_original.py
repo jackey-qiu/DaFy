@@ -1412,6 +1412,42 @@ def parallel_calc_fom(vec):
 
     return fom
 
+class fit_model_NLLS(object):
+    def __init__(self, model):
+        self.model = model
+        self.kwargs = {}
+        self.fom = None
+        self.running = False
+
+    def retrieve_fit_pars(self):
+        self.model._reset_module()
+        self.model.simulate()
+        self.par_funcs, self.start_guess, self.par_min, self.par_max, self.par_funcs_link = self.model.get_fit_pars()
+        _,_,self.pars_init,left, right, _ = self.model.parameters.get_fit_pars() 
+        #intentionally move the best fit par values away by 2% to a better statistic error estimation from NLLS fit
+        self.pars_init = np.array(self.pars_init)*1.02
+        self.bounds = (left, right)
+        self.x = np.zeros(sum([len(each.x) for each in self.model.data]))
+
+    def fit_model(self):
+        self.running = True
+        self.run_num = 0
+        self.retrieve_fit_pars()
+        self.fom = None
+        def fit_func(x, *vec):
+            for i in range(len(self.par_funcs)):
+                self.par_funcs[i](vec[i])
+                if self.par_funcs_link[i]!=None:
+                    self.par_funcs_link[i](vec[i])
+            fom = self.model.evaluate_fit_func()
+            self.run_num = self.run_num + 1
+            self.fom = fom
+            return fom
+        self.popt, self.pcov = curve_fit(fit_func, self.x, self.x*0,p0=self.pars_init,method="trf",loss='cauchy',max_nfev=20000,ftol=1e-8,**self.kwargs)
+        # self.popt, self.pcov = curve_fit(fit_func, self.x, self.x*0,p0=self.pars_init,maxfev=10000,**self.kwargs)
+        self.running = False
+        # popt, pcov = curve_fit(fit_func, 0, 0.,p0=self.pars_init,method="trf",loss="linear",bounds=self.bounds,max_nfev=1000,verbose=2,ftol=1e-8)
+        self.perr = np.sqrt(np.diag(self.pcov))
 
 #==============================================================================
 def default_text_output(text):

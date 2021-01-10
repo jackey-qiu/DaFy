@@ -855,10 +855,13 @@ class DiffEv:
             self.streaming_actors[self._assign_task(i)].calc_fom.remote(self.trial_vec[i])
         '''
         results = ray.get([actor.get_fom.remote() for actor in self.streaming_actors])
-        #foms = []
-        #for each in results:
-        #    foms = foms + each
-        self.trial_fom = np.array(results).flatten()
+        #print(len(results),results)
+        foms = []
+        for each in results:
+            foms = foms + each
+        self.trial_fom = foms
+        #self.trial_fom = np.array(results).flatten()
+        # print(len(self.trial_fom))
         self.n_fom += len(self.trial_vec)
 
     def calc_error_bar(self, index, fom_level):

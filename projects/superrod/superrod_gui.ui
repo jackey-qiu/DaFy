@@ -1049,9 +1049,9 @@ p, li { white-space: pre-wrap; }
    <addaction name="separator"/>
    <addaction name="actionSimulate"/>
    <addaction name="actionRun"/>
-   <addaction name="actionNLLS"/>
    <addaction name="actionStop"/>
    <addaction name="actionCalculate"/>
+   <addaction name="actionNLLS"/>
    <addaction name="separator"/>
    <addaction name="actionpreviousModel"/>
    <addaction name="actionnextModel"/>
