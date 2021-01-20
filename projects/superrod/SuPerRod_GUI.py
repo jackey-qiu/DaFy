@@ -1438,6 +1438,7 @@ class MyMainWindow(QMainWindow):
                     self.model.data.items[-1].set_extra_data(name = 'LB', value = sub_data['LB'].to_numpy())
                     self.model.data.items[-1].set_extra_data(name = 'dL', value = sub_data['dL'].to_numpy())
                     self.model.data.items[-1].mask = np.array([True]*len(self.model.data.items[-1].x))
+                    self.model.data.concatenate_all_ctr_datasets()
         #now remove the empty datasets
         empty_data_index = []
         i=0
@@ -1680,12 +1681,167 @@ class MyMainWindow(QMainWindow):
         self.statusbar.clearMessage()
         self.statusbar.showMessage('The data file is saved at {}'.format(path))
 
-    #save data plus best fit profile
     def save_data(self):
+        def _make_data():
+            """[append missing points near Bragg peaks, the values for data column at these points will be set to nan, while the values for model column will be calculated]
+            """
+            extended_data = {}
+            keys = ['potential','L', 'H', 'K', 'I', 'I_model', 'error', 'I_bulk', 'use']
+            for each in keys:
+                extended_data[each] = []
+            for data in self.model.data:
+                L = data.x
+                H = data.extra_data['h']
+                K = data.extra_data['k']
+                dL = data.extra_data['dL']
+                LB = data.extra_data['LB']
+                I = data.y
+                #I_model = data.y_sim
+                error = data.error
+                Bragg_L = LB[0] + np.array(range(-2,10))*dL[0]
+                Bragg_L = [each for each in Bragg_L if L.max()>each>L.min()]
+                Bragg_index = []
+                for each_bragg_L in Bragg_L:
+                    ix = np.argpartition(abs(L - each_bragg_L),1)
+                    left, right = None, None
+                    ix_left, ix_right = None, None
+                    if L[ix[0]]>each_bragg_L:
+                        right = L[ix[0]]
+                        ix_right = ix[0]
+                        left = L[ix[0]-1]
+                        ix_left = ix_right -1
+                    else:
+                        left = L[ix[0]]
+                        ix_left = ix[0]
+                        right = L[ix[0]+1]
+                        ix_right = ix[0]+1
+                    Bragg_index.append([ix_left+num_points_near_Bragg_peak, ix_left+num_points_near_Bragg_peak+1])
+                    appended_Ls = list(np.linspace(left, each_bragg_L-0.02, num_points_near_Bragg_peak, endpoint = True))+ list(np.linspace(right, each_bragg_L+0.02, num_points_near_Bragg_peak, endpoint = True))[::-1]
+                    appended_Hs = [H[0]]*len(appended_Ls)
+                    appended_Ks = [K[0]]*len(appended_Ls)
+                    appended_dL = [dL[ix_right]]*len(appended_Ls)
+                    appended_LB = [LB[ix_right]]*len(appended_Ls)
+                    L = np.concatenate((L[:ix_right],appended_Ls,L[ix_right:]))
+                    H = np.concatenate((H[:ix_right],[H[0]]*len(appended_Ls),H[ix_right:]))
+                    K = np.concatenate((K[:ix_right],[K[0]]*len(appended_Ls),K[ix_right:]))
+                    dL = np.concatenate((dL[:ix_right],[dL[ix_right]]*len(appended_Ls),dL[ix_right:]))
+                    LB = np.concatenate((LB[:ix_right],[LB[ix_right]]*len(appended_Ls),LB[ix_right:]))
+                    I = np.concatenate((I[:ix_right],[np.nan]*len(appended_Ls),I[ix_right:]))
+                    #I_model = np.concatenate((I_model[:ix_right],[np.nan]*len(appended_Ls),I_model[ix_right:]))
+                    error = np.concatenate((error[:ix_right],[np.nan]*len(appended_Ls),error[ix_right:]))
+                beta = self.model.script_module.rgh.beta
+                rough = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(L-LB)/dL)**2)**0.5
+                f = rough*self.model.script_module.sample.calc_f_all(H, K, L)
+                f_ideal = self.model.script_module.sample.calc_f_ideal(H, K, L)
+                extra_scale_factor = 'scale_factor_{}{}L'.format(int(round(H[0],0)),int(round(K[0],0)))
+                if hasattr(self.model.script_module.rgh,extra_scale_factor):
+                    rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
+                else:
+                    rod_factor = 1
+                I_model = list(abs(f*f)*self.model.script_module.rgh.scale_nonspecular_rods*rod_factor)
+                I_bulk = list(abs(f_ideal*f_ideal)*self.model.script_module.rgh.scale_nonspecular_rods*rod_factor)
+                E = [potential]*len(L)
+                use = [True]*len(L)
+                for each in keys:
+                    if each=='potential':
+                        new = locals()['E']
+                    else:
+                        new = locals()[each]
+                    extended_data[each] = list(extended_data[each]) + list(new)
+            return extended_data
+
+        num_points_near_Bragg_peak = 4
         potential, done = QInputDialog.getDouble(self, 'Potential_info', 'Enter the potential for this dataset (in V):')
         if not done:
             potential = None
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "data file (*.*)")
+        if path!="":
+            export_data = _make_data()
+            df_export_data = pd.DataFrame(export_data)
+            self._append_df_to_excel(filename = [path+'.xlsx',path][int(path.endswith('.xlsx'))], df = df_export_data, sheet_name = 'Sheet1', startrow = None, truncate_sheet=False, columns = ['potential','L', 'H', 'K', 'I', 'I_model', 'error', 'I_bulk', 'use'])
+            self.save_data_original(path=path)
+            '''
+            #also save loadable csv file
+            #df_export_data.to_csv([path+'.csv',path][int(path.endswith('.csv'))],sep="\t",columns=['L','H','K','Y','I','error','LB','dL'],\
+                                 #index=False, header=['#L','H','K','Y','I','error','LB','dL'])
+            '''
+
+    def _append_df_to_excel(self, filename, df, sheet_name='Sheet1', startrow=None,
+                        truncate_sheet=False, 
+                        **to_excel_kwargs):
+        """
+        Append a DataFrame [df] to existing Excel file [filename]
+        into [sheet_name] Sheet.
+        If [filename] doesn't exist, then this function will create it.
+
+        Parameters:
+        filename : File path or existing ExcelWriter
+                    (Example: '/path/to/file.xlsx')
+        df : dataframe to save to workbook
+        sheet_name : Name of sheet which will contain DataFrame.
+                    (default: 'Sheet1')
+        startrow : upper left cell row to dump data frame.
+                    Per default (startrow=None) calculate the last row
+                    in the existing DF and write to the next row...
+        truncate_sheet : truncate (remove and recreate) [sheet_name]
+                        before writing DataFrame to Excel file
+        to_excel_kwargs : arguments which will be passed to `DataFrame.to_excel()`
+                            [can be dictionary]
+
+        Returns: None
+        """
+        from openpyxl import load_workbook
+
+        # ignore [engine] parameter if it was passed
+        if 'engine' in to_excel_kwargs:
+            to_excel_kwargs.pop('engine')
+
+        writer = pd.ExcelWriter(filename, engine='openpyxl')
+        header = None
+
+        try:
+            # try to open an existing workbook
+            writer.book = load_workbook(filename)
+
+            # get the last row in the existing Excel sheet
+            # if it was not specified explicitly
+            if startrow is None and sheet_name in writer.book.sheetnames:
+                startrow = writer.book[sheet_name].max_row
+
+            # truncate sheet
+            if truncate_sheet and sheet_name in writer.book.sheetnames:
+                # index of [sheet_name] sheet
+                idx = writer.book.sheetnames.index(sheet_name)
+                # remove [sheet_name]
+                writer.book.remove(writer.book.worksheets[idx])
+                # create an empty sheet [sheet_name] using old index
+                writer.book.create_sheet(sheet_name, idx)
+
+            # copy existing sheets
+            writer.sheets = {ws.title:ws for ws in writer.book.worksheets}
+            header = False
+        except FileNotFoundError:
+            # file does not exist yet, we will create it
+            header = True
+            #pass
+
+        if startrow is None:
+            startrow = 0
+
+        # write out the new sheet
+        df.to_excel(writer, sheet_name, startrow=startrow, header = header, **to_excel_kwargs)
+
+        # save the workbook
+        writer.save()
+
+    #save data plus best fit profile
+    def save_data_original(self, path=""):
+        '''
+        potential, done = QInputDialog.getDouble(self, 'Potential_info', 'Enter the potential for this dataset (in V):')
+        if not done:
+            potential = None
+        path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "data file (*.*)")
+        '''
         if path!="":
             keys_attri = ['x','y','y_sim','error']
             keys_extra = ['h','k','Y','dL','LB']
@@ -1694,8 +1850,8 @@ class MyMainWindow(QMainWindow):
             for key in ['x','h','k','y','y_sim','error','Y','dL','LB']:
                 export_data[lib_map[key]] = []
             export_data['use'] = []
-            export_data['I_bulk'] = []
-            export_data['potential'] = []
+            #export_data['I_bulk'] = []
+            #export_data['potential'] = []
             for each in self.model.data:
                 if each.use:
                     for key in ['x','h','k','y','y_sim','error','Y','dL','LB']:
@@ -1714,6 +1870,7 @@ class MyMainWindow(QMainWindow):
                         elif key in keys_extra:
                             export_data[lib_map[key]] = np.append(export_data[lib_map[key]], each.extra_data[key])
                     export_data['use'] = np.append(export_data['use'],[False]*len(each.x))
+                '''
                 export_data['potential'] = np.append(export_data['potential'],[float(potential)]*len(each.x))
                 beta = self.model.script_module.rgh.beta
                 #rough = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(each.x-each.extra_data['LB'])/each.extra_data['dL'])**2)**0.5
@@ -1726,12 +1883,15 @@ class MyMainWindow(QMainWindow):
                     rod_factor = 1
                 rough = 1
                 export_data['I_bulk'] = np.append(export_data['I_bulk'],rough**2*np.array(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2*scale_factor*rod_factor))
-            df_export_data = pd.DataFrame(export_data)
+                '''
+            '''
             writer_temp = pd.ExcelWriter([path+'.xlsx',path][int(path.endswith('.xlsx'))])
             df_export_data.to_excel(writer_temp, columns =['potential']+[lib_map[each_] for each_ in ['x','h','k','y','y_sim','error']]+['I_bulk','use'])
             writer_temp.save()
             writer_temp.close()
+            '''
             #also save loadable csv file
+            df_export_data = pd.DataFrame(export_data)
             df_export_data.to_csv([path+'.csv',path][int(path.endswith('.csv'))],sep="\t",columns=['L','H','K','Y','I','error','LB','dL'],\
                                  index=False, header=['#L','H','K','Y','I','error','LB','dL'])
 

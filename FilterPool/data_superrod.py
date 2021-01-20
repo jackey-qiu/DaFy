@@ -627,7 +627,7 @@ class DataList:
             self._counter+=1
         else:
             self.items.append(DataSet(name,copy_from=self.items[-1]))
-        self.concatenate_all_ctr_datasets()
+        # self.concatenate_all_ctr_datasets()
         #print "An empty dataset is appended at postition %i."%(len(self.items)-1)
 
     def add_new_list(self,name_list=['']):

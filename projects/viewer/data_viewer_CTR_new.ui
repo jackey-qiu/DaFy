@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1440</width>
-    <height>988</height>
+    <height>1007</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -396,17 +396,23 @@
            </property>
           </widget>
          </item>
-         <item row="4" column="0" colspan="2">
+         <item row="5" column="0">
           <widget class="QPushButton" name="apply">
+           <property name="sizePolicy">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+             <horstretch>0</horstretch>
+             <verstretch>0</verstretch>
+            </sizepolicy>
+           </property>
            <property name="text">
             <string>Apply</string>
            </property>
           </widget>
          </item>
-         <item row="6" column="0">
+         <item row="5" column="1">
           <widget class="QPushButton" name="plot">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
@@ -417,8 +423,14 @@
              <height>0</height>
             </size>
            </property>
+           <property name="maximumSize">
+            <size>
+             <width>10</width>
+             <height>16777215</height>
+            </size>
+           </property>
            <property name="text">
-            <string>Plot DataView</string>
+            <string>Plot</string>
            </property>
           </widget>
          </item>
@@ -477,14 +489,11 @@
         </widget>
        </item>
        <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_3" stretch="0,0">
-         <property name="spacing">
-          <number>5</number>
-         </property>
+        <layout class="QFormLayout" name="formLayout_2">
          <property name="sizeConstraint">
           <enum>QLayout::SetFixedSize</enum>
          </property>
-         <item>
+         <item row="0" column="0">
           <widget class="QPushButton" name="pushButton_filePath">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -494,7 +503,7 @@
            </property>
            <property name="maximumSize">
             <size>
-             <width>50</width>
+             <width>5000</width>
              <height>16777215</height>
             </size>
            </property>
@@ -503,7 +512,7 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="0" column="1">
           <widget class="QLineEdit" name="lineEdit_data_file_path">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -513,7 +522,7 @@
            </property>
            <property name="minimumSize">
             <size>
-             <width>230</width>
+             <width>0</width>
              <height>0</height>
             </size>
            </property>
@@ -531,14 +540,7 @@
            </property>
           </widget>
          </item>
-        </layout>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_4">
-         <property name="sizeConstraint">
-          <enum>QLayout::SetFixedSize</enum>
-         </property>
-         <item>
+         <item row="1" column="0">
           <widget class="QLabel" name="label_16">
            <property name="sizePolicy">
             <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -551,17 +553,17 @@
            </property>
           </widget>
          </item>
-         <item>
+         <item row="1" column="1">
           <widget class="QLineEdit" name="lineEdit_data_file_name">
            <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+            <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
              <horstretch>0</horstretch>
              <verstretch>0</verstretch>
             </sizepolicy>
            </property>
            <property name="maximumSize">
             <size>
-             <width>350</width>
+             <width>500</width>
              <height>16777215</height>
             </size>
            </property>
@@ -697,7 +699,7 @@
      <x>0</x>
      <y>0</y>
      <width>1440</width>
-     <height>22</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>
@@ -763,7 +765,7 @@
   <customwidget>
    <class>MplWidget</class>
    <extends>QWidget</extends>
-   <header location="global">mplwidget.h</header>
+   <header>mplwidget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

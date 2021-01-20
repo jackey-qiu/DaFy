@@ -20,7 +20,7 @@ from PlotSetup import data_viewer_plot_cv
 import pandas as pd
 import time
 import matplotlib
-matplotlib.use("Qt5Agg")
+matplotlib.use("TkAgg")
 from scipy import signal
 # import scipy.signal.savgol_filter as savgol_filter
 
@@ -32,6 +32,7 @@ class MyMainWindow(QMainWindow):
         uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_new.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
+        self.widget_terminal.update_name_space('main_gui',self)
         self.setWindowTitle('XRV and CTR data Viewer')
         self.set_plot_channels()
         self.data_to_save = {}
@@ -227,6 +228,8 @@ class MyMainWindow(QMainWindow):
         if fileName:
             self.lineEdit_data_file.setText(fileName)
             self.data = pd.read_excel(fileName)
+            # self.data = self.data.fillna('')
+            # print(np.isnan(self.data['I']))
         col_labels = 'col_labels\n'+str(list(self.data.columns))+'\n'
         self.potentials = list(set(list(self.data['potential'])))
         self.hk_list = list(set(list(zip(list(self.data['H']),list(self.data['K'])))))
@@ -565,6 +568,10 @@ class MyMainWindow(QMainWindow):
                 y_data=self.data[index_]['I']
                 y_model = self.data[index_]['I_model']
                 y_ideal = np.array(self.data[index_]['I_bulk'])
+                # print(np.isnan(y_model))
+                # print([1 for each in np.isnan(y_ideal) if each])
+                # y_ideal = np.ma.masked_where(np.isnan(self.data['I_bulk'])[index_],y_ideal)
+                # y_model = np.ma.masked_where(np.isnan(self.data['I_bulk'])[index_],y_model)
                 
                 if each_potential == self.potentials[0]:
                     # current_minimum = np.min(y_ideal)
@@ -594,8 +601,9 @@ class MyMainWindow(QMainWindow):
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).autoscale()
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).tick_params(axis='both',which='major',labelsize = 14)
-        plt.tight_layout()
-
+        self.mplwidget.fig.tight_layout()
+        self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
+        self.mplwidget.canvas.draw()
 
 
     def plot_figure_ctr(self):

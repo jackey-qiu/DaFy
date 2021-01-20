@@ -351,16 +351,18 @@ class MyMainWindow(QMainWindow):
                 if use:
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(x,y_model*scale_factor,fmt, label = 'Fit '+str(each_potential)+'V w.r.t Ag/AgCl')
                 if i in [0,2]:
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('F',fontsize=15)
+                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('F',fontsize=10)
                 if i in [2,3]:
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel('L(r.l.u)',fontsize=15)
+                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel('L(r.l.u)',fontsize=10)
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_title('{}{}L'.format(*current_hk))
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_yscale('log')
                 if i in [0,2]:#manually set this accordingly
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).autoscale()
-                getattr(self,'plot_axis_plot_set{}'.format(i+1)).tick_params(axis='both',which='major',labelsize = 14)
-        plt.tight_layout()
+                getattr(self,'plot_axis_plot_set{}'.format(i+1)).tick_params(axis='both',which='major',labelsize = 10)
+        self.mplwidget.fig.tight_layout()
+        # self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
+        self.mplwidget.canvas.draw()
 
     def plot_figure_ctr(self):
         self.mplwidget.fig.clear()
