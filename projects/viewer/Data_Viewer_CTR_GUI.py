@@ -286,7 +286,7 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_data_file.setText(fileName)
             self.data = pd.read_excel(fileName)
         col_labels = 'col_labels\n'+str(list(self.data.columns))+'\n'
-        self.potentials = list(set(list(self.data['potential'])))
+        self.potentials = sorted(list(set(list(self.data['potential']))))
         self.hk_list = list(set(list(zip(list(self.data['H']),list(self.data['K'])))))
 
         self.textEdit_summary_data.setText('\n'.join([col_labels,str(self.hk_list),str(self.potentials)]))
@@ -350,6 +350,7 @@ class MyMainWindow(QMainWindow):
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).scatter(x,y_data*scale_factor,s = 8, marker = 'o',c=fmt[-1], label = ['Data'+str(each_potential)+'V w.r.t Ag/AgCl',None][int(use)])
                 if use:
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(x,y_model*scale_factor,fmt, label = 'Fit '+str(each_potential)+'V w.r.t Ag/AgCl')
+                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).fill_between(x,y_ideal*scale_factor,y_model*scale_factor,color = 'y',alpha = 0.5)
                 if i in [0,2]:
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('F',fontsize=10)
                 if i in [2,3]:
