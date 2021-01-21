@@ -132,6 +132,10 @@ class Database(object):
         Looks up and returns the attribure name
         '''
         name = name.lower()
+        #for some unknown reason, when the program terminates, it calls __getattribute__('__class__') that is unexpected.
+        #this if-statement ensures the program terminates normally not with error message poping up.
+        if name=='__class__':
+            return
         stored_values = object.__getattribute__(self, 'stored_values')
         # if stored_values.has_key(name):
         if name in stored_values:
