@@ -288,7 +288,7 @@
          <item>
           <widget class="QLineEdit" name="lineEdit_fmt">
            <property name="text">
-            <string>-r,-b,-k,-r,-b,-k,-g,-r,-b</string>
+            <string>-r,-b,-y,-c,-m,-k,-g,-r,-b</string>
            </property>
           </widget>
          </item>

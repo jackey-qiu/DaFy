@@ -350,7 +350,7 @@ class MyMainWindow(QMainWindow):
                 getattr(self,'plot_axis_plot_set{}'.format(i+1)).scatter(x,y_data*scale_factor,s = 8, marker = 'o',c=fmt[-1], label = ['Data'+str(each_potential)+'V w.r.t Ag/AgCl',None][int(use)])
                 if use:
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(x,y_model*scale_factor,fmt, label = 'Fit '+str(each_potential)+'V w.r.t Ag/AgCl')
-                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).fill_between(x,y_ideal*scale_factor,y_model*scale_factor,color = 'y',alpha = 0.5)
+                    getattr(self,'plot_axis_plot_set{}'.format(i+1)).fill_between(x,y_ideal*scale_factor,y_model*scale_factor,color = fmt[-1],alpha = 0.5)
                 if i in [0,2]:
                     getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('F',fontsize=10)
                 if i in [2,3]:
