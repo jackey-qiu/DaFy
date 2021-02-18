@@ -40,7 +40,8 @@ def obtain_rod_files(folder):
 solver_settings = {
                    "set_pop_mult":False,
                    "set_pop_size":20,
-                   "set_max_generations":2000
+                   "set_max_generations":200,
+                   "set_autosave_interval":50
                   }
 
 
@@ -50,6 +51,7 @@ solver = solvergui.SolverController(model)
 for each_file in obtain_rod_files(folder_holding_model_files):
     print(f"Loading file:{each_file}")
     model.load(each_file)
+    model.apply_addition_to_optimizer(solver.optimizer)
     #set mask points
     for each in model.data_original:
         if not hasattr(each,'mask'):
@@ -57,9 +59,7 @@ for each_file in obtain_rod_files(folder_holding_model_files):
     for each in model.data:
         if not hasattr(each,'mask'):
             each.mask = np.array([True]*len(each.x))
-    #update solver pars
-    solver.ReadConfig()#use what was set in the rod file
-    #but update the following using solver_settings defined above
+    #Update the following using solver_settings defined above
     for key, val in solver_settings.items():
         getattr(solver.optimizer,key)(val)
     #update mask info

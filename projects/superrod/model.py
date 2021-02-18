@@ -53,7 +53,8 @@ class Model:
         self.parameters = parameters.Parameters()
 
         #self.fom_func = default_fom_func
-        self.fom_func = fom_funcs.log # The function that evaluates the fom
+        # self.fom_func = fom_funcs.log # The function that evaluates the fom
+        self.fom_func = fom_funcs.chi2bars # The function that evaluates the fom
         self.fom = None # The value of the fom function
         self.weight_factor = 1 #fom weighting factor
         self.weight_map = {}#fom weighting factor map
@@ -174,7 +175,7 @@ class Model:
 
         savefile.close()
 
-        self.filename = os.path.abspath(filename)
+        # self.filename = os.path.abspath(filename)
         self.saved = True
 
     def save_addition(self, name, text):
@@ -202,6 +203,39 @@ class Model:
             raise IOError(str(e), self.filename)
         savefile.close()
 
+    #save additional attributes obtained from optimizer
+    def save_addition_from_optimizer(self,filename,optimizer):
+        '''save_addition(self, name, text) --> None
+
+        save additional text [string] subfile with name name [string]\
+         to the current file.
+        '''
+        names = ['k_m','k_r','Figure of merit','Method','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
+        funcs = ['km','kr',"fom_func",'create_trial','autosave_interval','weight_factor','weight_map','use_start_guess','max_generations','pop_size']
+        # Check so the filename is ok i.e. has been saved
+        if filename == '':
+            raise IOError('File must be saved before new information is added'\
+                            ,'')
+        try:
+            savefile = zipfile.ZipFile(filename, 'a')
+        except Exception as e:
+            raise IOError(str(e), filename)
+
+        for name, attr in zip(names, funcs):
+            if attr in ['weight_factor','weight_map']:
+                text = str(getattr(self,attr))
+            elif attr=='create_trial':
+                text = getattr(optimizer,attr).__name__
+            elif attr == 'fom_func':
+                text = getattr(self,attr).__name__
+            else:
+                text = str(getattr(optimizer,attr))
+            try:
+                savefile.writestr(name, text)
+            except Exception as e:
+                raise IOError(str(e), filename)
+        savefile.close()
+
     def load_addition(self, name):
         '''load_addition(self, name) --> text
 
@@ -225,6 +259,30 @@ class Model:
                             self.filename)
         loadfile.close()
         return text
+
+    #load_addition config attributes and update them to the optimizer
+    #used in mpi_script
+    def apply_addition_to_optimizer(self,optimizer):
+        types= [float,float,str,int,float,str,bool,int,int]
+        pars = ['k_m','k_r','Method','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
+        funcs = ['set_km','set_kr','set_create_trial','set_autosave_interval','set_weighting_factor','set_weighting_region','set_use_start_guess','set_max_generations','set_pop_size']
+        for i in range(len(pars)):
+            type_ = types[i]
+            if type_ == float:
+                value = np.round(float(self.load_addition(pars[i])),2)
+            elif type_==str:
+                value = self.load_addition(pars[i]).decode("utf-8")
+            elif type_==bool:
+                value = (self.load_addition(pars[i]).decode("ASCII")=="True")
+            else:
+                value = type_(self.load_addition(pars[i]))
+            if pars[i] == 'weighting factor':
+                getattr(self,funcs[i])(value)
+            elif pars[i] == 'weighting region':
+                getattr(self,funcs[i])(eval(value))
+            else:
+                getattr(optimizer,funcs[i])(value)
+            print(f"setting {pars[i]} = {value} now!")
 
     def _reset_module(self):
         '''

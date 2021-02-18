@@ -584,12 +584,15 @@ class DiffEv:
                     signal.emit(outputtext, self.model, save_tag)
                 else:
                     print(outputtext)
+                    if save_tag:
+                        self.model.save(self.model.filename.replace(".rod","_ran.rod"))
+                        self.model.save_addition_from_optimizer(filename = self.model.filename.replace(".rod","_ran.rod"),optimizer = self)
             if signal_fitended!=None:
                 signal_fitended.emit('The model run is finished!')
             if signal!=None:
                 signal.emit(outputtext, self.model, True)
             else:
-                self.outputtext = outputtext
+                print(outputtext)
 
             if not self.error:
                 self.text_output('Stopped at Generation: %d after %d fom evaluations...'%(gen, self.n_fom))
