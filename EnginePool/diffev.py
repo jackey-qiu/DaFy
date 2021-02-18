@@ -495,8 +495,9 @@ class DiffEv:
                                     + int(self.fom_log[-1,0]) + 1):
                 if self.stop:
                     #print('stop here!')
-                    signal_fitended.emit('The model run is forced to stop by the user!')
-                    break
+                    if signal_fitended != None:
+                        signal_fitended.emit('The model run is forced to stop by the user!')
+                        break
 
                 t_start = time.time()
                 self.init_new_generation(gen)
@@ -536,8 +537,9 @@ class DiffEv:
                                     'evaluations is larger than %s. Check the '
                                     'model for circular assignments.'
                                     %self.fom_allowed_dis)
-                        signal_fitended.emit(self.error)
-                        break
+                        if signal_fitended!=None:
+                            signal_fitended.emit(self.error)
+                            break
 
                 # Update the plot data for any gui or other output
                 self.plot_output(self)
@@ -569,7 +571,6 @@ class DiffEv:
                                     (self.best_fom, gen, speed))
                 # print('pop_size ={}'.format(self.pop_size))
 
-
                 self.new_best = False
                 save_tag = False
                 # Do an autosave if activated and the interval is coorect
@@ -581,8 +582,14 @@ class DiffEv:
                 # print('pop_vec',type(self.pop_vec),len(self.pop_vec))
                 if signal!=None:
                     signal.emit(outputtext, self.model, save_tag)
-            signal_fitended.emit('The model run is finished!')
-            signal.emit(outputtext, self.model, True)
+                else:
+                    print(outputtext)
+            if signal_fitended!=None:
+                signal_fitended.emit('The model run is finished!')
+            if signal!=None:
+                signal.emit(outputtext, self.model, True)
+            else:
+                self.outputtext = outputtext
 
             if not self.error:
                 self.text_output('Stopped at Generation: %d after %d fom evaluations...'%(gen, self.n_fom))
