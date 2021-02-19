@@ -21,9 +21,18 @@ import data_superrod as data
 import model
 import solvergui
 
+#uncomment the following lines if used with slurm bash script
+'''
+import ray
+ray.shutdown()
+diffev._cpu_count = int(sys.argv[2])
+redis_password = sys.argv[1]
+ray.init(address=os.environ["ip_head"], _redis_password=redis_password)
+'''
+
 #provide the folder where all model files (*.rod) are stored
-#folder_holding_model_files = os.path.join(DaFy_path,"examples/Cu100_CO2_EC/test_batch")
-folder_holding_model_files = "/Users/cqiu/app/DaFy/examples/Cu100_CO2_EC/test_batch"
+folder_holding_model_files = os.path.join(DaFy_path,"examples/Cu100_CO2_EC/test_batch")
+#folder_holding_model_files = "/User/cqiu/app/DaFy/examples/Cu100_CO2_EC/test_batch"
 def obtain_rod_files(folder):
     '''
     load all rod files(*.rod) located in a selected folder
@@ -39,7 +48,7 @@ def obtain_rod_files(folder):
 #values are the associated value to be set
 solver_settings = {
                    "set_pop_mult":False,
-                   "set_pop_size":20,
+                   "set_pop_size":400,
                    "set_max_generations":200,
                    "set_autosave_interval":50
                   }
