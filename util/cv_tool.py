@@ -325,6 +325,24 @@ class cvAnalysis(object):
         pot, current = format_pot_current(data[:,1], data[:,2])
         return pot, current
 
+    #all cycles are stored in the file. File format has four columns: time/s, Ewe/V, I/mA, cycle number (starting from 1)
+    @staticmethod
+    def extract_cv_file_biologic_multi_cycles(file_path ='', which_cycle =1,use_all = False):
+        #return: time(s), potential(V), current(mA)
+        #skip three rows for header info
+        def format_pot_current(pot, current):
+            #return formatted_pot, which starts from the lowest value and ends at the lowest value
+            #The order of current will change accordingly
+            pot, current = np.array(pot), np.array(current)
+            idx_max_pot = np.argmin(pot)
+            idx_min_pot = np.argmin(pot)
+            f = lambda pot, id_min, id_max:list(pot[(id_min+1):])+list(pot[0:id_max]) + list(pot[id_max:(id_min+1)])
+            return np.array(f(pot, idx_min_pot, idx_max_pot)), np.array(f(current, idx_min_pot, idx_max_pot))
+        data = np.loadtxt(file_path,skiprows = 1)
+        rows = data[:,3]==which_cycle
+        pot, current = format_pot_current(data[rows,1], data[rows,2])
+        return pot, current
+
     def _update_bounds(self, current_bounds, data):
         min_, max_ = min(data), max(data)
         return [min([min_,current_bounds[0]]), max([max_,current_bounds[1]])]
@@ -354,9 +372,9 @@ class cvAnalysis(object):
             current_bounds[0] = current_bounds_[0]
             axes2[i].plot(RHE(pot,pH=ph),current*8*cv_scale_factor,label='seq{}_pH {}'.format(self.info['sequence_id'][i],ph),color = color)
             axes2[i].plot(RHE(pot_origin,pH=ph),current_origin*8,label='',color = color)
+            # axes2[i].text(1.4,2.2,'x{}'.format(cv_scale_factor),color=color)
             # axes2[i].plot(RHE(pot,pH=ph),current*8,label='',color = color)
 
-            axes2[i].text(1.4,2.2,'x{}'.format(cv_scale_factor),color=color)
             # axes2[i].legend()
             # axes2[i].set_title('seq{}_pH {}'.format(self.info['sequence_id'][i],ph),fontsize=9)
             '''

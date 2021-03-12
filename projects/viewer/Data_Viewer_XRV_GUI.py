@@ -24,7 +24,8 @@ import time
 import matplotlib
 from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import FixedLocator, FixedFormatter
-matplotlib.use("TkAgg")
+os.environ["QT_MAC_WANTS_LAYER"] = "1"
+# matplotlib.use("TkAgg")
 from scipy import signal
 # import scipy.signal.savgol_filter as savgol_filter
 
@@ -1135,10 +1136,21 @@ class MyMainWindow(QMainWindow):
                 print('scale_factor_text_pos NOT existing in the config file, use default pos (1,3) instead!')
             each.text(*text_pos,'x{}'.format(self.cv_tool.info['cv_scale_factor'][i_full]),color=self.cv_tool.info['color'][i_full], fontsize = int(self.cv_tool.info['fontsize_text_marker']))
 
-        # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(len(self.cv_tool.cv_info), col_num, 1 + col_num*(i-1)+1) for i in range(1,len(self.cv_tool.cv_info)+1)]
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:2,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[2:,1])]
-        #axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(how_many_rows, col_num, 1 + (col_num)*(i-1)+1) for i in range(1,2+1)]
+        '''
+        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
         self.plot_reaction_order_and_tafel(axs = axs_2)
+        ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
+        bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
+        ax_3.set_ylabel(r'q / mCcm$^{-2}$')
+        #ax_3.set_title('Comparison of charge')
+        ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
+        labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
+        ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
+        for i, bar_ in enumerate(bar_list):
+            bar_.set_color(self.cv_tool.info['color'][i])
+        '''
+        #ax_3.legend()
         #self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
         self.widget_cv_view.canvas.figure.set_size_inches(self.cv_tool.info['figsize'])
         self.widget_cv_view.canvas.draw()
