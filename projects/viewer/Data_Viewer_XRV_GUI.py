@@ -1064,7 +1064,7 @@ class MyMainWindow(QMainWindow):
             axs = [self.widget_cv_view.canvas.figure.add_subplot(gs_left[i, 0]) for i in range(0,len(self.cv_tool.info['selected_scan']))]
             #self.cv_tool.plot_cv_files_selected_scans(axs = axs, scans = self.cv_tool.info['selected_scan'])
             self.cv_tool.plot_cv_files_selected_scans(axs = axs, scans = self.cv_tool.info['selected_scan'])
-
+        labels = []
         for scan, each in zip([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())],axs):
             #index in the selected scan, if use all scans, then i=i_full
             i = axs.index(each)
@@ -1110,6 +1110,7 @@ class MyMainWindow(QMainWindow):
                         if each_scan==scan:
                             pH_text = pH_text+'({})'.format(which_pH13)
                             break
+            labels.append(pH_text)
             ph_marker_pos = coord_top_left-[-0.1,eval(bounds_current)[1]*0.3]
             each.text(*ph_marker_pos, pH_text, fontsize = int(self.cv_tool.info['fontsize_text_marker']),color = self.cv_tool.info['color'][i_full])
             #set axis label
@@ -1135,8 +1136,9 @@ class MyMainWindow(QMainWindow):
             else:
                 print('scale_factor_text_pos NOT existing in the config file, use default pos (1,3) instead!')
             each.text(*text_pos,'x{}'.format(self.cv_tool.info['cv_scale_factor'][i_full]),color=self.cv_tool.info['color'][i_full], fontsize = int(self.cv_tool.info['fontsize_text_marker']))
-
+        '''
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:2,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[2:,1])]
+        self.plot_reaction_order_and_tafel(axs = axs_2)
         '''
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
         self.plot_reaction_order_and_tafel(axs = axs_2)
@@ -1145,11 +1147,11 @@ class MyMainWindow(QMainWindow):
         ax_3.set_ylabel(r'q / mCcm$^{-2}$')
         #ax_3.set_title('Comparison of charge')
         ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
-        labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
+        #labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
         ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
         for i, bar_ in enumerate(bar_list):
             bar_.set_color(self.cv_tool.info['color'][i])
-        '''
+        
         #ax_3.legend()
         #self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
         self.widget_cv_view.canvas.figure.set_size_inches(self.cv_tool.info['figsize'])
