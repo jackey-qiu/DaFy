@@ -599,20 +599,21 @@ class Sample:
             # fb = self.calc_fb(h, k, l)
             # self.fb[key] = fb
         fb = self.calc_fb(h, k, l)
+        f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain['domain1']['layered_water'])
         if self.coherence==True:
             for key in self.domain.keys():
                 if self.domain[key]['wt']!=0:
                     if type(self.domain[key]['sorbate'])==type([]):
-                        ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym']))*self.domain[key]['wt']
+                        ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
                     else:
-                        ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym']))*self.domain[key]['wt']
+                        ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
         else:
             for key in self.domain.keys():
                 if self.domain[key]['wt']!=0:
                     if type(self.domain[key]['sorbate'])==type([]):
-                        ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym']))*self.domain[key]['wt']
+                        ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
                     else:
-                        ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym']))*self.domain[key]['wt']
+                        ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
         return abs(ftot)*self.inst.inten
 
     def calc_f_ideal(self, h, k, l):
@@ -1997,11 +1998,28 @@ class Sample:
         #note here the height of first atom layer is not at 0 as in that equation but is specified by the first_layer_height. and the corrections were done accordingly
         #In addition, the occupancy of layered water molecules was correctly calculated here by Auc*d_w*density_w
         #the u0 and ubar here are in A
-        dinv = self.unit_cell.abs_hkl(h*0, k*0, l)
-        f=self._get_f(np.array(['O']), dinv)[:,0]
+        dinv = self.unit_cell.abs_hkl(h, k, l)
+        f=self._get_f(np.array(['O']), dinv)[:,0]*((abs(h)+abs(k))==0).astype(int)
         Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
         q=2*np.pi*dinv
         F_layered_water=f*(Auc*d_w*density_w)*np.exp(-0.5*q**2*u0**2)*np.exp(q*first_layer_height*1.0J)\
+                        /(1-np.exp(-0.5*q**2*ubar**2)*np.exp(q*d_w*1.0J))
+        return F_layered_water
+
+    def calc_f_layered_water_copper(self,h,k,l,rgh, height_offset = 9.0375):
+        #contribution of layered water calculated as equation(29) in Reviews in Mineralogy and Geochemistry v. 49 no. 1 p. 149-221
+        #note here the height of first atom layer is not at 0 as in that equation but is specified by the first_layer_height. and the corrections were done accordingly
+        #In addition, the occupancy of layered water molecules was correctly calculated here by Auc*d_w*density_w
+        #the u0 and ubar here are in A
+        #height_offset = 2.5*c (c=3.615)
+        u0,ubar,d_w,first_layer_height,density_w = rgh.u0, rgh.ubar, rgh.d_w, rgh.first_layer_height, rgh.density_w
+        dinv = self.unit_cell.abs_hkl(h*0, k*0, l)
+        f_O=self._get_f(np.array(['O']), dinv)[:,0]
+        f_H=self._get_f(np.array(['H']), dinv)[:,0]
+        f= f_O + f_H*2
+        Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
+        q=2*np.pi*dinv
+        F_layered_water=f*(Auc*d_w*density_w)*np.exp(-0.5*q**2*u0**2)*np.exp(q*(first_layer_height+height_offset)*1.0J)\
                         /(1-np.exp(-0.5*q**2*ubar**2)*np.exp(q*d_w*1.0J))
         return F_layered_water
 
@@ -2268,12 +2286,14 @@ class Sample:
             layered_water,z_layered_water,sigma_layered_water,d_w,water_density=None,[],[],None,None
             if 'layered_water' in slabs[key].keys():
                 #the items for the layered water is [u0,ubar,d_w(in A),first_layer_height(in fractional),density_w (in # of waters/A^3)]
-                layered_water=slabs[key]['layered_water']
+                rgh = slabs[key]['layered_water']
+                #1.5: z_max of suface slab, offset further by 1 applied underneath to consider the surface slab is above bulk slab
+                layered_water = [rgh.u0, rgh.ubar, rgh.d_w, rgh.first_layer_height/self.unit_cell.c+1.5, rgh.density_w]
                 d_w=layered_water[2]
                 water_density=layered_water[-1]
                 for i in range(N_layered_water):
                     z_layered_water.append((layered_water[3]+1.)*self.unit_cell.c+i*layered_water[2])#first layer is offseted by 1 accordingly
-                    sigma_layered_water.append((layered_water[0]**2+i*layered_water[1]**2)**0.5)
+                    sigma_layered_water.append((layered_water[0]**2+i*layered_water[1]**2+sig_eff**2)**0.5)
             #consider the e density of layered sorbate
             layered_sorbate,z_layered_sorbate,sigma_layered_sorbate,d_s,sorbate_density=None,[],[],None,None
             if 'layered_sorbate' in slabs[key].keys():
@@ -2291,13 +2311,17 @@ class Sample:
                 z_plot.append(z_each)
                 #normalized with occupancy and weight factor 
                 #here considering the e density for each atom layer will be distributed within a volume of Auc*1, so the unit here is e/A3
-                eden.append(np.sum(slabs[key]['wt']*oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
+                #We dont consider weigting factor for different domains, so what you see is normalized to a specific domain rather than the whole surface
+                eden.append(np.sum(oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
                 if 'layered_water' in slabs[key].keys():
-                    eden[-1]=eden[-1]+np.sum(10*slabs[key]['wt']*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                    #10: H2O has 10 electrons, water_density = 0.033 H2O per A3
+                    eden[-1]=eden[-1]+np.sum(10*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
                 if 'layered_sorbate' in slabs[key].keys():
                     if slabs[key]['layered_sorbate']!=[]:
-                        eden[-1]=eden[-1]+np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*slabs[key]['wt']*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
-
+                        eden[-1]=eden[-1]+np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
+                #3.03 = 1A3/0.33 (e/A3) # e per A3
+                #This way the bulk water density will be normaliized to 1 (0.33*3.03)
+                eden[-1] = eden[-1]*3.03
             labels.append(key)
             e_data.append(np.array([z_plot,eden]))
             e_total=e_total+np.array(eden)

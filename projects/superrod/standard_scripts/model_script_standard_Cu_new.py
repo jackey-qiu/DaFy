@@ -100,6 +100,16 @@ for scale in scales:
     rgh.new_var(scale,0.0005)
 #/rgh/global/end#
 
+#/rgh/layer_water/begin#
+rgh_lw = UserVars()
+pars=['u0','ubar','d_w','first_layer_height',  'density_w']
+rgh_lw.new_var('u0', 2)
+rgh_lw.new_var('ubar', 2)
+rgh_lw.new_var('first_layer_height', 2)
+rgh_lw.new_var('d_w', 2)
+rgh_lw.new_var('density_w', 0.033)
+#/rgh/layer_water/end#
+
 #/rgh/domain_weight/begin#
 rgh_wt = UserVars()
 for i in range(num_surface_slabs):
@@ -143,6 +153,7 @@ for i in range(num_surface_slabs):
     domains['domain{}'.format(i+1)]['sorbate'] = [globals()['sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)]
     domains['domain{}'.format(i+1)]['wt'] = getattr(globals()['rgh_wt'],'wt_domain{}'.format(i+1))
     domains['domain{}'.format(i+1)]['sorbate_sym'] = globals()['sorbate_syms_{}'.format(i+1)]
+    domains['domain{}'.format(i+1)]['layer_water_pars'] = rgh_lw
 sample = model.Sample(inst, bulk, domains, unitcell)
 #/sample/end#
 
