@@ -697,6 +697,7 @@ class MyMainWindow(QMainWindow):
             raxs_el = getattr(self.model.script_module, "RAXR_EL")
         else:
             raxs_el = None
+        # label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
         try:
             if self.run_fit.running or self.run_batch.running:
                 #if model is running, disable showing e profile
@@ -707,12 +708,13 @@ class MyMainWindow(QMainWindow):
                 #edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
                 label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
                 #eden_plot = [each*int(each>0) for each in eden_plot]
-                #here only plot the total electron density (last item) profile
-                self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],pen = {'color': "w", 'width': 1},clear = True)
-                self.fom_scan_profile.plot(edf[-1][0],edf[-1][1],fillLevel=0, brush = (0,200,0,100),clear = False)
-                if len(edf[-1])==4:
-                    self.fom_scan_profile.plot(edf[-1][0],edf[-1][2],fillLevel=0, brush = (200,0,0,100),clear = False)
-                    self.fom_scan_profile.plot(edf[-1][0],edf[-1][3],fillLevel=0, brush = (0,0,250,100),clear = False)
+                #here only plot the total electron density of domain specified by domain_tag
+                domain_tag = int(self.spinBox_domain.text())
+                self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][1],pen = {'color': "w", 'width': 1},clear = True)
+                self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][1],fillLevel=0, brush = (0,200,0,100),clear = False)
+                if len(edf[domain_tag])==4:
+                    self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][2],fillLevel=0, brush = (200,0,0,80),clear = False)
+                    self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][3],fillLevel=0, brush = (0,0,250,80),clear = False)
                 if hasattr(self.model.script_module, "rgh_raxs"):
                     # print(HKL_raxs_list)
                     # print(raxs_P_list) 
@@ -1184,6 +1186,7 @@ class MyMainWindow(QMainWindow):
             self.statusbar.clearMessage()
             self.update_combo_box_list_par_set()
             self.textBrowser_error_msg.clear()
+            self.spinBox_domain.setMaximum(len(self.model.script_module.sample.domain)-1)
             self.statusbar.showMessage("Model is simulated successfully!")
         except model.ModelError as e:
             self.statusbar.clearMessage()
@@ -1616,6 +1619,7 @@ class MyMainWindow(QMainWindow):
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
+        self.update_electron_density_profile()
 
         # xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
         # self.widget_msv_top.show_structure(xyz)
@@ -1657,6 +1661,8 @@ class MyMainWindow(QMainWindow):
                 #self.widget_edp.items = []
                 self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
                 self.widget_edp.show_structure(xyz)
+            #let us also update the eden profile
+            self.update_electron_density_profile()
 
             """
             try:

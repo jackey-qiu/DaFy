@@ -599,9 +599,9 @@ class Sample:
             # fb = self.calc_fb(h, k, l)
             # self.fb[key] = fb
         fb = self.calc_fb(h, k, l)
-        f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain['domain1']['layered_water'])
         if self.coherence==True:
             for key in self.domain.keys():
+                f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
                 if self.domain[key]['wt']!=0:
                     if type(self.domain[key]['sorbate'])==type([]):
                         ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
@@ -609,6 +609,7 @@ class Sample:
                         ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
         else:
             for key in self.domain.keys():
+                f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
                 if self.domain[key]['wt']!=0:
                     if type(self.domain[key]['sorbate'])==type([]):
                         ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
@@ -2006,13 +2007,14 @@ class Sample:
                         /(1-np.exp(-0.5*q**2*ubar**2)*np.exp(q*d_w*1.0J))
         return F_layered_water
 
-    def calc_f_layered_water_copper(self,h,k,l,rgh, height_offset = 9.0375):
+    def calc_f_layered_water_copper(self,h,k,l,rgh):
         #contribution of layered water calculated as equation(29) in Reviews in Mineralogy and Geochemistry v. 49 no. 1 p. 149-221
         #note here the height of first atom layer is not at 0 as in that equation but is specified by the first_layer_height. and the corrections were done accordingly
         #In addition, the occupancy of layered water molecules was correctly calculated here by Auc*d_w*density_w
         #the u0 and ubar here are in A
         #height_offset = 2.5*c (c=3.615)
-        u0,ubar,d_w,first_layer_height,density_w = rgh.u0, rgh.ubar, rgh.d_w, rgh.first_layer_height, rgh.density_w
+        height_offset = self.unit_cell.c*max(rgh['slab'].z+1)
+        u0,ubar,d_w,first_layer_height,density_w = rgh['layered_water'].u0, rgh['layered_water'].ubar, rgh['layered_water'].d_w, rgh['layered_water'].first_layer_height, rgh['layered_water'].density_w
         dinv = self.unit_cell.abs_hkl(h*0, k*0, l)
         f_O=self._get_f(np.array(['O']), dinv)[:,0]
         f_H=self._get_f(np.array(['H']), dinv)[:,0]
@@ -2282,13 +2284,15 @@ class Sample:
             Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
             z_min,z_max=z_min,z_max
             eden=[]
+            eden_raxs = []
+            eden_layer_water = []
             z_plot=[]
             layered_water,z_layered_water,sigma_layered_water,d_w,water_density=None,[],[],None,None
             if 'layered_water' in slabs[key].keys():
                 #the items for the layered water is [u0,ubar,d_w(in A),first_layer_height(in fractional),density_w (in # of waters/A^3)]
                 rgh = slabs[key]['layered_water']
-                #1.5: z_max of suface slab, offset further by 1 applied underneath to consider the surface slab is above bulk slab
-                layered_water = [rgh.u0, rgh.ubar, rgh.d_w, rgh.first_layer_height/self.unit_cell.c+1.5, rgh.density_w]
+                #offset by z_max of the associated suface slab, and further by 1 as applied underneath to consider the surface slab is above bulk slab
+                layered_water = [rgh.u0, rgh.ubar, rgh.d_w, rgh.first_layer_height/self.unit_cell.c+max(slabs[key]['slab'].z), rgh.density_w]
                 d_w=layered_water[2]
                 water_density=layered_water[-1]
                 for i in range(N_layered_water):
@@ -2315,15 +2319,24 @@ class Sample:
                 eden.append(np.sum(oc*f/Auc*(2*np.pi*u**2)**-0.5*np.exp(-0.5/u**2*(z_each-z)**2)))
                 if 'layered_water' in slabs[key].keys():
                     #10: H2O has 10 electrons, water_density = 0.033 H2O per A3
-                    eden[-1]=eden[-1]+np.sum(10*water_density*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2))
+                    #d_w has to be used as correction factor considering layer spacing difference
+                    eden_layer_water.append(np.sum(10*water_density*d_w*(2*np.pi*np.array(sigma_layered_water)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_water)**2*(z_each-np.array(z_layered_water))**2)))
+                    eden[-1]=eden[-1] + eden_layer_water[-1]
+                else:
+                    eden_layer_water.append(0)
                 if 'layered_sorbate' in slabs[key].keys():
                     if slabs[key]['layered_sorbate']!=[]:
-                        eden[-1]=eden[-1]+np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2))
+                        eden_raxs.append(np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2)))
+                        eden[-1]=eden[-1] + eden_raxs[-1]
+                else:
+                    eden_raxs.append(0)
                 #3.03 = 1A3/0.33 (e/A3) # e per A3
                 #This way the bulk water density will be normaliized to 1 (0.33*3.03)
                 eden[-1] = eden[-1]*3.03
+                eden_raxs[-1] = eden_raxs[-1]*3.03
+                eden_layer_water[-1] = eden_layer_water[-1] * 3.03 
             labels.append(key)
-            e_data.append(np.array([z_plot,eden]))
+            e_data.append(np.array([z_plot,eden, eden_raxs, eden_layer_water]))
             e_total=e_total+np.array(eden)
         labels.append('Total electron density')
         e_data.append(np.array([list(e_data[0])[0],e_total]))
