@@ -439,8 +439,8 @@ class MyMainWindow(QMainWindow):
             pass
 
     def print_data_summary_(self):
-        header = "\t".join(["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain"])
-        output_text = [header]
+        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain"]
+        output_data = []
         for scan in self.scans:
             for pot_range in self.pot_ranges[scan]:
                 #scan = each_scan
@@ -451,13 +451,17 @@ class MyMainWindow(QMainWindow):
                 strain_hor = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["horizontal"])]
                 strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
                 data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver
-                output_text.append('\t'.join([str(each) for each in data_temp]))
+                output_data.append(data_temp)
+        data_df = pd.DataFrame(np.array(output_data),columns = header)
         self.widget_terminal.update_name_space('charge_info',self.charge_info)
         self.widget_terminal.update_name_space('size_info',self.grain_size_info_all_scans)
         self.widget_terminal.update_name_space('strain_info',self.strain_info_all_scans)
         self.widget_terminal.update_name_space('main_win',self)
         self.widget_terminal.update_name_space('cv_info', self.cv_info)
 
+        def _tag_p(text):
+            return '<p>{}</p>'.format(text)
+        output_text = []
         output_text.append("*********Notes*********")
         output_text.append("*scan: scan number")
         output_text.append("*pot_lf (V_RHE): left boundary of potential range considered ")
@@ -467,9 +471,12 @@ class MyMainWindow(QMainWindow):
         output_text.append("*q_cv(mc/m2): charge calculated from electrochemistry data (CV data)")
         output_text.append("*(d)_hor/ver_size(nm): horizontal/vertical size or the associated change with a d_ prefix")
         output_text.append("*(d)_hor/ver_strain(%): horizontal/vertical strain or the associated change with a d_ prefix")
+        for i in range(len(output_text)):
+            output_text[i] = _tag_p(output_text[i])
 
+        self.plainTextEdit_summary.setHtml(data_df.to_html(index = False)+''.join(output_text))
         #print("\n".join(output_text))
-        self.plainTextEdit_summary.setPlainText("\n".join(output_text))
+        #self.plainTextEdit_summary.setPlainText("\n".join(output_text))
 
     def show_or_hide(self):
         self.frame.setVisible(not self.show_frame)

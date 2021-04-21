@@ -1142,7 +1142,7 @@ path = ['048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','0
           <item>
            <widget class="QTabWidget" name="tabWidget">
             <property name="currentIndex">
-             <number>3</number>
+             <number>2</number>
             </property>
             <widget class="QWidget" name="tab">
              <attribute name="title">
@@ -1170,7 +1170,7 @@ path = ['048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','0
              </attribute>
              <layout class="QHBoxLayout" name="horizontalLayout_17">
               <item>
-               <widget class="QPlainTextEdit" name="plainTextEdit_summary"/>
+               <widget class="QTextEdit" name="plainTextEdit_summary"/>
               </item>
              </layout>
             </widget>
@@ -1315,7 +1315,7 @@ path = ['048_S221_CV','054_S229_CV','057_S231_CV','060_S236_CV','064_S243_CV','0
   <customwidget>
    <class>TerminalWidget</class>
    <extends>QWidget</extends>
-   <header>terminal_widget.h</header>
+   <header location="global">terminal_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

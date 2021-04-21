@@ -562,10 +562,7 @@ class DataList:
         all_ctr_data = []
         self.ctr_data_info = {}
         for i,each in enumerate(self.items):
-            if hasattr(each,'mask'):
-                h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
-            else:
-                h,k,x,y,LB,dL = each.extra_data['h'][:,np.newaxis],each.extra_data['k'][:,np.newaxis],each.x[:,np.newaxis],each.extra_data['Y'][:,np.newaxis],each.extra_data['LB'][:,np.newaxis],each.extra_data['dL'][:,np.newaxis]
+            h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
             self.ctr_data_info[i] = len(h)
             #mask = np.ones(len(h))[:,np.newaxis]
             fbulk = np.zeros(len(h))[:,np.newaxis]
