@@ -153,7 +153,7 @@ for i in range(num_surface_slabs):
     domains['domain{}'.format(i+1)]['sorbate'] = [globals()['sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)]
     domains['domain{}'.format(i+1)]['wt'] = getattr(globals()['rgh_wt'],'wt_domain{}'.format(i+1))
     domains['domain{}'.format(i+1)]['sorbate_sym'] = globals()['sorbate_syms_{}'.format(i+1)]
-    domains['domain{}'.format(i+1)]['layer_water_pars'] = rgh_lw
+    domains['domain{}'.format(i+1)]['layered_water'] = rgh_lw
 sample = model.Sample(inst, bulk, domains, unitcell)
 #/sample/end#
 
