@@ -3663,6 +3663,14 @@ class AtomGroup:
         self.sym=[]
         if slab != None and  id != None:
             self.add_atom(slab, id, matrix)
+        self.fit_pars = self.par_names
+
+    def return_fit_pars(self, instance_name=''):
+        assert instance_name!='','Please specify the instance name first!'
+        pars = []
+        for each in self.fit_pars:
+            pars.append('{}.set{}'.format(instance_name,each))
+        return pars
 
     def _set_func(self, par):
         '''create a function that sets all atom paramater par'''

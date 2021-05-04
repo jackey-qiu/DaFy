@@ -110,12 +110,12 @@ CO = {
         }
 
 class StructureMotif(object):
-    def __init__(self, domain, ids, ref_ids, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars , **kwargs):
+    def __init__(self, domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars , **kwargs):
         """[baseobject to be inherited by specific structural motif class]
         Args:
             domain (instance of model_2.Slab): [description]
             ids (type = list): list of ids of each constituent atom
-            ref_ids (type = list): ids of reference atoms wrt substrate_domain
+            anchor_id (type = str): id of reference atom in the sorbate motif
             substrate_domain (type = instance of model_2.Slab): slab instance of substrate
             anchored_ids (type = list): list of atom ids in substrate_domain to be referenced to by motif
             binding_mode (type = str): binding mode: either 'MD' for monodentate or 'BD' for bidentate or 'TD' for tridentate or 'OS' for outersphere
@@ -124,7 +124,8 @@ class StructureMotif(object):
         """
         self.domain = domain
         self.ids = ids
-        self.ref_ids = ref_ids
+        self.els = els
+        self.anchor_id = anchor_id
         self.substrate_domain = substrate_domain
         self.anchored_ids = anchored_ids
         self.binding_mode = binding_mode
@@ -209,14 +210,197 @@ class StructureMotif(object):
         self.atom_groups = [model_2.AtomGroup()]
 
 class CarbonOxygenMotif(StructureMotif):
-    def __init__(self,domain, ids, ref_ids, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs):
-        super(CarbonOxygenMotif, self).__init__(domain, ids, ref_ids, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars)
+    def __init__(self,domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs):
+        super(CarbonOxygenMotif, self).__init__(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars)
         self.kwargs = kwargs
-        self.create_rgh()
-        self.build_structure()
-        self.create_sorbate_atom_groups()
+        #self.create_rgh()
+        #self.build_structure()
+        #self.create_sorbate_atom_groups()
 
+    @classmethod
+    def build_instance(cls,xyzu_oc_m = [0.5, 0.5, 1.5, 0.1, 1, 1], els = ['O','C','C','O'], flat_down_index = [2],anchor_index_list = [1, None, 1, 2 ], lat_pars = [3.615, 3.615, 3.615, 90, 90, 90], structure_pars_dict = {'r':1.5, 'delta':0}, binding_mode = 'OS'):
+        #initialize slab
+        domain = model_2.Slab(T_factor = 'u')
+
+        #make ids from els
+        ids_all = deepcopy(els)
+        for each in set(els):
+            index_temp_all = list(np.where(np.array(els) == each)[0])
+            for index_temp in index_temp_all:
+                ids_all[index_temp] = "{}{}".format(ids_all[index_temp], index_temp_all.index(index_temp)+1)
+        ids = deepcopy(ids_all)
+        anchor_id = ids_all[anchor_index_list.index(None)]
+
+        #flat_down_index_new = [[i,i-1][int(i>anchor_index_list.index(None))] for i in flat_down_index]
+        #build r, gamma, delta names
+        r_list_names = []
+        gamma_list_names = []
+        delta_list_names = []
+        for i in range(len(anchor_index_list)):
+            each = anchor_index_list[i]
+            if each==None:
+                each = i
+            delta_list_names.append("delta_{}_{}".format(ids_all[i],ids_all[each]))
+            r_list_names.append("r_{}_{}".format(ids_all[i],ids_all[each]))
+            gamma_list_names.append("gamma_{}_{}".format(ids_all[i],ids_all[each]))
+            '''
+            if each != None:
+                #if i not in flat_down_index:
+                delta_list_names.append("delta_{}_{}".format(ids_all[i],ids_all[each]))
+            if each != None:
+                r_list_names.append("r_{}_{}".format(ids_all[i],ids_all[each]))
+                gamma_list_names.append("gamma_{}_{}".format(ids_all[i],ids_all[each]))
+            '''
+
+        #build instance
+        instance = cls(domain = domain, ids=ids, els=els, anchor_id=anchor_id, substrate_domain=None, anchored_ids = [], binding_mode = binding_mode, structure_pars_dict = structure_pars_dict, lat_pars = lat_pars)
+        instance.lat_abc = np.array(lat_pars[0:3])
+        instance.lat_angles = np.array(lat_pars[3:])
+        #set attributes to the instance
+        instance.r_list_names = r_list_names
+        instance.delta_list_names = delta_list_names
+        instance.gamma_list_names = gamma_list_names
+        instance.r_list = [structure_pars_dict['r']]*len(instance.r_list_names)
+        instance.delta_list = [0]*len(instance.r_list_names)
+        instance.gamma_list = [0]*len(instance.r_list_names)
+        #all items left of anchor_id should be 1, while items right of anchor_id should be 0. We set anchor_id to have handedness of 0 as a placeholder.
+        instance.gamma_handedness = [1]*anchor_index_list.index(None)+[0]+[0]*(len(anchor_index_list)-anchor_index_list.index(None)-1)
+        instance.new_anchor_list = []
+        for i in anchor_index_list:
+            if i!=None:
+                instance.new_anchor_list.append(ids_all[i])
+            else:
+                instance.new_anchor_list.append(anchor_id)
+        #instance.new_anchor_list = [ids_all[i] for i in anchor_index_list if i!=None]
+        instance.rot_ang_x_list = [0] * len(instance.ids)
+        instance.rot_ang_y_list = [0] * len(instance.ids)
+        instance.flat_down_index = flat_down_index
+        instance.create_rgh()
+        instance.build_structure()
+        return instance
+
+    def create_rgh(self):
+        rgh = UserVars()
+        rgh.new_var('gamma',0)
+        rgh.new_var('rot_ang_x',0)
+        rgh.new_var('rot_ang_y',0)
+        for r in self.r_list_names:
+            rgh.new_var(r, self.structure_pars_dict['r'])
+        for i in range(len(self.delta_list_names)):
+            delta = self.delta_list_names[i]
+            if i in self.flat_down_index:
+                rgh.new_var(delta, 0)
+            else:
+                rgh.new_var(delta, 90)
+        self.rgh = rgh
+        return self.rgh
+
+    def build_structure(self):
+        #to be implimented for each specific motif
+        if self.binding_mode == 'OS':
+            for i in range(len(self.ids)):
+                self.domain.add_atom(self.ids[i],self.els[i],*[0.5, 0.5, 1.5, 0.1, 1, 1])
+            self.set_coordinate_all_rgh()
+        else:
+            print('Current binding mode is Not implemented yet!')
+
+    def create_sorbate_atom_groups(self):
+        atm_gp = model_2.AtomGroup()
+        for id in self.domain.id:
+            atm_gp.add_atom(self.domain, id)
+        return [atm_gp]
     
+    def set_coordinate_all_rgh(self):
+        r_list = [getattr(self.rgh, each) for each in self.r_list_names]
+        delta_list = [getattr(self.rgh, each) for each in self.delta_list_names]
+        gamma_list = [self.rgh.gamma+180*each for each in self.gamma_handedness]
+        if hasattr(self.rgh, 'rot_ang_x'):
+            rot_ang_x_list = [self.rgh.rot_ang_x]*len(self.r_list_names)
+        else:
+            rot_ang_x_list = [0]*len(self.r_list_names)
+        if hasattr(self.rgh, 'rot_ang_y'):
+            rot_ang_y_list = [self.rgh.rot_ang_y]*len(self.r_list_names)
+        else:
+            rot_ang_y_list = [0]*len(self.r_list_names)
+        self.set_coordinate_all(r_list, delta_list, gamma_list, rot_ang_x_list, rot_ang_y_list, self.new_anchor_list)
+
+    def set_coordinate_all(self, r_list = None, delta_list = None, gamma_list = None, rot_ang_x_list = None, rot_ang_y_list = None, new_anchor_list = None):
+        if r_list!=None:
+            assert len(r_list) == len(self.r_list), 'Dimensions of r_list must match!'
+            self.r_list = r_list
+        if delta_list!=None:
+            assert len(delta_list) == len(self.delta_list), 'Dimensions of delta_list must match!'
+            self.delta_list = delta_list
+        if gamma_list!=None:
+            assert len(gamma_list) == len(self.gamma_list), 'Dimensions of gamma_list must match!'
+            self.gamma_list = gamma_list
+        if new_anchor_list == None:
+            new_anchor_list = [None]*len(self.gamma_list)
+        else:
+            assert len(new_anchor_list) == len(self.gamma_list), 'Dimensions of new_anchor_list must match!'
+        if rot_ang_x_list!=None:
+            assert len(rot_ang_x_list) == len(self.rot_ang_x_list), 'Dimensions of rot_ang_x_list must match!'
+            self.rot_ang_x_list = rot_ang_x_list
+        if rot_ang_y_list!=None:
+            assert len(rot_ang_y_list) == len(self.rot_ang_y_list), 'Dimensions of rot_ang_y_list must match!'
+            self.rot_ang_y_list = rot_ang_y_list
+
+        self.bond_index = []
+        for i in range(len(new_anchor_list)):
+            each = new_anchor_list[i]
+            current_id = self.ids[i]
+            domain_id = list(self.domain.id)
+            if each==None:
+                self.bond_index.append((domain_id.index(current_id),domain_id.index(self.anchor_id)))
+            else:
+                self.bond_index.append((domain_id.index(current_id),domain_id.index(each)))
+        self.domain.bond_index = self.bond_index
+        
+        for id in self.ids:
+            index = list(self.ids).index(id)
+            self.set_coordinate(id, self.cal_coordinate(id, self.r_list[index], self.delta_list[index], self.gamma_list[index], self.rot_ang_x_list[index],self.rot_ang_y_list[index], new_anchor_list[index]))
+    
+    def set_coordinate(self, id, coords):
+        index = np.where(self.domain.id == id)[0][0]
+        self.domain.x[index], self.domain.y[index], self.domain.z[index] = coords
+        items = ['dx1','dx2','dx3','dx4','dy1','dy2','dy3','dy4','dz1','dz2','dz3','dz4']
+        for each in items:
+           getattr(self.domain,each)[index] = 0
+
+    def cal_coordinate(self, id, r, delta, gamma, rot_ang_x = 0, rot_ang_y =0, new_anchor_id = None):
+        if id in self.ids_flat_down:
+            delta = 0
+        if id==self.anchor_id:
+            return self.extract_coord(self.anchor_id)
+
+        anchor_atom_coords = self.extract_coord(self.anchor_id)*self.lat_abc
+        z_temp_cart = r*np.sin(np.deg2rad(delta))
+        y_temp_cart = r*np.cos(np.deg2rad(delta))*np.sin(np.deg2rad(gamma))
+        x_temp_cart = r*np.cos(np.deg2rad(delta))*np.cos(np.deg2rad(gamma))
+
+        #now rotate the atom about x and y axis
+        if rot_ang_x != 0:
+            x_temp_cart, y_temp_cart, z_temp_cart = np.dot(rotation_matrix([1,0,0], rot_ang_x), [x_temp_cart, y_temp_cart, z_temp_cart])
+        if rot_ang_y != 0:
+            x_temp_cart, y_temp_cart, z_temp_cart = np.dot(rotation_matrix([0,1,0], rot_ang_y), [x_temp_cart, y_temp_cart, z_temp_cart])
+        if new_anchor_id == None:
+            return (anchor_atom_coords + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
+        else:
+            return (self.extract_coord(new_anchor_id)*self.lat_abc + [x_temp_cart, y_temp_cart, z_temp_cart])/self.lat_abc
+
+    def extract_coord(self,id):
+        #print(np.where(self.domain.id == id))
+        #print(self.domain.id)
+        #print(id)
+        index = np.where(self.domain.id == id)[0][0]
+        x = self.domain.x[index] + self.domain.dx1[index] + self.domain.dx2[index] + self.domain.dx3[index] + self.domain.dx4[index]
+        y = self.domain.y[index] + self.domain.dy1[index] + self.domain.dy2[index] + self.domain.dy3[index] + self.domain.dy4[index]
+        z = self.domain.z[index] + self.domain.dz1[index] + self.domain.dz2[index] + self.domain.dz3[index] + self.domain.dz4[index]
+        # x = self.domain.x[index]
+        # y = self.domain.y[index]
+        # z = self.domain.z[index]
+        return np.array([x, y, z])
+
 
 class CarbonOxygenMotif2(object):
     def __init__(self, domain, ids, anchor_id, r = 2, delta =0, gamma = 0, flat_down_index = None, lat_pars = [3.615, 3.615, 3.615, 90, 90, 90]):
