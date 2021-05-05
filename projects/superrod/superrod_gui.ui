@@ -6,7 +6,7 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>2031</width>
+    <width>1920</width>
     <height>1027</height>
    </rect>
   </property>
@@ -905,6 +905,13 @@ p, li { white-space: pre-wrap; }
                 </widget>
                </item>
                <item>
+                <widget class="QPushButton" name="pushButton_generate_script">
+                 <property name="text">
+                  <string>GenerateScript</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
                 <spacer name="horizontalSpacer_2">
                  <property name="orientation">
                   <enum>Qt::Horizontal</enum>
@@ -1026,7 +1033,7 @@ p, li { white-space: pre-wrap; }
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>2031</width>
+     <width>1920</width>
      <height>24</height>
     </rect>
    </property>
@@ -1347,6 +1354,12 @@ p, li { white-space: pre-wrap; }
    <container>1</container>
   </customwidget>
   <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>SolverParameters</class>
    <extends>QWidget</extends>
    <header location="global">parameter_tree.h</header>
@@ -1361,12 +1374,6 @@ p, li { white-space: pre-wrap; }
    <class>GLViewWidget_cum</class>
    <extends>QWidget</extends>
    <header>glview.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>TerminalWidget</class>
-   <extends>QWidget</extends>
-   <header location="global">terminal_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -3653,7 +3653,7 @@ class Slab:
 
 class AtomGroup:
     par_names = ['dx', 'dy', 'dz', 'u', 'u_par','u_ver','oc']
-    def __init__(self, slab = None, id = None,matrix=[1,0,0,0,1,0,0,0,1]):
+    def __init__(self, slab = None, id = None,matrix=[1,0,0,0,1,0,0,0,1], instance_name = 'instance_name'):
 
         self.ids = []
         self.slabs = []
@@ -3664,9 +3664,11 @@ class AtomGroup:
         if slab != None and  id != None:
             self.add_atom(slab, id, matrix)
         self.fit_pars = self.par_names
+        self.instance_name = instance_name
 
     def return_fit_pars(self, instance_name=''):
-        assert instance_name!='','Please specify the instance name first!'
+        if instance_name=='':
+            instance_name = self.instance_name
         pars = []
         for each in self.fit_pars:
             pars.append('{}.set{}'.format(instance_name,each))

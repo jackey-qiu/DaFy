@@ -37,6 +37,7 @@ def rotation_matrix(axis, theta):
 # from coordinate_system import CoordinateSystem
 
 ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO', 'CO3','CO2']
+STRUCTURE_MOTIFS = {'CarbonOxygenMotif':['OCCO','CCO', 'CO', 'CO3','CO2']}
 
 #sorbate structure motifs
 ##OCCO##
@@ -48,6 +49,7 @@ structure_OCCO="""
 """
 OCCO = {
         "els_sorbate":['O','C','C', 'O'],
+        "els":['O','C','C', 'O'],
         "anchor_index_list":[1, None, 1, 2 ],
         "flat_down_index": [2],
         "structure":structure_OCCO
@@ -64,6 +66,7 @@ structure_CO3="""
 """
 CO3 = {
         "els_sorbate":['O','C','O', 'O'],
+        "els":['O','C','O', 'O'],
         "anchor_index_list":[1, None, 1, 1 ],
         "flat_down_index": [],
         "structure":structure_CO3
@@ -78,6 +81,7 @@ structure_CCO="""
 """
 CCO = {
         "els_sorbate":['C','C', 'O'],
+        "els":['C','C', 'O'],
         "anchor_index_list":[None, 0, 1 ],
         "flat_down_index": [2],
         "structure":structure_CCO
@@ -90,6 +94,7 @@ structure_CO2="""
 """
 CO2 = {
         "els_sorbate":['O','C', 'O'],
+        "els":['O','C', 'O'],
         "anchor_index_list":[1, None, 1 ],
         "flat_down_index": [0,2],
         "structure":structure_CO2
@@ -104,12 +109,33 @@ structure_CO="""
 """
 CO = {
         "els_sorbate":['C','O'],
+        "els":['C','O'],
         "anchor_index_list":[None, 0],
         "flat_down_index": [],
         "structure":structure_CO
         }
 
+SURFACE_SYMS = {
+                '1001_0':[[1,0],[0,1],[0,0]],
+                '1001_0.5':[[1,0],[0,1],[0.5,0.5]],
+                '100-1_0':[[1,0],[0,-1],[0,0]],
+                '100-1_0.5':[[1,0],[0,-1],[0.5,0.5]],
+                '-1001_0':[[-1,0],[0,1],[0,0]],
+                '-1001_0.5':[[-1,0],[0,1],[0.5,0.5]],
+                '-100-1_0':[[-1,0],[0,-1],[0,0]],
+                '-100-1_0.5':[[-1,0],[0,-1],[0,0]],
+                '0110_0':[[0,1],[1,0],[0,0]],
+                '0110_0.5':[[0,1],[1,0],[0.5,0.5]],
+                '01-10_0':[[0,1],[-1,0],[0,0]],
+                '01-10_0.5':[[0,1],[-1,0],[0.5,0.5]],
+                '0-1-10_0':[[0,-1],[-1,0],[0,0]],
+                '0-1-10_0.5':[[0,-1],[-1,0],[0.5,0.5]],
+                '0-110_0':[[0,-1],[1,0],[0,0]],
+                '0-110_0.5':[[0,-1],[1,0],[0.5,0.5]]
+                }
+
 class StructureMotif(object):
+    #structure_index = 0
     def __init__(self, domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars , **kwargs):
         """[baseobject to be inherited by specific structural motif class]
         Args:
@@ -132,6 +158,10 @@ class StructureMotif(object):
         self.structure_pars_dict = structure_pars_dict
         self.lat_pars = np.array(lat_pars)
         self.kwargs = kwargs
+        self.structure_index+=1
+
+    def generate_script_snippet(self):
+        pass
 
     def create_rgh(self):
         self.rgh = UserVars()
@@ -204,18 +234,63 @@ class StructureMotif(object):
         #to be implimented for each specific motif
         pass
 
-    def create_sorbate_atom_groups(self):
+    def make_atom_group(self):
         #to be implimented for each specific motif
         #should return a list of atomgroups
         self.atom_groups = [model_2.AtomGroup()]
 
 class CarbonOxygenMotif(StructureMotif):
     def __init__(self,domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs):
-        super(CarbonOxygenMotif, self).__init__(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars)
-        self.kwargs = kwargs
+        super(CarbonOxygenMotif, self).__init__(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs)
+        #self.kwargs = kwargs
         #self.create_rgh()
         #self.build_structure()
         #self.create_sorbate_atom_groups()
+
+    @classmethod
+    def generate_script_from_setting_table(cls, use_predefined_motif = False, predefined_motif = '', structure_index = 1, kwargs = {}):
+        settings = {}
+        if use_predefined_motif:
+            temp = globals()[predefined_motif]
+            settings['xyzu_oc_m'] = str(temp.get('xyzu_oc_m', [0.5, 0.5, 1.5, 0.1, 1, 1]))
+            settings['els'] = str(temp.get('els', ['O','C','C','O']))
+            settings['flat_down_index'] = str(temp.get('flat_down_index',[2]))
+            settings['anchor_index_list'] = str(temp.get('anchor_index_list',[1, None, 1, 2]))
+            settings['lat_pars'] = str(temp.get('lat_pars',[3.615, 3.615, 3.615, 90, 90, 90]))
+            settings['structure_pars_dict'] = str(temp.get('structure_pars_dict', {'r':1.5, 'delta':0}))
+            settings['binding_mode'] = str(temp.get('binding_mode', 'OS'))
+            settings['structure_index'] = structure_index
+        else:
+            settings['xyzu_oc_m'] = str(kwargs.get('xyzu_oc_m', [0.5, 0.5, 1.5, 0.1, 1, 1]))
+            settings['els'] = str(kwargs.get('els', ['O','C','C','O']))
+            settings['flat_down_index'] = str(kwargs.get('flat_down_index',[2]))
+            settings['anchor_index_list'] = str(kwargs.get('anchor_index_list',[1, None, 1, 2]))
+            settings['lat_pars'] = str(kwargs.get('lat_pars',[3.615, 3.615, 3.615, 90, 90, 90]))
+            settings['structure_pars_dict'] = str(kwargs.get('structure_pars_dict', {'r':1.5, 'delta':0}))
+            settings['binding_mode'] = str(kwargs.get('binding_mode', 'OS'))
+            settings['structure_index'] = structure_index
+        return cls.generate_script_snippet(xyzu_oc_m = settings['xyzu_oc_m'], 
+                                           els = settings['els'], 
+                                           flat_down_index = settings['flat_down_index'], 
+                                           anchor_index_list = settings['anchor_index_list'], 
+                                           lat_pars = settings['lat_pars'],
+                                           structure_pars_dict = settings['structure_pars_dict'], 
+                                           binding_mode = settings['binding_mode'], 
+                                           structure_index = settings['structure_index'])
+
+    @classmethod
+    def generate_script_snippet(cls, xyzu_oc_m = str([0.5, 0.5, 1.5, 0.1, 1, 1]), els = str(['O','C','C','O']), flat_down_index = str([2]), anchor_index_list = str([1, None, 1, 2 ]), lat_pars = str([3.615, 3.615, 3.615, 90, 90, 90]),structure_pars_dict = str({'r':1.5, 'delta':0}), binding_mode = 'OS', structure_index = 1):
+        #structure_index = structure_index
+        instance_name = 'sorbate_instance_{}'.format(structure_index)
+        rgh_name = 'rgh_sorbate_{}'.format(structure_index)
+        domain_name = 'domain_sorbate_{}'.format(structure_index)
+        atm_gp_name = 'atm_gp_sorbate_{}'.format(structure_index)
+        line1 = f"{instance_name} = sorbate_tool.CarbonOxygenMotif.build_instance(xyzu_oc_m = {xyzu_oc_m},els={els},flat_down_index = {flat_down_index},anchor_index_list={anchor_index_list},lat_pars = {lat_pars},structure_pars_dict = {structure_pars_dict}, binding_mode = \'{binding_mode}\')"
+        line2 = f"{instance_name}.set_coordinate_all_rgh()"
+        line3 = f"{domain_name} = {instance_name}.domain"
+        line4 = f"{rgh_name} = {instance_name}.rgh"
+        line5 = f"{atm_gp_name} = {instance_name}.make_atm_group(instance_name = \'{atm_gp_name}\')"
+        return('\n'.join([line1,line2,line3,line4,line5]))
 
     @classmethod
     def build_instance(cls,xyzu_oc_m = [0.5, 0.5, 1.5, 0.1, 1, 1], els = ['O','C','C','O'], flat_down_index = [2],anchor_index_list = [1, None, 1, 2 ], lat_pars = [3.615, 3.615, 3.615, 90, 90, 90], structure_pars_dict = {'r':1.5, 'delta':0}, binding_mode = 'OS'):
@@ -231,7 +306,6 @@ class CarbonOxygenMotif(StructureMotif):
         ids = deepcopy(ids_all)
         anchor_id = ids_all[anchor_index_list.index(None)]
 
-        #flat_down_index_new = [[i,i-1][int(i>anchor_index_list.index(None))] for i in flat_down_index]
         #build r, gamma, delta names
         r_list_names = []
         gamma_list_names = []
@@ -243,41 +317,43 @@ class CarbonOxygenMotif(StructureMotif):
             delta_list_names.append("delta_{}_{}".format(ids_all[i],ids_all[each]))
             r_list_names.append("r_{}_{}".format(ids_all[i],ids_all[each]))
             gamma_list_names.append("gamma_{}_{}".format(ids_all[i],ids_all[each]))
-            '''
-            if each != None:
-                #if i not in flat_down_index:
-                delta_list_names.append("delta_{}_{}".format(ids_all[i],ids_all[each]))
-            if each != None:
-                r_list_names.append("r_{}_{}".format(ids_all[i],ids_all[each]))
-                gamma_list_names.append("gamma_{}_{}".format(ids_all[i],ids_all[each]))
-            '''
 
         #build instance
         instance = cls(domain = domain, ids=ids, els=els, anchor_id=anchor_id, substrate_domain=None, anchored_ids = [], binding_mode = binding_mode, structure_pars_dict = structure_pars_dict, lat_pars = lat_pars)
-        instance.lat_abc = np.array(lat_pars[0:3])
-        instance.lat_angles = np.array(lat_pars[3:])
         #set attributes to the instance
-        instance.r_list_names = r_list_names
-        instance.delta_list_names = delta_list_names
-        instance.gamma_list_names = gamma_list_names
-        instance.r_list = [structure_pars_dict['r']]*len(instance.r_list_names)
-        instance.delta_list = [0]*len(instance.r_list_names)
-        instance.gamma_list = [0]*len(instance.r_list_names)
-        #all items left of anchor_id should be 1, while items right of anchor_id should be 0. We set anchor_id to have handedness of 0 as a placeholder.
-        instance.gamma_handedness = [1]*anchor_index_list.index(None)+[0]+[0]*(len(anchor_index_list)-anchor_index_list.index(None)-1)
-        instance.new_anchor_list = []
-        for i in anchor_index_list:
-            if i!=None:
-                instance.new_anchor_list.append(ids_all[i])
-            else:
-                instance.new_anchor_list.append(anchor_id)
-        #instance.new_anchor_list = [ids_all[i] for i in anchor_index_list if i!=None]
-        instance.rot_ang_x_list = [0] * len(instance.ids)
-        instance.rot_ang_y_list = [0] * len(instance.ids)
-        instance.flat_down_index = flat_down_index
+        instance.set_class_attributes(xyzu_oc_m, r_list_names, delta_list_names, gamma_list_names, anchor_index_list, flat_down_index)
         instance.create_rgh()
         instance.build_structure()
         return instance
+
+    def set_class_attributes(self,xyzu_oc_m, r_list_names, delta_list_names, gamma_list_names, anchor_index_list, flat_down_index):
+        self.xyzu_oc_m_begin = xyzu_oc_m
+        self.lat_abc = np.array(self.lat_pars[0:3])
+        self.lat_angles = np.array(self.lat_pars[3:])
+        self.r_list_names = r_list_names
+        self.delta_list_names = delta_list_names
+        self.gamma_list_names = gamma_list_names
+        self.r_list = [self.structure_pars_dict['r']]*len(self.r_list_names)
+        self.delta_list = [0]*len(r_list_names)
+        self.gamma_list = [0]*len(r_list_names)
+        #all items left of anchor_id should be 1, while items right of anchor_id should be 0. We set anchor_id to have handedness of 0 as a placeholder.
+        self.gamma_handedness = [1]*anchor_index_list.index(None)+[0]+[0]*(len(anchor_index_list)-anchor_index_list.index(None)-1)
+        self.new_anchor_list = []
+        self.ids_flat_down = []
+        for i in anchor_index_list:
+            if i!=None:
+                self.new_anchor_list.append(self.ids[i])
+            else:
+                self.new_anchor_list.append(self.anchor_id)
+        self.rot_ang_x_list = [0] * len(self.ids)
+        self.rot_ang_y_list = [0] * len(self.ids)
+        self.flat_down_index = flat_down_index
+        if type(flat_down_index)!=type([]):
+            pass
+        else:
+            for each_index in flat_down_index:
+                self.delta_list[each_index] = 0
+                self.ids_flat_down.append(self.ids[each_index])
 
     def create_rgh(self):
         rgh = UserVars()
@@ -299,16 +375,16 @@ class CarbonOxygenMotif(StructureMotif):
         #to be implimented for each specific motif
         if self.binding_mode == 'OS':
             for i in range(len(self.ids)):
-                self.domain.add_atom(self.ids[i],self.els[i],*[0.5, 0.5, 1.5, 0.1, 1, 1])
+                self.domain.add_atom(self.ids[i],self.els[i],*self.xyzu_oc_m_begin)
             self.set_coordinate_all_rgh()
         else:
             print('Current binding mode is Not implemented yet!')
 
-    def create_sorbate_atom_groups(self):
-        atm_gp = model_2.AtomGroup()
+    def make_atom_group(self, instance_name = 'instance_name'):
+        atm_gp = model_2.AtomGroup(instance_name = instance_name)
         for id in self.domain.id:
             atm_gp.add_atom(self.domain, id)
-        return [atm_gp]
+        return atm_gp
     
     def set_coordinate_all_rgh(self):
         r_list = [getattr(self.rgh, each) for each in self.r_list_names]

@@ -1,8 +1,9 @@
 import sys,os, qdarkstyle
 import traceback
 from io import StringIO
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox, QDialog
 from PyQt5 import uic, QtWidgets
+import PyQt5
 import random
 import numpy as np
 import pandas as pd
@@ -48,6 +49,209 @@ import syntax_pars
 from models.structure_tools import sorbate_tool
 import logging
 from superrod_ui import Ui_MainWindow
+
+class PandasModel(QtCore.QAbstractTableModel):
+    """
+    Class to populate a table view with a pandas dataframe
+    """
+    def __init__(self, data, tableviewer, main_gui, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
+        self._data = data
+        self.tableviewer = tableviewer
+        self.main_gui = main_gui
+
+    def rowCount(self, parent=None):
+        return self._data.shape[0]
+
+    def columnCount(self, parent=None):
+        return self._data.shape[1]
+
+    def data(self, index, role):
+        if index.isValid():
+            if role in [QtCore.Qt.DisplayRole, QtCore.Qt.EditRole]:
+                return str(self._data.iloc[index.row(), index.column()])
+            if role == QtCore.Qt.BackgroundRole and index.row()%2 == 0:
+                return QtGui.QColor('DeepSkyBlue')
+                # return QtGui.QColor('green')
+            if role == QtCore.Qt.BackgroundRole and index.row()%2 == 1:
+                return QtGui.QColor('aqua')
+                # return QtGui.QColor('lightGreen')
+            if role == QtCore.Qt.ForegroundRole and index.row()%2 == 1:
+                return QtGui.QColor('black')
+            '''
+            if role == QtCore.Qt.CheckStateRole and index.column()==0:
+                if self._data.iloc[index.row(),index.column()]:
+                    return QtCore.Qt.Checked
+                else:
+                    return QtCore.Qt.Unchecked
+            '''
+        return None
+
+    def setData(self, index, value, role):
+        if not index.isValid():
+            return False
+        '''
+        if role == QtCore.Qt.CheckStateRole and index.column() == 0:
+            if value == QtCore.Qt.Checked:
+                self._data.iloc[index.row(),index.column()] = True
+            else:
+                self._data.iloc[index.row(),index.column()] = False
+        else:
+        '''
+        if str(value)!='':
+            self._data.iloc[index.row(),index.column()] = str(value)
+        #if self._data.columns.tolist()[index.column()] in ['select','archive_data','user_label','read_level']:
+        #    self.main_gui.update_meta_info_paper(paper_id = self._data['paper_id'][index.row()])
+        self.dataChanged.emit(index, index)
+        self.layoutAboutToBeChanged.emit()
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
+        self.layoutChanged.emit()
+        self.tableviewer.resizeColumnsToContents() 
+        return True
+
+    def update_view(self):
+        self.layoutAboutToBeChanged.emit()
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
+        self.layoutChanged.emit()
+
+    def headerData(self, rowcol, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self._data.columns[rowcol]         
+        if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
+            return self._data.index[rowcol]         
+        return None
+
+    def flags(self, index):
+        if not index.isValid():
+           return QtCore.Qt.NoItemFlags
+        else:
+            return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable)
+
+    def sort(self, Ncol, order):
+        """Sort table by given column number."""
+        self.layoutAboutToBeChanged.emit()
+        self._data = self._data.sort_values(self._data.columns.tolist()[Ncol],
+                                        ascending=order == QtCore.Qt.AscendingOrder, ignore_index = True)
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
+        self.layoutChanged.emit()
+
+from models.structure_tools import sorbate_tool_beta
+class ScriptGeneraterDialog(QDialog):
+    def __init__(self, parent=None):
+        # print(sorbate_tool_beta.STRUCTURE_MOTIFS)
+        super().__init__(parent)
+        self.parent = parent
+        # Load the dialog's GUI
+        uic.loadUi(os.path.join(script_path,"ctr_model_creator.ui"), self)
+        self.plainTextEdit_script.setStyleSheet("""QPlainTextEdit{
+                        font-family:'Consolas';
+                        font-size:14pt;
+                        color: #ccc;
+                        background-color: #2b2b2b;}""")
+        self.plainTextEdit_script.setTabStopWidth(self.plainTextEdit_script.fontMetrics().width(' ')*4)
+        #set combobox text items
+        self.comboBox_motif_types.addItems(list(sorbate_tool_beta.STRUCTURE_MOTIFS.keys()))
+
+        self.comboBox_predefined_symmetry.addItems(list(sorbate_tool_beta.SURFACE_SYMS.keys()))
+        self.comboBox_predefined_symmetry.currentTextChanged.connect(self.reset_sym_info)
+        self.pushButton_add_symmetry.clicked.connect(self.append_sym_info)
+        self.pushButton_add_all.clicked.connect(self.append_all_sym)
+
+        self.pushButton_extract_surface.clicked.connect(self.extract_surface_slabs)
+
+        self.comboBox_predefined_subMotifs.clear()
+        self.comboBox_predefined_subMotifs.addItems(sorbate_tool_beta.STRUCTURE_MOTIFS[self.comboBox_motif_types.currentText()])
+        self.comboBox_motif_types.currentTextChanged.connect(self.reset_combo_motif)
+        self.pushButton_make_setting_table.clicked.connect(self.setup_sorbate_setting_table)
+        self.pushButton_apply_setting.clicked.connect(self.apply_settings_for_one_sorbate)
+        self.pushButton_generate_script_sorbate.clicked.connect(self.generate_script_snippet_sorbate)
+        self.script_lines_sorbate = {}
+
+    def reset_sym_info(self):
+        self.lineEdit_2d_rotation_matrix.setText(str(sorbate_tool_beta.SURFACE_SYMS[self.comboBox_predefined_symmetry.currentText()][0:2]))
+        self.lineEdit_translation_offset.setText(str(sorbate_tool_beta.SURFACE_SYMS[self.comboBox_predefined_symmetry.currentText()][2]))
+
+    def append_sym_info(self):
+        text = self.textEdit_symmetries.toPlainText()
+        if text == '':
+            self.textEdit_symmetries.setPlainText(f"model.SymTrans({self.lineEdit_2d_rotation_matrix.text()},t={self.lineEdit_translation_offset.text()})")
+        else:
+            self.textEdit_symmetries.setPlainText(text+f"\nmodel.SymTrans({self.lineEdit_2d_rotation_matrix.text()},t={self.lineEdit_translation_offset.text()})")
+
+    def append_all_sym(self):
+        sym_symbols = [self.comboBox_predefined_symmetry.itemText(i) for i in range(self.comboBox_predefined_symmetry.count())]
+        for each in sym_symbols:
+            mt = str(sorbate_tool_beta.SURFACE_SYMS[each][0:2])
+            tt = str(sorbate_tool_beta.SURFACE_SYMS[each][2])
+            text = self.textEdit_symmetries.toPlainText()
+            if text=='':
+                self.textEdit_symmetries.setPlainText(f"model.SymTrans({mt},t={tt})")
+            else:
+                self.textEdit_symmetries.setPlainText(text+f"\nmodel.SymTrans({mt},t={tt})")
+
+    def reset_combo_motif(self):
+        self.comboBox_predefined_subMotifs.clear()
+        self.comboBox_predefined_subMotifs.addItems(sorbate_tool_beta.STRUCTURE_MOTIFS[self.comboBox_motif_types.currentText()])
+
+    def setup_sorbate_setting_table(self):
+        module = getattr(sorbate_tool_beta,self.comboBox_motif_types.currentText())
+        data_ = {}
+        if self.checkBox_use_predefined.isChecked():
+            data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
+            data_['motif'] = [self.comboBox_predefined_subMotifs.currentText()]
+        else:
+            data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
+            data_['xyzu_oc_m'] = str([0.5, 0.5, 1.5, 0.1, 1, 1])
+            data_['els'] = str(['O','C','C','O'])
+            data_['flat_down_index'] = str([2])
+            data_['anchor_index_list'] = str([1, None, 1, 2])
+            data_['lat_pars'] = str([3.615, 3.615, 3.615, 90, 90, 90])
+            data_['structure_pars_dict'] = str({'r':1.5, 'delta':0})
+            data_['binding_mode'] = 'OS'
+            data_['structure_index'] = str(self.spinBox_sorbate_index.value())
+        self.pandas_model = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_sorbate_setting, main_gui = self.parent)
+        self.tableView_sorbate_setting.setModel(self.pandas_model)
+        self.tableView_sorbate_setting.resizeColumnsToContents()
+        self.tableView_sorbate_setting.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+
+    def apply_settings_for_one_sorbate(self):
+        module = getattr(sorbate_tool_beta,self.comboBox_motif_types.currentText())
+        # module = eval(f"sorbate_tool_beta.{self.comboBox_motif_types.currentText()}")
+        if self.checkBox_use_predefined.isChecked():
+            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=module.generate_script_from_setting_table(use_predefined_motif = True, predefined_motif = self.pandas_model._data.iloc[0]['motif'], structure_index = self.pandas_model._data.iloc[0]['sorbate'])
+        else:
+            kwargs = {each:self.pandas_model._data.iloc[0][each] for each in self.pandas_model._data.columns}
+            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=module.generate_script_from_setting_table(use_predefined_motif = False, structure_index = self.pandas_model._data.iloc[0]['sorbate'], kwargs = kwargs)
+        self.reset_sorbate_set()
+
+    def reset_sorbate_set(self):
+        self.lineEdit_sorbate_set.setText(','.join(['sorbate_{}'.format(each) for each in self.script_lines_sorbate.keys()]))
+
+    def generate_script_snippet_sorbate(self):
+        keys = sorted(list(self.script_lines_sorbate.keys()))
+        scripts = '\n\n'.join([self.script_lines_sorbate[each] for each in keys])
+        syms = '\n\n'
+        for each in keys:
+            syms= syms+ "sorbate_syms_{}=[{}]\n\n".format(each,','.join(self.textEdit_symmetries.toPlainText().rsplit('\n')))
+        self.plainTextEdit_script.setPlainText(scripts+syms)
+
+    def extract_surface_slabs(self):
+        files = [os.path.join(self.lineEdit_folder_suface.text(),each) for each in self.lineEdit_files_surface.text().rsplit()]
+        def _make_df(file, slab_index):
+            df = pd.read_csv(file, comment = '#', names = ['id','el','x','y','z','u','occ','m'])
+            df['slab'] = slab_index
+            df['sym_matrix']=str([1,0,0,0,1,0,0,0,1])
+            df['gp_tag'] = 'NaN'
+            return df
+        dfs = []
+        for i in range(len(files)):
+            dfs.append(_make_df(files[i],i+1))
+        df = pd.concat(dfs, ignore_index = True)
+        df.sort_values(by = ['slab','z','id'], ascending = False, inplace = True, ignore_index=True)
+        self.pandas_model_slab = PandasModel(data = pd.DataFrame(df), tableviewer = self.tableView_surface_slabs, main_gui = self.parent)
+        self.tableView_surface_slabs.setModel(self.pandas_model_slab)
+        self.tableView_surface_slabs.resizeColumnsToContents()
+        self.tableView_surface_slabs.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
 
 #redirect the error stream to qt widget
 class QTextEditLogger(logging.Handler):
@@ -264,6 +468,8 @@ class MyMainWindow(QMainWindow):
         self.actionPlot.changed.connect(self.toggle_plot_panel)
         self.actionScript.changed.connect(self.toggle_script_panel)
 
+        self.pushButton_generate_script.clicked.connect(self.generate_script_dialog)
+
         #pushbuttons for model file navigator 
         self.pushButton_load_files.clicked.connect(self.load_rod_files)
         self.pushButton_clear_selected_files.clicked.connect(self.remove_selected_rod_files)
@@ -348,6 +554,13 @@ class MyMainWindow(QMainWindow):
         self.azimuth_angle = 0
         self.setup_plot()
         self._load_par()
+
+    def generate_script_dialog(self):
+        dlg = ScriptGeneraterDialog(self)
+        hightlight = syntax_pars.PythonHighlighter(dlg.plainTextEdit_script.document())
+        dlg.plainTextEdit_script.show()
+        dlg.plainTextEdit_script.setPlainText(dlg.plainTextEdit_script.toPlainText())
+        dlg.exec()
 
     def start_nlls(self):
         self.thread_nlls_fit = Thread(target = self.nlls_fit.fit_model, args = ())
