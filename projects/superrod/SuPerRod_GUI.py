@@ -21,7 +21,7 @@ sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 sys.path.append(os.path.join(DaFy_path,'projects'))
-from UtilityFunctions import locate_tag
+from UtilityFunctions import locate_tag, replace_block
 from UtilityFunctions import apply_modification_of_code_block as script_block_modifier
 from models.structure_tools.sxrd_dafy import AtomGroup
 from models.utils import UserVars
@@ -158,6 +158,7 @@ class ScriptGeneraterDialog(QDialog):
         self.pushButton_add_all.clicked.connect(self.append_all_sym)
 
         self.pushButton_extract_surface.clicked.connect(self.extract_surface_slabs)
+        self.pushButton_generate_script_surface.clicked.connect(self.generate_script_surface_slabs_and_surface_atm_group)
 
         self.comboBox_predefined_subMotifs.clear()
         self.comboBox_predefined_subMotifs.addItems(sorbate_tool_beta.STRUCTURE_MOTIFS[self.comboBox_motif_types.currentText()])
@@ -165,7 +166,13 @@ class ScriptGeneraterDialog(QDialog):
         self.pushButton_make_setting_table.clicked.connect(self.setup_sorbate_setting_table)
         self.pushButton_apply_setting.clicked.connect(self.apply_settings_for_one_sorbate)
         self.pushButton_generate_script_sorbate.clicked.connect(self.generate_script_snippet_sorbate)
+
+        self.pushButton_generate_full_script.clicked.connect(self.generate_full_script)
+        self.pushButton_transfer_script.clicked.connect(self.transfer_script)
+
         self.script_lines_sorbate = {}
+        self.script_lines_update_sorbate = {'update_sorbate':[]}
+        self.script_container = {}
 
     def reset_sym_info(self):
         self.lineEdit_2d_rotation_matrix.setText(str(sorbate_tool_beta.SURFACE_SYMS[self.comboBox_predefined_symmetry.currentText()][0:2]))
@@ -218,10 +225,14 @@ class ScriptGeneraterDialog(QDialog):
         module = getattr(sorbate_tool_beta,self.comboBox_motif_types.currentText())
         # module = eval(f"sorbate_tool_beta.{self.comboBox_motif_types.currentText()}")
         if self.checkBox_use_predefined.isChecked():
-            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=module.generate_script_from_setting_table(use_predefined_motif = True, predefined_motif = self.pandas_model._data.iloc[0]['motif'], structure_index = self.pandas_model._data.iloc[0]['sorbate'])
+            results = module.generate_script_from_setting_table(use_predefined_motif = True, predefined_motif = self.pandas_model._data.iloc[0]['motif'], structure_index = self.pandas_model._data.iloc[0]['sorbate'])
+            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=results[0]
+            self.script_lines_update_sorbate['update_sorbate'].append(results[1])
         else:
             kwargs = {each:self.pandas_model._data.iloc[0][each] for each in self.pandas_model._data.columns}
-            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=module.generate_script_from_setting_table(use_predefined_motif = False, structure_index = self.pandas_model._data.iloc[0]['sorbate'], kwargs = kwargs)
+            results = module.generate_script_from_setting_table(use_predefined_motif = False, structure_index = self.pandas_model._data.iloc[0]['sorbate'], kwargs = kwargs)
+            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=results[0]
+            self.script_lines_update_sorbate['update_sorbate'].append(results[1])
         self.reset_sorbate_set()
 
     def reset_sorbate_set(self):
@@ -230,9 +241,13 @@ class ScriptGeneraterDialog(QDialog):
     def generate_script_snippet_sorbate(self):
         keys = sorted(list(self.script_lines_sorbate.keys()))
         scripts = '\n\n'.join([self.script_lines_sorbate[each] for each in keys])
-        syms = '\n\n'
+        syms = ''
         for each in keys:
-            syms= syms+ "sorbate_syms_{}=[{}]\n\n".format(each,','.join(self.textEdit_symmetries.toPlainText().rsplit('\n')))
+            syms= syms+ "sorbate_syms_{}=[{}]\n".format(each,','.join(self.textEdit_symmetries.toPlainText().rsplit('\n')))
+        self.script_container['sorbateproperties'] = scripts+'\n'
+        self.script_container['sorbatesym'] = syms
+        self.script_container['update_sorbate'] = '\n'.join(list(set(self.script_lines_update_sorbate['update_sorbate'])))+'\n'
+        self.script_container['slabnumber'] = {'num_sorbate_slabs':str(len(keys))}
         self.plainTextEdit_script.setPlainText(scripts+syms)
 
     def extract_surface_slabs(self):
@@ -252,6 +267,67 @@ class ScriptGeneraterDialog(QDialog):
         self.tableView_surface_slabs.setModel(self.pandas_model_slab)
         self.tableView_surface_slabs.resizeColumnsToContents()
         self.tableView_surface_slabs.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+
+    def generate_script_surface_slabs(self):
+        scripts = []
+        files = [os.path.join(self.lineEdit_folder_suface.text(),each) for each in self.lineEdit_files_surface.text().rsplit()]
+        for i in range(len(files)):
+            scripts.append('surface_{} = model.Slab(c = 1.0)'.format(i+1))
+            scripts.append("tool_box.add_atom_in_slab(surface_{}, '{}')".format(i+1, files[i]))
+        # scripts.append('\n')
+        self.script_container['surfaceslab'] = '\n'.join(scripts) + '\n'
+        self.script_container['slabnumber'] = {'num_surface_slabs':str(len(files))}
+        return self.script_container['surfaceslab']
+
+    def generate_script_surface_atm_group(self):
+        scripts = []
+        atm_gps_df = self.pandas_model_slab._data[self.pandas_model_slab._data['gp_tag']!='NaN']
+        gp_tags = sorted(list(set(atm_gps_df['gp_tag'].tolist())))
+        for each in gp_tags:
+            scripts.append("{} = model.AtomGroup(instance_name = '{}')".format(each, each))
+            temp = atm_gps_df[atm_gps_df['gp_tag']==each]
+            for i in range(temp.shape[0]):
+                scripts.append("{}.add_atom({},'{}',matrix={})".format(each,'surface_'+str(temp.iloc[i]['slab']),temp.iloc[i]['id'],str(temp.iloc[i]['sym_matrix'])))
+        # scripts.append('\n')
+        self.script_container['atmgroup'] = '\n'.join(scripts)
+        return self.script_container['atmgroup']
+
+    def generate_script_surface_slabs_and_surface_atm_group(self):
+        self.plainTextEdit_script.setPlainText(self.generate_script_surface_slabs()+'\n\n'+self.generate_script_surface_atm_group())
+
+    def generate_script_bulk(self):
+        if os.path.isfile(self.lineEdit_bulk.text()):
+            self.script_container['bulk'] = "bulk = model.Slab()\ntool_box.add_atom_in_slab(bulk,'{}')\n".format(self.lineEdit_bulk.text())
+
+    def generate_full_script(self):
+        with open(self.lineEdit_template_script.text(),'r') as f:
+            lines = f.readlines()
+            if len(lines)== 0:
+                print('There are 0 lines in the file!')
+                return
+            #bulk file
+            self.generate_script_bulk()
+            #lattice parameters
+            self.script_container['unitcell']={'lat_pars':eval(self.lineEdit_lattice.text())}
+            #energy
+            self.script_container['wavelength']={'wal':round(eval(self.lineEdit_E.text())/12.398,4)}
+
+            #surface slabs
+            self.generate_script_surface_slabs()
+            #surface atm groups
+            self.generate_script_surface_atm_group()
+            #sorbate and symmetry
+            self.generate_script_snippet_sorbate()
+            ##Now let us modify the script
+            for key in self.script_container:
+                if type(self.script_container[key])==type({}):
+                    lines = script_block_modifier(lines, key, list(self.script_container[key].keys()), list(self.script_container[key].values()))
+                else:
+                    lines = replace_block(lines, key, self.script_container[key])
+            self.plainTextEdit_script.setPlainText(''.join(lines))
+
+    def transfer_script(self):
+        self.parent.plainTextEdit_script.setPlainText(self.plainTextEdit_script.toPlainText())
 
 #redirect the error stream to qt widget
 class QTextEditLogger(logging.Handler):
@@ -1185,6 +1261,8 @@ class MyMainWindow(QMainWindow):
             par_all = [self.comboBox_register_par_set.itemText(i) for i in range(self.comboBox_register_par_set.count())]
             for par in par_all:
                 self.append_par_set(par)
+        self.tableWidget_pars.resizeColumnsToContents()
+        self.tableWidget_pars.resizeRowsToContents()
 
     def append_par_set(self, par_selected = None):
         #boundary mapping for quick setting the bounds of fit pars
@@ -1252,6 +1330,8 @@ class MyMainWindow(QMainWindow):
 
                     self.tableWidget_pars.setItem(row_index,i,qtablewidget)
         self.append_one_row_at_the_end()
+        self.tableWidget_pars.resizeColumnsToContents()
+        self.tableWidget_pars.resizeRowsToContents()
 
     def auto_save_model(self):
         """model will be saved automatically during fit, for which you need to set the interval generations for saving automatically"""
@@ -1654,7 +1734,7 @@ class MyMainWindow(QMainWindow):
                     self.model.data.items[-1].set_extra_data(name = 'LB', value = sub_data['LB'].to_numpy())
                     self.model.data.items[-1].set_extra_data(name = 'dL', value = sub_data['dL'].to_numpy())
                     self.model.data.items[-1].mask = np.array([True]*len(self.model.data.items[-1].x))
-                    self.model.data.concatenate_all_ctr_datasets()
+                    # self.model.data.concatenate_all_ctr_datasets()
         #now remove the empty datasets
         empty_data_index = []
         i=0
@@ -1670,6 +1750,7 @@ class MyMainWindow(QMainWindow):
                 else:
                     pass
         self.model.data_original = copy.deepcopy(self.model.data)
+        self.model.data.concatenate_all_ctr_datasets()
         #update the view
         self.update_table_widget_data()
         self.update_combo_box_dataset()
@@ -1956,7 +2037,16 @@ class MyMainWindow(QMainWindow):
                 if hasattr(self.model.script_module.rgh,extra_scale_factor):
                     rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
                 else:
-                    rod_factor = 1
+                    if int(round(H[0],0))==0 and int(round(K[0],0))==0:#specular rod
+                        if hasattr(self.model.script_module.rgh,'scale_specular_rod'):
+                            rod_factor = getattr(self.model.script_module.rgh,'scale_specular_rod')
+                        else:
+                            rod_factor = 1
+                    else:#nonspecular rod
+                        if hasattr(self.model.script_module.rgh,'scale_nonspecular_rod'):
+                            rod_factor = getattr(self.model.script_module.rgh,'scale_nonspecular_rod')
+                        else:
+                            rod_factor = 1
                 I_model = list(abs(f*f)*self.model.script_module.rgh.scale_nonspecular_rods*rod_factor)
                 I_bulk = list(abs(f_ideal*f_ideal)*self.model.script_module.rgh.scale_nonspecular_rods*rod_factor)
                 E = [potential]*len(L)

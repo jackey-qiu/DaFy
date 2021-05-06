@@ -561,12 +561,17 @@ class DataList:
     def concatenate_all_ctr_datasets(self):
         all_ctr_data = []
         self.ctr_data_info = {}
+        self.scaling_tag = []
         for i,each in enumerate(self.items):
             if hasattr(each,'mask'):
                 h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
             else:
                 h,k,x,y,LB,dL = each.extra_data['h'][:,np.newaxis],each.extra_data['k'][:,np.newaxis],each.x[:,np.newaxis],each.extra_data['Y'][:,np.newaxis],each.extra_data['LB'][:,np.newaxis],each.extra_data['dL'][:,np.newaxis]
             self.ctr_data_info[i] = len(h)
+            if int(h[0])==0 and int(k[0])==0:
+                self.scaling_tag.append('specular_rod')
+            else:
+                self.scaling_tag.append('nonspecular_rod')
             #mask = np.ones(len(h))[:,np.newaxis]
             fbulk = np.zeros(len(h))[:,np.newaxis]
             temp_data = np.hstack((h,k,x,y,LB,dL,fbulk))

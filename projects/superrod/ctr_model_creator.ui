@@ -38,16 +38,47 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit">
+      <widget class="QLineEdit" name="lineEdit_bulk">
        <property name="text">
-        <string>provide here the full path to the bulk structure file (*.str)</string>
+        <string>/Users/canrong/apps/DaFy/util/batchfile/Cu100/Cu100_bulk.str</string>
+       </property>
+      </widget>
+     </item>
+    </layout>
+   </item>
+   <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_2">
+     <item>
+      <widget class="QLabel" name="label_3">
+       <property name="text">
+        <string>Lattice parameters</string>
        </property>
       </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_6">
+      <widget class="QLineEdit" name="lineEdit_lattice">
        <property name="text">
-        <string>GenerateSnippet</string>
+        <string>[3.615, 3.615, 3.615, 90, 90, 90]</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLabel" name="label_8">
+       <property name="text">
+        <string>Energy (keV)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit_E">
+       <property name="maximumSize">
+        <size>
+         <width>200</width>
+         <height>10000</height>
+        </size>
+       </property>
+       <property name="text">
+        <string>18.5</string>
        </property>
       </widget>
      </item>
@@ -63,7 +94,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>0</number>
+      <number>2</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -83,39 +114,6 @@
           <string>Surface slabs</string>
          </property>
         </widget>
-       </item>
-       <item>
-        <layout class="QHBoxLayout" name="horizontalLayout_2">
-         <item>
-          <widget class="QLabel" name="label_3">
-           <property name="sizePolicy">
-            <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
-             <horstretch>0</horstretch>
-             <verstretch>0</verstretch>
-            </sizepolicy>
-           </property>
-           <property name="text">
-            <string>Number of surface slabs</string>
-           </property>
-          </widget>
-         </item>
-         <item>
-          <widget class="QSpinBox" name="spinBox_num_suface_slabs"/>
-         </item>
-         <item>
-          <spacer name="horizontalSpacer_4">
-           <property name="orientation">
-            <enum>Qt::Horizontal</enum>
-           </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>40</width>
-             <height>20</height>
-            </size>
-           </property>
-          </spacer>
-         </item>
-        </layout>
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_3">
@@ -438,7 +436,7 @@
           </spacer>
          </item>
          <item>
-          <widget class="QPushButton" name="pushButton_9">
+          <widget class="QPushButton" name="pushButton_transfer_script">
            <property name="text">
             <string>Transfer</string>
            </property>
@@ -467,10 +465,14 @@
       </widget>
      </item>
      <item>
-      <widget class="QLineEdit" name="lineEdit_5"/>
+      <widget class="QLineEdit" name="lineEdit_template_script">
+       <property name="text">
+        <string>/Users/canrong/apps/DaFy/projects/superrod/standard_scripts/template_script_Cu.py</string>
+       </property>
+      </widget>
      </item>
      <item>
-      <widget class="QPushButton" name="pushButton_4">
+      <widget class="QPushButton" name="pushButton_generate_full_script">
        <property name="text">
         <string>Generate script</string>
        </property>

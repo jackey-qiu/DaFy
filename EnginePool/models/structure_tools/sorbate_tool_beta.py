@@ -158,7 +158,7 @@ class StructureMotif(object):
         self.structure_pars_dict = structure_pars_dict
         self.lat_pars = np.array(lat_pars)
         self.kwargs = kwargs
-        self.structure_index+=1
+        # self.structure_index+=1
 
     def generate_script_snippet(self):
         pass
@@ -290,7 +290,7 @@ class CarbonOxygenMotif(StructureMotif):
         line3 = f"{domain_name} = {instance_name}.domain"
         line4 = f"{rgh_name} = {instance_name}.rgh"
         line5 = f"{atm_gp_name} = {instance_name}.make_atm_group(instance_name = \'{atm_gp_name}\')"
-        return('\n'.join([line1,line2,line3,line4,line5]))
+        return('\n'.join([line1,line2,line3,line4,line5]),f"    {instance_name}.set_coordinate_all_rgh()")
 
     @classmethod
     def build_instance(cls,xyzu_oc_m = [0.5, 0.5, 1.5, 0.1, 1, 1], els = ['O','C','C','O'], flat_down_index = [2],anchor_index_list = [1, None, 1, 2 ], lat_pars = [3.615, 3.615, 3.615, 90, 90, 90], structure_pars_dict = {'r':1.5, 'delta':0}, binding_mode = 'OS'):
@@ -380,7 +380,7 @@ class CarbonOxygenMotif(StructureMotif):
         else:
             print('Current binding mode is Not implemented yet!')
 
-    def make_atom_group(self, instance_name = 'instance_name'):
+    def make_atm_group(self, instance_name = 'instance_name'):
         atm_gp = model_2.AtomGroup(instance_name = instance_name)
         for id in self.domain.id:
             atm_gp.add_atom(self.domain, id)
