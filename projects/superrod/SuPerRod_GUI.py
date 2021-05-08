@@ -170,9 +170,43 @@ class ScriptGeneraterDialog(QDialog):
         self.pushButton_generate_full_script.clicked.connect(self.generate_full_script)
         self.pushButton_transfer_script.clicked.connect(self.transfer_script)
 
+        self.pushButton_draw_structure.clicked.connect(self.show_3d_structure)
+        self.pushButton_pan.clicked.connect(self.pan_view)
+
         self.script_lines_sorbate = {}
         self.script_lines_update_sorbate = {'update_sorbate':[]}
         self.script_container = {}
+
+    def show_3d_structure(self):
+        self.widget_structure.clear()
+        self.widget_structure.opts['distance'] = 2000
+        self.widget_structure.opts['fov'] = 1
+        self.widget_structure.abc = np.array(eval(self.lineEdit_lattice.text())[0:3])
+        xyz_init = self.pandas_model_slab._data[self.pandas_model_slab._data['show']=='1'][['el','id','x','y','z']]
+        translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+        xyz_ = pd.DataFrame({'el':[],'id':[],'x':[],'y':[],'z':[]})
+        for i in range(len(xyz_init.index)):
+            el, id, x, y, z = xyz_init.iloc[i].tolist()
+            for tt in translation_offsets:
+                i, j, k = tt
+                tag = '_'
+                if i!=0:
+                    tag=tag+'{}x'.format(i)
+                if j!=0:
+                    tag=tag+'{}y'.format(j)
+                if k!=0:
+                    tag=tag+'{}z'.format(k)
+                if tag == '_':
+                    tag = ''
+                _x, _y, _z = x+i, y+j, z+k
+                _id = id+tag
+                xyz_.loc[len(xyz_.index)] = [el, _id, _x, _y, _z]
+        xyz = list(zip(xyz_['el'].tolist(),xyz_['id'].tolist(),xyz_['x']*self.widget_structure.abc[0].tolist(),xyz_['y']*self.widget_structure.abc[1].tolist(),xyz_['z']*self.widget_structure.abc[2].tolist()))
+        self.widget_structure.show_structure(xyz, show_id = True)
+
+    def pan_view(self):
+        value = int(self.spinBox_pan_pixel.text())
+        self.widget_structure.pan(value*int(self.checkBox_x.isChecked()),value*int(self.checkBox_y.isChecked()),value*int(self.checkBox_z.isChecked()))
 
     def reset_sym_info(self):
         self.lineEdit_2d_rotation_matrix.setText(str(sorbate_tool_beta.SURFACE_SYMS[self.comboBox_predefined_symmetry.currentText()][0:2]))
@@ -206,6 +240,7 @@ class ScriptGeneraterDialog(QDialog):
         if self.checkBox_use_predefined.isChecked():
             data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
             data_['motif'] = [self.comboBox_predefined_subMotifs.currentText()]
+            data_.update(module.get_par_dict(self.comboBox_predefined_subMotifs.currentText()))
         else:
             data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
             data_['xyzu_oc_m'] = str([0.5, 0.5, 1.5, 0.1, 1, 1])
@@ -255,6 +290,7 @@ class ScriptGeneraterDialog(QDialog):
         def _make_df(file, slab_index):
             df = pd.read_csv(file, comment = '#', names = ['id','el','x','y','z','u','occ','m'])
             df['slab'] = slab_index
+            df['show'] = str(1)
             df['sym_matrix']=str([1,0,0,0,1,0,0,0,1])
             df['gp_tag'] = 'NaN'
             return df
@@ -2500,7 +2536,7 @@ class MyMainWindow(QMainWindow):
     def _load_par(self):
         vertical_labels = []
         self.tableWidget_pars.setRowCount(1)
-        self.tableWidget_pars.setColumnCount(6)
+        self.tableWidget_pars.setColumnCount(7)
         self.tableWidget_pars.setHorizontalHeaderLabels(['Parameter','Value','Fit','Min','Max','Error','Link'])
         items = ['par',0,'False',0,0,'-','']
         for i in [0]:
@@ -2653,7 +2689,7 @@ class MyMainWindow(QMainWindow):
             f.write(self.model.parameters.get_ascii_output())
 
 if __name__ == "__main__":
-    QApplication.setStyle("fusion")
+    QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     #get dpi info: dots per inch
     screen = app.screens()[0]

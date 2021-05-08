@@ -268,11 +268,15 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
         return items
 
-    def show_structure(self, xyz):
+    def show_structure(self, xyz, show_id = False):
         # self.setCameraPosition(distance=55, azimuth=-90)
         # self.setCameraPosition(azimuth=0)
         # self.setProjection()
         a,b,c = self.abc
+        if len(xyz[0])==5:
+            xyz_ = [(each[0], each[2], each[3], each[4]) for each in xyz]
+            ids = [each[1] for each in xyz]
+            xyz = xyz_
         ii=0
         xyz_values = []
         el_list = []
@@ -280,14 +284,18 @@ class GLViewWidget_cum(gl.GLViewWidget):
         if len(self.items)==0:
             for each in self.make_super_cell():
                 self.addItem(each)
-            for each in xyz:
+            for i in range(len(xyz)):
+                each = xyz[i]
                 e, x, y, z = each
                 md = gl.MeshData.sphere(rows=10, cols=20)
-                m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color_to_rgb(color_lib[e.upper()]), shader='shaded', glOptions='opaque')
+                m1 = gl.GLMeshItem(meshdata=md, smooth=True, color=color_to_rgb(color_lib[e.upper().strip()]), shader='shaded', glOptions='opaque')
                 # print(dir(m1.metaObject()))
                 m1.translate(x, y, z)
                 m1.scale(0.3, 0.3, 0.3)
                 self.addItem(m1)
+                if show_id:
+                    self.text_item.append(CustomTextItem(*[x,y,z], ids[i],font_size = 10))
+                    self.text_item[-1].setGLViewWidget(self)
                 xyz_values.append([x,y,z])
                 el_list.append(e)
             dist_container = pdist(np.array(xyz_values),'euclidean')

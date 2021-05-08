@@ -48,6 +48,16 @@ class trigonal_pyramid_distortion():
         self.len_offset=len_offset
         self.ref=ref
 
+    def reset_attrs(self, attrs = {}):
+        for each in attrs:
+            if each not in ['p0', 'p1', 'ref', 'top_angle', 'len_offset']:
+                print('Attribute not implimented!')
+            else:
+                if each=='top_angle':
+                    self.shoulder_angle=(np.pi-attrs[each])/2.
+                else:
+                    setattr(self, each, attrs[each])
+
     def cal_theta(self):
     #here theta angle is angle A_P0_P1 in ppt file
         dst_p0_p1=f2(self.p0,self.p1)
@@ -165,6 +175,10 @@ class trigonal_pyramid_distortion():
         self.cal_theta()
         self.cal_edge_len()
         self.cal_apex_coor(switch=switch, phi=phi,mirror=mirror,angle_offset=angle_offset)
+
+    def all_in_all_reset(self, switch=False,phi=0.,mirror=False,angle_offset=0, attrs = {}):
+        self.reset_attrs(attrs)
+        self.all_in_all(switch,phi,mirror,angle_offset)
 
     def print_file(self,file):
         f=open(file,'w')

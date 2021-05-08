@@ -94,7 +94,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>2</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">
@@ -155,7 +155,88 @@
         </layout>
        </item>
        <item>
-        <widget class="QTableView" name="tableView_surface_slabs"/>
+        <widget class="QSplitter" name="splitter">
+         <property name="orientation">
+          <enum>Qt::Vertical</enum>
+         </property>
+         <widget class="QTableView" name="tableView_surface_slabs"/>
+         <widget class="GLViewWidget_cum" name="widget_structure" native="true">
+          <property name="minimumSize">
+           <size>
+            <width>0</width>
+            <height>100</height>
+           </size>
+          </property>
+         </widget>
+        </widget>
+       </item>
+       <item>
+        <layout class="QHBoxLayout" name="horizontalLayout_7">
+         <item>
+          <widget class="QPushButton" name="pushButton_draw_structure">
+           <property name="text">
+            <string>DrawStructure</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <spacer name="horizontalSpacer">
+           <property name="orientation">
+            <enum>Qt::Horizontal</enum>
+           </property>
+           <property name="sizeHint" stdset="0">
+            <size>
+             <width>40</width>
+             <height>20</height>
+            </size>
+           </property>
+          </spacer>
+         </item>
+         <item>
+          <widget class="QSpinBox" name="spinBox_pan_pixel">
+           <property name="minimum">
+            <number>-100</number>
+           </property>
+           <property name="maximum">
+            <number>100</number>
+           </property>
+           <property name="value">
+            <number>10</number>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_y">
+           <property name="text">
+            <string>y</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_x">
+           <property name="text">
+            <string>x</string>
+           </property>
+           <property name="checked">
+            <bool>true</bool>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QCheckBox" name="checkBox_z">
+           <property name="text">
+            <string>z</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <widget class="QPushButton" name="pushButton_pan">
+           <property name="text">
+            <string>pan</string>
+           </property>
+          </widget>
+         </item>
+        </layout>
        </item>
        <item>
         <layout class="QHBoxLayout" name="horizontalLayout_11">
@@ -487,6 +568,12 @@
    <class>QCodeEditor</class>
    <extends>QPlainTextEdit</extends>
    <header>code_editor.h</header>
+  </customwidget>
+  <customwidget>
+   <class>GLViewWidget_cum</class>
+   <extends>QWidget</extends>
+   <header>glview.h</header>
+   <container>1</container>
   </customwidget>
  </customwidgets>
  <resources/>
