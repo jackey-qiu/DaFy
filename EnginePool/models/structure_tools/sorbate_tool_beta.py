@@ -50,13 +50,13 @@ structure_OCCO="""
 #===================
 """
 OCCO = {
-        "els":str(['O','C','C', 'O']),
-        "anchor_index_list":str([1, None, 1, 2 ]),
-        "flat_down_index": str([2]),
-        "xyzu_oc_m": str([0.5, 0.5, 1.5, 0.1, 1, 1]),
-        "lat_pars": str([3.615, 3.615, 3.615, 90, 90, 90]),
-        'structure_pars_dict': str({'r':1.5, 'delta':0}),
-        "binding_mode": 'OS'
+        "els":[str(['O','C','C', 'O'])],
+        "anchor_index_list":[str([1, None, 1, 2 ])],
+        "flat_down_index": [str([2])],
+        "xyzu_oc_m": [str([0.5, 0.5, 1.5, 0.1, 1, 1])],
+        "lat_pars": [str([3.615, 3.615, 3.615, 90, 90, 90])],
+        'structure_pars_dict': [str({'r':1.5, 'delta':0})],
+        "binding_mode": ['OS']
         }
 
 ##CO3##
@@ -118,9 +118,9 @@ structure_CO="""
 #====================
 """
 CO = {
-        "els":['C','O'],
-        "anchor_index_list":[None, 0],
-        "flat_down_index": [],
+        "els":str(['C','O']),
+        "anchor_index_list":str([None, 0]),
+        "flat_down_index": str([]),
         "xyzu_oc_m": str([0.5, 0.5, 1.5, 0.1, 1, 1]),
         "lat_pars": str([3.615, 3.615, 3.615, 90, 90, 90]),
         'structure_pars_dict': str({'r':1.5, 'delta':0}),
