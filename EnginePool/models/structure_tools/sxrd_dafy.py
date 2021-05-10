@@ -617,6 +617,14 @@ class Sample:
                         ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
         return abs(ftot)*self.inst.inten
 
+    def calc_f_all_RAXS(self, h, k, l, a,b,c,A_list,P_list, E, E0, f1f2, res_el, mode = 'MD'):
+        f_ctr = self.calc_f_all(h, k, l)
+        if mode == 'MD':
+            f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'],a,b,c,E,E0,f1f2,res_el)
+        elif mode == 'MI':
+            f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(f1f2,E, E0, a, b, c, A_list,P_list)
+        return scale*(f_ctr + f_raxs)
+
     def calc_f_ideal(self, h, k, l):
         '''
         Calculate the structure factors for the non-relaxed sample (fb)
@@ -2023,6 +2031,8 @@ class Sample:
         q=2*np.pi*dinv
         F_layered_water=f*(Auc*d_w*density_w)*np.exp(-0.5*q**2*u0**2)*np.exp(q*(first_layer_height+height_offset)*1.0J)\
                         /(1-np.exp(-0.5*q**2*ubar**2)*np.exp(q*d_w*1.0J))
+        #set F_Water for non-specular rods to 0, since layered_water only make contribution to specular rod
+        F_layered_water[((abs(h)>0.00001).astype(int) + (abs(k)>0.00001).astype(int))>=1] = 0
         return F_layered_water
 
     def calc_f_layered_water_muscovite(self,h,k,l,args,height_offset=0):
@@ -2635,6 +2645,66 @@ class Sample:
                 for sym_op in sorbate_sym], 0)
                         ,1)
 
+    def calc_fs_sorbate_RAXS_MI(self, f1f2,E, E0, a, b, c, A_list=[],P_list=[]):
+        def _extract_f1f2(f1f2,E):
+            E_f1f2=np.around(f1f2[:,2],0)#make sure E in eV
+            E=np.around(E,0)
+            index=[]
+            for each_E in E_f1f2:
+                if each_E in E:
+                    index.append(np.where(E_f1f2==each_E)[0][0])
+            return f1f2[index,:]
+
+        if len(f1f2)!=len(E):
+            f1f2=_extract_f1f2(f1f2,E)
+        scaling_factor = np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c
+        return (f1f2[:,0]+1.0J*f1f2[:,1])*A_list*np.exp(1.0J*np.pi*2*P_list)),scaling_factor
+
+    def calc_fs_sorbate_RAXS_MD(self, h, k, l,slabs, sorbate_sym,a,b,c,E,E0,f1f2,res_el='Pb'):
+        '''Calculate the structure factors from the surface
+        '''
+        def _extract_f1f2(f1f2,E):
+            E_f1f2=np.around(f1f2[:,2],0)#make sure E in eV
+            E=np.around(E,0)
+            index=[]
+            for each_E in E_f1f2:
+                if each_E in E:
+                    index.append(np.where(E_f1f2==each_E)[0][0])
+            return f1f2[index,:]
+
+        if len(f1f2)!=len(E):
+            f1f2=_extract_f1f2(f1f2,E)
+
+        dinv = self.unit_cell.abs_hkl(h, k, l)
+        q_par,q_ver = self.unit_cell.q_par_q_ver(h,k,l)
+        x, y, z, B_par,B_ver, oc, el = self._surf_pars(slabs)
+        #Note that the u here has been recalculated to represent for the Gaussian distribution width of the thermal vibration (ie sigma in Angstrom)
+        f=self._get_f(el, dinv)
+        shape=f.shape
+        f_offset=np.zeros(shape=shape)+0J
+        for i in range(shape[0]):
+            for j in range(shape[1]):
+                if res_el==el[j]:
+                    f_offset[i][j]=f1f2[i][0]+1.0J*f1f2[i][1]
+        #here we calculate only the raxs part, the non-raxs part is calcuated in CTR
+        f=f_offset
+        
+        scaling_factor = np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c
+
+        if USE_NUMBA:
+            fs_list = []
+            for sym_op in sorbate_sym:
+                fs_list.append(cal_fs_numba(f,h,k,l,sym_op.trans_x(x,y), sym_op.trans_y(x,y), z, oc,B_par,B_ver, q_par,q_ver,self.delta1, self.delta2))
+            return sum(fs_list), scaling_factor
+        else:
+            return np.sum(oc*f*np.exp(-(B_par*np.square(q_par)[:,np.newaxis]+B_ver*np.square(q_ver)[:,np.newaxis])/(16*np.pi**2))\
+                *np.sum([np.exp(2.0*np.pi*1.0J*(
+                    h[:,np.newaxis]*(sym_op.trans_x(x, y)+self.delta1) +
+                    k[:,np.newaxis]*(sym_op.trans_y(x, y)+self.delta2) +
+                    l[:,np.newaxis]*(z[np.newaxis, :]+1)))
+                for sym_op in sorbate_sym], 0)
+                        ,1), scaling_factor
+
     def calc_fs_hematite_RAXR_MD(self, h, k, l,slabs,f1f2,res_el='Pb'):
         '''Calculate the structure factors from the surface
         '''
@@ -2909,7 +2979,6 @@ class Sample:
             x, y, z, el, B_par,B_ver, oc, c = self.bulk_slab._extract_values()
             oc = oc/float(len(self.bulk_sym))
             f = self._get_f(el, dinv)
-            # print(f.shape)
             # print(f)
             # Calculate the "shape factor" for the CTRs
             eff_thick = self.unit_cell.c/np.sin(self.inst.alpha*np.pi/180.0)

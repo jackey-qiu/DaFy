@@ -42,26 +42,20 @@ gp_O7O8_O1O2_D1.setoc	1.0000	True	0.6000	1.0000	-
 	0	False	0	0	-
 ####sorbate####
 #angles
+rgh_domain1.setDr_tetrahedral_TD_0	0.0000	True	-0.5000	0.5000	-
+rgh_domain1.setDr_bc_tetrahedral_TD_0	0.0000	True	-0.5000	0.5000	-
 	0	False	0	0	-
 #dxdydz
-gp_Zn_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_Zn_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_Zn_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
+gp_As_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
+gp_As_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
+gp_As_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
 	0	False	0	0	-
 gp_HO1_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
 gp_HO1_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
 gp_HO1_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
 	0	False	0	0	-
-gp_HO2_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_HO2_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_HO2_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
-	0	False	0	0	-
-gp_HO3_set1_D1.setdx	0.0000	False	-0.5000	0.5000	-
-gp_HO3_set1_D1.setdy	0.0000	False	-0.5000	0.5000	-
-gp_HO3_set1_D1.setdz	0.0000	False	-0.5000	0.5000	-
-	0	False	0	0	-
 #u
-gp_Zn_set1_D1.setu	0.2000	True	0.2000	1.0000	-
+gp_As_set1_D1.setu	0.2000	True	0.2000	1.0000	-
 gp_HO_set1_D1.setu	0.2000	True	0.2000	10.0000	-
 	0	False	0	0	-
 #oc
@@ -86,16 +80,4 @@ rgh_domain1.setUbar	0.4	False	0	5	-
 rgh_domain1.setFirst_layer_height	2	False	0	5	-
 rgh_domain1.setD_w	2.0	False	1	4	-
 rgh_domain1.setDensity_w	0.033	False	0	0.033	-
-	0	False	0	0	-
-rgh_raxr.setA1	1	False	0	5	-
-rgh_raxr.setB1	1	False	0	5	-
-rgh_raxr.setC1	1	False	0	5	-
-rgh_raxr.setA_D1_1	1	False	0	5	-
-rgh_raxr.setP_D1_1	1	False	0	1	-
-	0	False	0	0	-
-rgh_raxr.setA2	1	False	0	5	-
-rgh_raxr.setB2	1	False	0	5	-
-rgh_raxr.setC2	1	False	0	5	-
-rgh_raxr.setA_D1_2	1	False	0	5	-
-rgh_raxr.setP_D1_2	1	False	0	1	-
 	0	False	0	0	-
