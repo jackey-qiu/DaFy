@@ -3340,6 +3340,31 @@ class Slab:
             cpy.doc[-1] = self.doc[i]
         return cpy
 
+    def __add__(self, slab):
+        cpy = self.copy()
+        id = list(slab.id)
+        for i in range(len(id)):
+            cpy.add_atom(str(id[i]), str(slab.el[i]),
+                         slab.x[i], slab.y[i],
+                         slab.z[i], slab.u[i], slab.oc[i], slab.m[i], slab.u_par[i], slab.u_ver[i])
+            cpy.dz1[-1] = slab.dz1[i]
+            cpy.dz2[-1] = slab.dz2[i]
+            cpy.dz3[-1] = slab.dz3[i]
+            cpy.dz4[-1] = slab.dz4[i]
+            cpy.dx1[-1] = slab.dx1[i]
+            cpy.dx2[-1] = slab.dx2[i]
+            cpy.dx3[-1] = slab.dx3[i]
+            cpy.dx4[-1] = slab.dx4[i]
+            cpy.dy1[-1] = slab.dy1[i]
+            cpy.dy2[-1] = slab.dy2[i]
+            cpy.dy3[-1] = slab.dy3[i]
+            cpy.dy4[-1] = slab.dy4[i]
+            cpy.du[-1] = slab.du[i]
+            cpy.du_par[-1] = slab.du_par[i]
+            cpy.du_ver[-1] = slab.du_ver[i]
+            cpy.doc[-1] = slab.doc[i] 
+        return cpy
+
     def add_atom(self,id,  element, x, y, z, u = 0.0, oc = 1.0, m = 1.0, u_par = None, u_ver = None):
         '''Add an atom to the slab.
 

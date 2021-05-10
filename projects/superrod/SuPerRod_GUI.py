@@ -176,6 +176,9 @@ class ScriptGeneraterDialog(QDialog):
         self.script_lines_sorbate = {}
         self.script_lines_update_sorbate = {'update_sorbate':[]}
         self.script_container = {}
+        self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Cu100','Cu100_bulk.str'))
+        self.lineEdit_folder_suface.setText(os.path.join(DaFy_path,'util','batchfile','Cu100'))
+        self.lineEdit_template_script.setText(os.path.join(script_path,'standard_scripts','template_script_Cu.py'))
 
     def show_3d_structure(self):
         self.widget_structure.clear()

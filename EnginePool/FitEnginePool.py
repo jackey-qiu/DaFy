@@ -259,12 +259,14 @@ def backcor_confined(n,y,ord_cus,s,fct, peak_area_index = [0,1]):
 
 valence_lib = {'Pb':2, 'O':2, 'Fe':3, 'Al':3, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5}
 class bond_valence_constraint(object):
-    def __init__(self, r0_container, domain, lattice_abc, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3]):
+    def __init__(self, r0_container, domain, lattice_abc, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3],domains = []):
         self.r0_container = r0_container
         self.waiver_ids = waiver_ids
         self.panelty_factor = panelty_factor
         self.panelty_factor_total = 0
         self.domain = domain
+        if domains == []:
+            self.domains = [domain]
         self.lattice_abc = lattice_abc
         self.valence_lib = valence_lib
         self.covalent_H = covalent_H
@@ -300,6 +302,16 @@ class bond_valence_constraint(object):
         #setup this attribute for structue view
         domain.rem_atom_ids = rem_atom_ids
         return cls(r0_container, domain, lattice_abc, waiver_ids = rem_atom_ids)
+
+    @classmethod
+    def factory_function_hematite_rcut_new(cls,r0_container,domain_list, lattice_abc):
+        if len(domain_list)==1:
+            domain = domain_list[0]
+        elif len(domain_list)>1:
+            domain = domain_list[0]
+            for i in range(1,len(domain_list)):
+                domain = domain + domain_list[i]
+        return cls(r0_container, domain, lattice_abc, waiver_ids = [],domains = domain_list)
 
     def init_super_domain(self):
         self.id_super = []
@@ -367,11 +379,51 @@ class bond_valence_constraint(object):
                             self.consolidate_index_for_each_id[id].append(index_)
 
     def update_super_domain(self):
-        dx = np.tile(self.domain.dx1+self.domain.dx2+self.domain.dx3+self.domain.dx4,9)[:,np.newaxis]*self.lattice_abc[0]
-        dy = np.tile(self.domain.dy1+self.domain.dy2+self.domain.dy3+self.domain.dy4,9)[:,np.newaxis]*self.lattice_abc[1]
-        dz = np.tile(self.domain.dz1+self.domain.dz2+self.domain.dz3+self.domain.dz4,9)[:,np.newaxis]*self.lattice_abc[2]
-        self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1)
+        if len(self.domains)==1:
+            dx = np.tile(self.domain.dx1+self.domain.dx2+self.domain.dx3+self.domain.dx4,9)[:,np.newaxis]*self.lattice_abc[0]
+            dy = np.tile(self.domain.dy1+self.domain.dy2+self.domain.dy3+self.domain.dy4,9)[:,np.newaxis]*self.lattice_abc[1]
+            dz = np.tile(self.domain.dz1+self.domain.dz2+self.domain.dz3+self.domain.dz4,9)[:,np.newaxis]*self.lattice_abc[2]
+            self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1)
+        else:
+            self.update_super_domains()
 
+    def update_super_domains(self):
+        domain1, domains = self.domains[0], self.domains[1:]
+        dx1 = domain1.dx1
+        dx2 = domain1.dx2
+        dx3 = domain1.dx3
+        dx4 = domain1.dx4
+
+        dy1 = domain1.dy1
+        dy2 = domain1.dy2
+        dy3 = domain1.dy3
+        dy4 = domain1.dy4
+
+        dz1 = domain1.dz1
+        dz2 = domain1.dz2
+        dz3 = domain1.dz3
+        dz4 = domain1.dz4
+
+        dx1 = np.append(dx1, [each.dx1 for each in domains])
+        dx2 = np.append(dx2, [each.dx2 for each in domains])
+        dx3 = np.append(dx3, [each.dx3 for each in domains])
+        dx4 = np.append(dx4, [each.dx4 for each in domains])
+
+        dy1 = np.append(dy1, [each.dy1 for each in domains])
+        dy2 = np.append(dy2, [each.dy2 for each in domains])
+        dy3 = np.append(dy3, [each.dy3 for each in domains])
+        dy4 = np.append(dy4, [each.dy4 for each in domains])
+
+        dz1 = np.append(dz1, [each.dz1 for each in domains])
+        dz2 = np.append(dz2, [each.dz2 for each in domains])
+        dz3 = np.append(dz3, [each.dz3 for each in domains])
+        dz4 = np.append(dz4, [each.dz4 for each in domains])
+
+        dx = np.tile(dx1+dx2+dx3+dx4,9)[:,np.newaxis]*self.lattice_abc[0]
+        dy = np.tile(dy1+dy2+dy3+dy4,9)[:,np.newaxis]*self.lattice_abc[1]
+        dz = np.tile(dz1+dz2+dz3+dz4,9)[:,np.newaxis]*self.lattice_abc[2]
+        self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1)
+        
     def cal_distance(self):
         self.update_super_domain()
         dist_container = pdist(self.xyz_super + self.dxdydz_super,'euclidean')

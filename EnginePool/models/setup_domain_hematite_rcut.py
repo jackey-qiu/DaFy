@@ -315,6 +315,21 @@ def setup_raxr_pars(NUMBER_SPECTRA,batch_path_head,F1F2_FILE,RESONANT_EL_LIST):
         F1F2=None
     return rgh_raxr,F1F2
 
+def setup_raxr_pars_new(NUMBER_SPECTRA,F1F2_FILE):
+    if NUMBER_SPECTRA!=0:
+        F1F2=np.loadtxt(os.path.join(F1F2_FILE))
+        rgh_raxr=UserVars()
+        for i in range(NUMBER_SPECTRA):
+            rgh_raxr.new_var('a'+str(i+1),0.0)
+            rgh_raxr.new_var('b'+str(i+1),0.0)
+            rgh_raxr.new_var('c'+str(i+1),0.0)
+            rgh_raxr.new_var('A_D'+str(i+1),2.0)
+            rgh_raxr.new_var('P_D'+str(i+1),0.0)            
+    else:
+        rgh_raxr=None
+        F1F2=None
+    return rgh_raxr,F1F2
+
 def setup_sorbate_MD(VARS,i,j):
 
     rgh,\

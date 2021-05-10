@@ -87,3 +87,15 @@ rgh_domain1.setFirst_layer_height	2	False	0	5	-
 rgh_domain1.setD_w	2.0	False	1	4	-
 rgh_domain1.setDensity_w	0.033	False	0	0.033	-
 	0	False	0	0	-
+rgh_raxr.setA1	1	False	0	5	-
+rgh_raxr.setB1	1	False	0	5	-
+rgh_raxr.setC1	1	False	0	5	-
+rgh_raxr.setA_D1_1	1	False	0	5	-
+rgh_raxr.setP_D1_1	1	False	0	1	-
+	0	False	0	0	-
+rgh_raxr.setA2	1	False	0	5	-
+rgh_raxr.setB2	1	False	0	5	-
+rgh_raxr.setC2	1	False	0	5	-
+rgh_raxr.setA_D1_2	1	False	0	5	-
+rgh_raxr.setP_D1_2	1	False	0	1	-
+	0	False	0	0	-

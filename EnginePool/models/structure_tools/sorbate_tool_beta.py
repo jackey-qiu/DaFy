@@ -259,8 +259,6 @@ class TrigonalPyramid(StructureMotif):
     def __init__(self,domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs):
         super(TrigonalPyramid, self).__init__(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs)
 
-
-
     @classmethod
     def generate_script_from_setting_table(cls, use_predefined_motif = False, predefined_motif = '', structure_index = 1, kwargs = {}):
         template_settings = {'ids':str(['Pb1', 'O1']), 
@@ -287,7 +285,7 @@ class TrigonalPyramid(StructureMotif):
         els = str(temp.get('els'))
         anchor_id = str(temp.get('anchor_id'))
         substrate_domain = str(temp.get('substrate_domain'))
-        anchored_ids = str(temp.get('anchored_ids'))
+        anchored_ids = str({'attach_atm_ids':eval(temp.get('attach_atm_ids')),'offset':eval(temp.get('offset')),'anchor_ref':temp.get('anchor_ref'),'anchor_offset':temp.get('anchor_offset')})
         lat_pars = str(temp.get('lat_pars'))
         binding_mode = str({'mode':temp['mode'],'mirror':bool(temp['mirror']),'switch':bool(temp['switch'])})
         structure_pars_dict = str({'top_angle':eval(temp['top_angle']),'phi':eval(temp['phi']),'edge_offset':eval(temp['edge_offset']), 'angle_offset':eval(temp['angle_offset'])})
