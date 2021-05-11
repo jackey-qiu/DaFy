@@ -562,6 +562,7 @@ class DataList:
         all_ctr_data = []
         self.ctr_data_info = {}
         self.scaling_tag = []
+        self.data_type = []
         for i,each in enumerate(self.items):
             if hasattr(each,'mask'):
                 h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
@@ -572,6 +573,10 @@ class DataList:
                 self.scaling_tag.append('specular_rod')
             else:
                 self.scaling_tag.append('nonspecular_rod')
+            if x[0]>100:#x column is energy for raxs (in ev); but x column is L for CTR (smaller than 10 usually)
+                self.data_type.append('RAXS')
+            else:
+                self.data_type.append('CTR')
             #mask = np.ones(len(h))[:,np.newaxis]
             fbulk = np.zeros(len(h))[:,np.newaxis]
             temp_data = np.hstack((h,k,x,y,LB,dL,fbulk))
@@ -589,6 +594,18 @@ class DataList:
         for i in range(len(self.ctr_data_info)):
             sub_sets.append(full_set[cum_sum[i]:cum_sum[i+1]]*scale_factors[i])
         return sub_sets
+
+    def get_ctr_raxs_data(self, full_set, scale_factors):
+        sub_sets = self.split_fullset(full_set, scale_factors)
+        sub_sets_ctr = []
+        sub_sets_raxs = []
+        for i in range(len(self.data_type)):
+            each = self.data_type[i]
+            if each == 'CTR':
+                sub_sets_ctr.append(sub_sets[i])
+            elif each == 'RAXS':
+                sub_sets_raxs.append(sub_sets[i])
+        return sub_sets_ctr,sub_sets_raxs
 
     def __getitem__(self,key):
         '''__getitem__(self,key) --> DataSet

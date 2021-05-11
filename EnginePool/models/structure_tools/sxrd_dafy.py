@@ -618,12 +618,43 @@ class Sample:
         return abs(ftot)*self.inst.inten
 
     def calc_f_all_RAXS(self, h, k, l, a,b,c,A_list,P_list, E, E0, f1f2, res_el, mode = 'MD'):
-        f_ctr = self.calc_f_all(h, k, l)
+        '''
+        Calculate the structure factors for the sample
+        Here the surface structure is diveded into the subtrate itself and the sorbate atoms
+        The format of domain has a structure like: domain = {'domain1':{'slab':slab,'wt':weight,'sorbate':sorbate}}
+        '''
+        #here the chemically equivalent domains will be added up in-coherently always
+        ftot=0
+        # key = (h[0],k[0],l[0],l[-1])
+        # if key in self.fb:
+            # fb = self.fb[key]
+        # else:
+            # fb = self.calc_fb(h, k, l)
+            # self.fb[key] = fb
+        fb = self.calc_fb(h, k, l)
+
         if mode == 'MD':
             f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'],a,b,c,E,E0,f1f2,res_el)
         elif mode == 'MI':
             f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(f1f2,E, E0, a, b, c, A_list,P_list)
-        return scale*(f_ctr + f_raxs)
+
+        if self.coherence==True:
+            for key in self.domain.keys():
+                f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
+                if self.domain[key]['wt']!=0:
+                    if type(self.domain[key]['sorbate'])==type([]):
+                        ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])+f_raxs+f_water)*self.domain[key]['wt']
+                    else:
+                        ftot = ftot+(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_raxs+f_water)*self.domain[key]['wt']
+        else:
+            for key in self.domain.keys():
+                f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
+                if self.domain[key]['wt']!=0:
+                    if type(self.domain[key]['sorbate'])==type([]):
+                        ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])+f_raxs+f_water)*self.domain[key]['wt']
+                    else:
+                        ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_raxs+f_water)*self.domain[key]['wt']
+        return abs(ftot)*self.inst.inten*scale
 
     def calc_f_ideal(self, h, k, l):
         '''
@@ -2658,7 +2689,7 @@ class Sample:
         if len(f1f2)!=len(E):
             f1f2=_extract_f1f2(f1f2,E)
         scaling_factor = np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c
-        return (f1f2[:,0]+1.0J*f1f2[:,1])*A_list*np.exp(1.0J*np.pi*2*P_list)),scaling_factor
+        return (f1f2[:,0]+1.0J*f1f2[:,1])*A_list*np.exp(1.0J*np.pi*2*P_list),scaling_factor
 
     def calc_fs_sorbate_RAXS_MD(self, h, k, l,slabs, sorbate_sym,a,b,c,E,E0,f1f2,res_el='Pb'):
         '''Calculate the structure factors from the surface
