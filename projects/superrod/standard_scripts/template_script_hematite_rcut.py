@@ -16,13 +16,13 @@ from FitEnginePool import bond_valence_constraint
 model_type = 'ctr'
 
 #/setup_raxr_fitting/begin#
-RAXR_EL='Pb'
-RAXR_FIT_MODE='MI'#model dependent (MD) or Model independent (MI)
+RAXS_EL='Pb'
+RAXS_FIT_MODE='MI'#model dependent (MD) or Model independent (MI)
 NUMBER_SPECTRA=0
 RESONANT_EL_LIST=[1]+[0]*(len(pickup_index)-1)#use average A+P for the whole domain
 E0=11873
 F1F2_FILE='As_K_edge_March28_2018.f1f2'
-rgh_raxr,F1F2=setup_domain_hematite_rcut.setup_raxr_pars_new(NUMBER_SPECTRA, F1F2_FILE)
+rgh_raxs,F1F2=setup_domain_hematite_rcut.setup_raxr_pars_new(NUMBER_SPECTRA, F1F2_FILE)
 #/setup_raxr_fitting/end
 
 #--global settings--#
@@ -167,11 +167,15 @@ for i in range(num_surface_slabs):
     domains['domain{}'.format(i+1)]['sorbate_sym'] = globals()['sorbate_syms_{}'.format(i+1)]
     domains['domain{}'.format(i+1)]['layered_water'] = rgh_lw
 sample = model.Sample(inst, bulk, domains, unitcell)
+setattr(sample, 'rgh_raxs', rgh_raxs)
+setattr(sample, 'E0', E0)
+setattr(sample, 'F1F2', F1F2)
+setattr(sample, 'res_el', RES_EL)
+setattr(sample, 'mode', RAXS_FIT_MODE)
 #/sample/end#
 
 #setup bond valence attributes
 locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini'))
-#####################################setup bond valence constraint###################################
 for i in range(num_surface_slabs):
     vars()['bv_constraint_domain{}'.format(i+1)] = \
         bond_valence_constraint.factory_function_hematite_rcut_new(r0_container = R0_BV,\
@@ -195,13 +199,31 @@ def Sim(data,VARS=vars()):
         sample.domain['domain{}'.format(i+1)]['wt']=wt_list[i]/total_wt
 
     #faster solution(a factor of two faster than using loop)
-    h_, k_, x_,LB_,dL_ = data.ctr_data_all[:,0], data.ctr_data_all[:,1], data.ctr_data_all[:,2],data.ctr_data_all[:,4],data.ctr_data_all[:,5]
+    #ctr datasets
+    condition_ctr = data.ctr_data_all[:,-1]<100
+    h_, k_, x_,LB_,dL_ = data.ctr_data_all[condition_ctr][:,0], data.ctr_data_all[condition_ctr][:,1], data.ctr_data_all[condition_ctr][:,2],data.ctr_data_all[condition_ctr][:,4],data.ctr_data_all[condition_ctr][:,5]
     rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(x_-LB_)/dL_)**2)**0.5
     f_ = rough_*sample.calc_f_all(h_, k_, x_)
     F_ = abs(f_*f_)
     #you need to edit the list of extra scaling factor accordingly
     scaling_factors = [[rgh.scale_nonspecular_rods, rgh.scale_specular_rod][int(each=='specular_rod')] for each in data.scaling_tag]
-    F = data.split_fullset(F_,scaling_factors)
+    F_ctr = data.split_fullset(F_,scaling_factors)
+
+    #raxs datasets
+    condition_raxs = data.ctr_data_all[:,-1]>=100
+    if True in list(condition_raxs):
+        h_, k_, E_, l_, LB_,dL_ = data.ctr_data_all[condition_raxs][:,0], data.ctr_data_all[condition_raxs][:,1], data.ctr_data_all[condition_raxs][:,2],data.ctr_data_all[condition_raxs][:,3], data.ctr_data_all[condition_raxs][:,4],data.ctr_data_all[condition_raxs][:,5]
+        rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(l_-LB_)/dL_)**2)**0.5
+        f_ = rough_*sample.calc_f_all_RAXS(h_, k_, l_, E_)
+        F_ = abs(f_*f_)
+        #you need to edit the list of extra scaling factor accordingly
+        #scaling_factors = [[rgh.scale_nonspecular_rods, rgh.scale_specular_rod][int(each=='specular_rod')] for each in data.scaling_tag]
+        F_raxs = data.split_fullset(F_,scaling_factors=1, data_type = 'RAXS')
+    else:
+        F_raxs = []
+
+    #Now merge both datasets together
+    F = data.merge_datasets(ctr_datasets = F_ctr, raxs_datasets = F_raxs)    
     fom_scaler = [1]*len(F)
 
     #calculate bv panelty factor

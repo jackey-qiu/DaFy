@@ -617,7 +617,7 @@ class Sample:
                         ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
         return abs(ftot)*self.inst.inten
 
-    def calc_f_all_RAXS(self, h, k, l, a,b,c,A_list,P_list, E, E0, f1f2, res_el, mode = 'MD'):
+    def calc_f_all_RAXS(self, h, k, l, E):
         '''
         Calculate the structure factors for the sample
         Here the surface structure is diveded into the subtrate itself and the sorbate atoms
@@ -633,13 +633,13 @@ class Sample:
             # self.fb[key] = fb
         fb = self.calc_fb(h, k, l)
 
-        if mode == 'MD':
-            f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l,self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'],a,b,c,E,E0,f1f2,res_el)
-        elif mode == 'MI':
-            f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(f1f2,E, E0, a, b, c, A_list,P_list)
-
         if self.coherence==True:
             for key in self.domain.keys():
+                if self.mode == 'MD':
+                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l, E, self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])
+                elif self.mode == 'MI':
+                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(E)
+
                 f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
                 if self.domain[key]['wt']!=0:
                     if type(self.domain[key]['sorbate'])==type([]):
@@ -2676,35 +2676,74 @@ class Sample:
                 for sym_op in sorbate_sym], 0)
                         ,1)
 
-    def calc_fs_sorbate_RAXS_MI(self, f1f2,E, E0, a, b, c, A_list=[],P_list=[]):
+    def calc_fs_sorbate_RAXS_MI(self, E):
+        def _extract_abcAP():
+            a, b, c, A, P = [], [], [], [], []
+            unique_hkl = list(set(zip(h,k,l)))
+            data_points = {}
+            for i in range(len(unique_hkl)):
+                each = unique_hkl[i]
+                h_, k_, l_ = each
+                data_points = len(df.loc[(df['h']==h_) & (df['k']==k_) & (df['l']==l_)])
+                a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
+                b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
+                c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
+                A = A + [getattr(self.rgh_raxs,'A{}'.format(i+1))]*data_points
+                P = P + [getattr(self.rgh_raxs,'P{}'.format(i+1))]*data_points
+            return np.array(a), np.array(b), np.array(c), np.array(A), np.array(P)
+
         def _extract_f1f2(f1f2,E):
+            new_f1f2 = []
             E_f1f2=np.around(f1f2[:,2],0)#make sure E in eV
             E=np.around(E,0)
-            index=[]
-            for each_E in E_f1f2:
-                if each_E in E:
-                    index.append(np.where(E_f1f2==each_E)[0][0])
-            return f1f2[index,:]
+            for each_E in E:
+                index = np.argmin(abs(E_f1f2-each_E))
+                new_f1f2.append(list(f1f2[index]))
+            return new_f1f2
 
-        if len(f1f2)!=len(E):
-            f1f2=_extract_f1f2(f1f2,E)
-        scaling_factor = np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c
-        return (f1f2[:,0]+1.0J*f1f2[:,1])*A_list*np.exp(1.0J*np.pi*2*P_list),scaling_factor
+        a, b, c, A, P = _extract_abcAP()
+        if hasattr(self,'new_f1f2'):
+            if len(self.new_f1f2)!=len(E):
+                self.new_f1f2=_extract_f1f2(self.f1f2,E)
+        else:
+            self.new_f1f2=_extract_f1f2(self.f1f2,E)
+        #f1f2 = self.new_f1f2
+        scaling_factor = np.exp(-a*(E-self.E0)**2/self.E0**2+b*(E-self.E0)/self.E0)*c
+        return (f1f2[:,0]+1.0J*self.new_f1f2[:,1])*A*np.exp(1.0J*np.pi*2*P),scaling_factor
 
-    def calc_fs_sorbate_RAXS_MD(self, h, k, l,slabs, sorbate_sym,a,b,c,E,E0,f1f2,res_el='Pb'):
+    def calc_fs_sorbate_RAXS_MD(self, h, k, l,E, slabs, sorbate_sym):
         '''Calculate the structure factors from the surface
         '''
+        df = pd.DataFrame({'h':h,'k':k,'l':l,'E':E})
+
         def _extract_f1f2(f1f2,E):
+            new_f1f2 = []
             E_f1f2=np.around(f1f2[:,2],0)#make sure E in eV
             E=np.around(E,0)
-            index=[]
-            for each_E in E_f1f2:
-                if each_E in E:
-                    index.append(np.where(E_f1f2==each_E)[0][0])
-            return f1f2[index,:]
+            for each_E in E:
+                index = np.argmin(abs(E_f1f2-each_E))
+                new_f1f2.append(list(f1f2[index]))
+            return new_f1f2
 
-        if len(f1f2)!=len(E):
-            f1f2=_extract_f1f2(f1f2,E)
+        def _extract_abc():
+            a, b, c = [], [], []
+            unique_hkl = list(set(zip(h,k,l)))
+            data_points = {}
+            for i in range(len(unique_hkl)):
+                each = unique_hkl[i]
+                h_, k_, l_ = each
+                data_points = len(df.loc[(df['h']==h_) & (df['k']==k_) & (df['l']==l_)])
+                a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
+                b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
+                c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
+            return np.array(a), np.array(b), np.array(c)
+        
+        a, b, c = _extract_abc()
+        if hasattr(self,'new_f1f2'):
+            if len(self.new_f1f2)!=len(E):
+                self.new_f1f2=_extract_f1f2(self.f1f2,E)
+        else:
+            self.new_f1f2=_extract_f1f2(self.f1f2,E)
 
         dinv = self.unit_cell.abs_hkl(h, k, l)
         q_par,q_ver = self.unit_cell.q_par_q_ver(h,k,l)
@@ -2716,11 +2755,11 @@ class Sample:
         for i in range(shape[0]):
             for j in range(shape[1]):
                 if res_el==el[j]:
-                    f_offset[i][j]=f1f2[i][0]+1.0J*f1f2[i][1]
+                    f_offset[i][j]=self.new_f1f2[i][0]+1.0J*self.new_f1f2[i][1]
         #here we calculate only the raxs part, the non-raxs part is calcuated in CTR
         f=f_offset
         
-        scaling_factor = np.exp(-a*(E-E0)**2/E0**2+b*(E-E0)/E0)*c
+        scaling_factor = np.exp(-a*(E-self.E0)**2/self.E0**2+b*(E-self.E0)/self.E0)*c
 
         if USE_NUMBA:
             fs_list = []

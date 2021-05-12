@@ -323,8 +323,8 @@ def setup_raxr_pars_new(NUMBER_SPECTRA,F1F2_FILE):
             rgh_raxr.new_var('a'+str(i+1),0.0)
             rgh_raxr.new_var('b'+str(i+1),0.0)
             rgh_raxr.new_var('c'+str(i+1),0.0)
-            rgh_raxr.new_var('A_D'+str(i+1),2.0)
-            rgh_raxr.new_var('P_D'+str(i+1),0.0)            
+            rgh_raxr.new_var('A_'+str(i+1),2.0)
+            rgh_raxr.new_var('P_'+str(i+1),0.0) 
     else:
         rgh_raxr=None
         F1F2=None

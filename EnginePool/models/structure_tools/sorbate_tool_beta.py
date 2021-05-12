@@ -279,6 +279,7 @@ class TrigonalPyramid(StructureMotif):
         settings = {}
         if use_predefined_motif:
             temp = globals()[predefined_motif]
+            temp['substrate_domain'] = 'surface_{}'.format(structure_index)
         else:
             temp = template_settings
         ids = str(temp.get('ids'))

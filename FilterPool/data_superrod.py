@@ -562,24 +562,27 @@ class DataList:
         all_ctr_data = []
         self.ctr_data_info = {}
         self.scaling_tag = []
-        self.data_type = []
+        self.data_sequence = []
         for i,each in enumerate(self.items):
             if hasattr(each,'mask'):
                 h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
             else:
                 h,k,x,y,LB,dL = each.extra_data['h'][:,np.newaxis],each.extra_data['k'][:,np.newaxis],each.x[:,np.newaxis],each.extra_data['Y'][:,np.newaxis],each.extra_data['LB'][:,np.newaxis],each.extra_data['dL'][:,np.newaxis]
-            self.ctr_data_info[i] = len(h)
-            if int(h[0])==0 and int(k[0])==0:
-                self.scaling_tag.append('specular_rod')
-            else:
-                self.scaling_tag.append('nonspecular_rod')
+
             if x[0]>100:#x column is energy for raxs (in ev); but x column is L for CTR (smaller than 10 usually)
-                self.data_type.append('RAXS')
+                data_type_tag = 100+i#datasets with tag>100 are raxs data 
+                self.data_sequence.append(data_type_tag)
             else:
-                self.data_type.append('CTR')
+                data_type_tag = 1+i#datasets with tag>1 but <100 are ctr data
+                self.data_sequence.append(data_type_tag)
+                if int(h[0])==0 and int(k[0])==0:
+                    self.scaling_tag.append('specular_rod')
+                else:
+                    self.scaling_tag.append('nonspecular_rod')
+            self.ctr_data_info[data_type_tag] = len(h)
             #mask = np.ones(len(h))[:,np.newaxis]
             fbulk = np.zeros(len(h))[:,np.newaxis]
-            temp_data = np.hstack((h,k,x,y,LB,dL,fbulk))
+            temp_data = np.hstack((h,k,x,y,LB,dL,fbulk,np.zeros(len(h))[:,np.newaxis] + data_type_tag))
             if len(all_ctr_data)==0:
                 all_ctr_data = temp_data
             else:
@@ -587,25 +590,36 @@ class DataList:
         self.ctr_data_all = all_ctr_data
         return all_ctr_data
 
-    def split_fullset(self,full_set,scale_factors):
+    def split_fullset(self,full_set,scale_factors, data_type = 'CTR'):
+        if data_type == 'CTR':
+            #datasets with tag>1 but <100 are ctr data
+            data_info = {each:item for each, item in self.ctr_data_info.items() if each<100}
+        elif data_type == 'RAXS':
+            #datasets with tag>100 are raxs data
+            data_info = {each:item for each, item in self.ctr_data_info.items() if each>=100}
         sub_sets = []
-        cum_sum = np.cumsum([0]+list(self.ctr_data_info.values()))
-        assert len(scale_factors) == len(self.ctr_data_info),'The length of scale_factors and total number of ctr datasets do not match each other!'
-        for i in range(len(self.ctr_data_info)):
+        cum_sum = np.cumsum([0]+list(data_info.values()))
+        if type(scale_factors)!=type([]):
+            scale_factors = [scale_factors]*len(data_info)
+        else:
+            assert len(scale_factors) == len(data_info),'The length of scale_factors and total number of ctr datasets do not match each other!'
+        for i in range(len(data_info)):
             sub_sets.append(full_set[cum_sum[i]:cum_sum[i+1]]*scale_factors[i])
         return sub_sets
 
-    def get_ctr_raxs_data(self, full_set, scale_factors):
-        sub_sets = self.split_fullset(full_set, scale_factors)
-        sub_sets_ctr = []
-        sub_sets_raxs = []
-        for i in range(len(self.data_type)):
-            each = self.data_type[i]
-            if each == 'CTR':
-                sub_sets_ctr.append(sub_sets[i])
-            elif each == 'RAXS':
-                sub_sets_raxs.append(sub_sets[i])
-        return sub_sets_ctr,sub_sets_raxs
+    def merge_datasets(self, ctr_datasets, raxs_datasets):
+        assert (len(ctr_datasets)+len(raxs_datasets))==len(self.ctr_data_info),'The length of datasets does not match the total length of provided datasets!'
+        full_sets = []
+        begin_index_ctr = 0
+        begin_index_raxs = 0
+        for each in self.ctr_data_info:
+            if each<100:
+                full_sets.append(ctr_datasets[begin_index_ctr])
+                begin_index_ctr = begin_index_ctr + 1
+            elif each>=100:
+                full_sets.append(raxs_datasets[begin_index_raxs])
+                begin_index_raxs = begin_index_raxs + 1
+        return full_sets
 
     def __getitem__(self,key):
         '''__getitem__(self,key) --> DataSet
