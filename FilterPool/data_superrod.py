@@ -590,6 +590,9 @@ class DataList:
         self.ctr_data_all = all_ctr_data
         return all_ctr_data
 
+    def save_full_dataset(self, filename):
+        np.savetxt(filename, self.ctr_data_all[:,[0,1,2,3,4,5]],header = '#h k x y LB dL')
+
     def split_fullset(self,full_set,scale_factors, data_type = 'CTR'):
         if data_type == 'CTR':
             #datasets with tag>1 but <100 are ctr data

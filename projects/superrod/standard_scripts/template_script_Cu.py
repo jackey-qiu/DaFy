@@ -7,8 +7,20 @@ import dump_files.locate_path as output_path
 import models.domain_creator as domain_creator
 from models.structure_tools import tool_box
 from models.structure_tools import sorbate_tool_beta as sorbate_tool
+import models.setup_domain_hematite_rcut as setup_domain_hematite_rcut
 
 model_type = 'ctr'
+
+#/raxs/begin#
+RAXS_EL='Pb'
+RAXS_FIT_MODE='MI'#model dependent (MD) or Model independent (MI)
+NUMBER_SPECTRA=0
+E0=11873
+F1F2_FILE='As_K_edge_March28_2018.f1f2'
+#/raxs/end#
+if NUMBER_SPECTRA!=0:
+    rgh_raxs,F1F2=setup_domain_hematite_rcut.setup_raxr_pars_new(NUMBER_SPECTRA, F1F2_FILE)
+
 #--global settings--#
 #/globalsetting/begin#
 #/path/begin#

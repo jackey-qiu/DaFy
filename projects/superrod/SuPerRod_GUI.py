@@ -293,7 +293,7 @@ class ScriptGeneraterDialog(QDialog):
         def _make_df(file, slab_index):
             df = pd.read_csv(file, comment = '#', names = ['id','el','x','y','z','u','occ','m'])
             df['slab'] = slab_index
-            df['show'] = str(1)
+            df['show'] = str(0)
             df['sym_matrix']=str([1,0,0,0,1,0,0,0,1])
             df['gp_tag'] = 'NaN'
             return df
@@ -338,6 +338,14 @@ class ScriptGeneraterDialog(QDialog):
         if os.path.isfile(self.lineEdit_bulk.text()):
             self.script_container['bulk'] = "bulk = model.Slab()\ntool_box.add_atom_in_slab(bulk,'{}')\n".format(self.lineEdit_bulk.text())
 
+    def generate_script_raxs(self):
+        self.script_container['raxs']  = "RAXS_EL = '{}'\nRAXS_FIT_MODE = '{}'\nNUMBER_SPECTRA = {}\nE0 = {}\nF1F2_FILE = '{}'\n".format(self.lineEdit_res_el.text(),
+                                                                                                               self.comboBox_mode.currentText(),
+                                                                                                               str(self.spinBox_num_raxs.value()),
+                                                                                                               self.lineEdit_e0.text(),
+                                                                                                               self.lineEdit_f1f2.text())
+
+
     def generate_full_script(self):
         with open(self.lineEdit_template_script.text(),'r') as f:
             lines = f.readlines()
@@ -346,6 +354,8 @@ class ScriptGeneraterDialog(QDialog):
                 return
             #bulk file
             self.generate_script_bulk()
+            #raxs setting
+            self.generate_script_raxs()
             #lattice parameters
             self.script_container['unitcell']={'lat_pars':eval(self.lineEdit_lattice.text())}
             #energy
@@ -523,7 +533,7 @@ class MyMainWindow(QMainWindow):
         # You can control the logging level
         logging.getLogger().setLevel(logging.DEBUG)
 
-        self.comboBox_all_motif.insertItems(0, sorbate_tool.ALL_MOTIF_COLLECTION)
+        # self.comboBox_all_motif.insertItems(0, sorbate_tool.ALL_MOTIF_COLLECTION)
         #self.stop = False
         self.show_checkBox_list = []
         self.domain_tag = 1
@@ -624,7 +634,7 @@ class MyMainWindow(QMainWindow):
         #pushbutton to load/save script
         self.pushButton_load_script.clicked.connect(self.load_script)
         self.pushButton_save_script.clicked.connect(self.save_script)
-        self.pushButton_modify_script.clicked.connect(self.modify_script)
+        # self.pushButton_modify_script.clicked.connect(self.modify_script)
 
         #pushbutton to load/save parameter file
         self.pushButton_load_table.clicked.connect(self.load_par)

@@ -15,15 +15,15 @@ from FitEnginePool import bond_valence_constraint
 
 model_type = 'ctr'
 
-#/setup_raxr_fitting/begin#
+#/raxs/begin#
 RAXS_EL='Pb'
 RAXS_FIT_MODE='MI'#model dependent (MD) or Model independent (MI)
 NUMBER_SPECTRA=0
-RESONANT_EL_LIST=[1]+[0]*(len(pickup_index)-1)#use average A+P for the whole domain
 E0=11873
 F1F2_FILE='As_K_edge_March28_2018.f1f2'
-rgh_raxs,F1F2=setup_domain_hematite_rcut.setup_raxr_pars_new(NUMBER_SPECTRA, F1F2_FILE)
-#/setup_raxr_fitting/end
+#/raxs/end#
+if NUMBER_SPECTRA!=0:
+    rgh_raxs,F1F2=setup_domain_hematite_rcut.setup_raxr_pars_new(NUMBER_SPECTRA, F1F2_FILE)
 
 #--global settings--#
 #/globalsetting/begin#
