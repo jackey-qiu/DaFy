@@ -54,6 +54,7 @@ class trigonal_pyramid_distortion():
                 print('Attribute not implimented!')
             else:
                 if each=='top_angle':
+                    setattr(self, each, attrs[each])
                     self.shoulder_angle=(np.pi-attrs[each])/2.
                 else:
                     setattr(self, each, attrs[each])

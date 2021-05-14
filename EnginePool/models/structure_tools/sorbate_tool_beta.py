@@ -12,6 +12,7 @@ from copy import deepcopy
 from random import uniform
 import math
 from functools import partial
+from geometry_modules import *
 
 def rotation_matrix(axis, theta):
     """
@@ -311,15 +312,17 @@ class TrigonalPyramid(StructureMotif):
                        structure_pars_dict = {'top_angle':70.,'phi':0.,'edge_offset':[0,0], 'angle_offset':0},anchor_id='pb_id',ids = ['Pb_id','id1'], els = ['Pb','O'], lat_pars = np.array([5.038,5.434,7.3707,90,90,90]), T=None,T_INV=None):
         #initialize slab
         domain = model_2.Slab(T_factor = 'u')
-        instance = cls(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars,T,T_INV)
+        instance = cls(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars,T = T,T_INV = T_INV)
         instance.set_class_attributes()
         instance.create_rgh()
         instance.build_structure()
+        return instance
 
     def set_class_attributes(self):
         # self.geometry_object = geometry_object
         for each in self.kwargs:
             setattr(self, each, self.kwargs[each])
+        self.basis = self.lat_pars[0:3]
 
     def create_rgh(self):
         rgh = UserVars()
@@ -354,8 +357,8 @@ class TrigonalPyramid(StructureMotif):
 
     def _build_structure_BD(self, update = False):
         #The added sorbates (including Pb and one Os) will form a edge-distorted trigonal pyramid configuration with the attached ones
-        p_O1_index=np.where(self.substrate_domain.id==self.anchored_ids['attach_atm_ids'][0])
-        p_O2_index=np.where(self.substrate_domain.id==self.anchored_ids['attach_atm_ids'][1])
+        p_O1_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+        p_O2_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][1])
         anchor_index=None
         if self.anchored_ids['anchor_ref']!=None:
             anchor_index=np.where(self.substrate_domain.id==self.anchored_ids['anchor_ref'])
@@ -368,7 +371,7 @@ class TrigonalPyramid(StructureMotif):
             elif symbol==None:return np.array([0.,0.,0.])
 
         f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
-        pt_ct=lambda domain,p_O1_index,symbol:np.array([domain.x[p_O1_index][0]+domain.dx1[p_O1_index][0]+domain.dx2[p_O1_index][0]+domain.dx3[p_O1_index][0],domain.y[p_O1_index][0]+domain.dy1[p_O1_index][0]+domain.dy2[p_O1_index][0]+domain.dy3[p_O1_index][0],domain.z[p_O1_index][0]+domain.dz1[p_O1_index][0]+domain.dz2[p_O1_index][0]+domain.dz3[p_O1_index][0]])+_translate_offset_symbols(symbol)
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+_translate_offset_symbols(symbol)
         if self.T==None:
             p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
             p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
@@ -380,7 +383,7 @@ class TrigonalPyramid(StructureMotif):
             if self.T==None:
                 anchor=pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset'])*self.lat_pars[0:3]
             else:
-                anchor=np.dot(self.T,pt_ct(domain,anchor_index,self.anchored_ids['anchor_offset'])*self.lat_pars[0:3])
+                anchor=np.dot(self.T,pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset'])*self.lat_pars[0:3])
         #print "O1",p_O1
         #print "O2",p_O2
         if not update:
@@ -404,14 +407,14 @@ class TrigonalPyramid(StructureMotif):
 
         O_id = [each for each in self.ids if each!=self.anchor_id]
         if self.T==None:        
-            _add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.apex/basis)
+            _add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.apex/self.basis)
             if O_id!=[]:
-                _add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=self.geometry_object.p2/basis)
+                _add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=self.geometry_object.p2/self.basis)
             #return [pyramid_distortion.apex/basis,pyramid_distortion.p2/basis]
         else:
-            _add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.apex)/basis)
+            _add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.apex)/self.basis)
             if O_id!=[]:
-                _add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=np.dot(self.T_INV,self.geometry_object.p2)/basis)
+                _add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=np.dot(self.T_INV,self.geometry_object.p2)/self.basis)
             #return [np.dot(T_INV,pyramid_distortion.apex)/basis,np.dot(T_INV,pyramid_distortion.p2)/basis
 
     def make_atm_group(self, instance_name = 'instance_name'):

@@ -1014,11 +1014,13 @@ class MyMainWindow(QMainWindow):
         else:
             z_max = 100
         raxs_A_list, raxs_P_list = [], []
-        num_raxs = len(self.model.data)-1
+        #num_raxs = len(self.model.data)-1
+        #items for raxs dates have value >=100 in the data_sequence attribute
+        num_raxs = sum(np.array(self.model.data.data_sequence)>=100)-1
         if hasattr(self.model.script_module, "rgh_raxs"):
             for i in range(num_raxs):
-                raxs_A_list.append(eval("self.model.script_module.rgh_raxs.getA{}_D1()".format(i+1)))
-                raxs_P_list.append(eval("self.model.script_module.rgh_raxs.getP{}_D1()".format(i+1)))
+                raxs_A_list.append(eval("self.model.script_module.rgh_raxs.getA_{}".format(i+1)))
+                raxs_P_list.append(eval("self.model.script_module.rgh_raxs.getP_{}".format(i+1)))
         else:
             raxs_A_list.append(0)
             raxs_P_list.append(0)
@@ -1031,8 +1033,8 @@ class MyMainWindow(QMainWindow):
                 HKL_raxs_list[1].append(each.extra_data['k'][0])
                 HKL_raxs_list[2].append(each.extra_data['Y'][0])
         # HKL_raxs_list = [HKL_raxs_list[0][0:2],HKL_raxs_list[1][0:2],HKL_raxs_list[2][0:2]]
-        if hasattr(self.model.script_module, "RAXR_EL"):
-            raxs_el = getattr(self.model.script_module, "RAXR_EL")
+        if hasattr(self.model.script_module, "RAXS_EL"):
+            raxs_el = getattr(self.model.script_module, "RAXS_EL")
         else:
             raxs_el = None
         # label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
@@ -1342,7 +1344,10 @@ class MyMainWindow(QMainWindow):
             row_index = rows[-1].row()
         for ii in range(len(attrs_wanted)):
             self.tableWidget_pars.insertRow(row_index)
-            current_value = eval("self.model.script_module."+par_selected+'.'+attrs_wanted[ii].replace('set','get')+"()")
+            # current_value = eval("self.model.script_module."+par_selected+'.'+attrs_wanted[ii].replace('set','get')+"()")
+            attr_temp = list(attrs_wanted[ii])
+            attr_temp[0] = 'g'#set replaced by get this way
+            current_value = eval("self.model.script_module."+par_selected+'.'+''.join(attr_temp)+"()")
             bounds_temp = _get_bounds(par_selected,attrs_wanted[ii])
             #update the bounds if the current value is out of the bound range
             if len(bounds_temp)==2:
@@ -1958,7 +1963,7 @@ class MyMainWindow(QMainWindow):
         # self.widget_msv_top.items = []
         self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
         # self.widget_msv_top.abc = self.widget_edp.abc
-        xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+        xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value())
         self.widget_edp.show_structure(xyz)
         self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
         self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
@@ -1996,7 +2001,7 @@ class MyMainWindow(QMainWindow):
                 domain_tag = size_domain -1
             else:
                 pass        
-            xyz, _ = self.model.script_module.sample.extract_xyz_top(domain_tag)
+            xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value())
             if self.run_fit.running: 
                 self.widget_edp.update_structure(xyz)
             else:

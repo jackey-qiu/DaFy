@@ -267,6 +267,8 @@ class bond_valence_constraint(object):
         self.domain = domain
         if domains == []:
             self.domains = [domain]
+        else:
+            self.domains = domains
         self.lattice_abc = lattice_abc
         self.valence_lib = valence_lib
         self.covalent_H = covalent_H

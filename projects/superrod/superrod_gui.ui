@@ -536,7 +536,7 @@ p, li { white-space: pre-wrap; }
             <enum>QTabWidget::South</enum>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>3</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -682,6 +682,20 @@ p, li { white-space: pre-wrap; }
                       </size>
                      </property>
                     </spacer>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_4">
+                     <property name="text">
+                      <string>Layers</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QSpinBox" name="spinBox_layers">
+                     <property name="minimum">
+                      <number>1</number>
+                     </property>
+                    </widget>
                    </item>
                    <item>
                     <widget class="QPushButton" name="pushButton_start_spin">

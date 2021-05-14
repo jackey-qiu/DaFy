@@ -24,13 +24,18 @@ F1F2_FILE='As_K_edge_March28_2018.f1f2'
 #/raxs/end#
 if NUMBER_SPECTRA!=0:
     rgh_raxs,F1F2=setup_domain_hematite_rcut.setup_raxr_pars_new(NUMBER_SPECTRA, F1F2_FILE)
+else:
+    rgh_raxs, F1F2 = None, []
 
 #--global settings--#
 #/globalsetting/begin#
 #/path/begin#
-batch_path_head=os.path.join(batch_path.module_path_locator(),'Cu100')
+batch_path_head=batch_path.module_path_locator()
 output_file_path=output_path.module_path_locator()
 #/path/end#
+#/bv/begin#
+USE_BV = True
+#/bv/end#
 #/wavelength/begin#
 wal=0.551
 #/wavelength/end#
@@ -158,6 +163,7 @@ for i in range(num_sorbate_slabs):
 #/sorbatesym/end#
 
 #/sample/begin#
+surface_parms={'delta1':0.,'delta2':0.1391}
 domains = {}
 for i in range(num_surface_slabs):
     domains['domain{}'.format(i+1)] = {}
@@ -169,16 +175,15 @@ for i in range(num_surface_slabs):
 sample = model.Sample(inst, bulk, domains, unitcell)
 setattr(sample, 'rgh_raxs', rgh_raxs)
 setattr(sample, 'E0', E0)
-setattr(sample, 'F1F2', F1F2)
-setattr(sample, 'res_el', RES_EL)
+setattr(sample, 'f1f2', F1F2)
+setattr(sample, 'res_el', RAXS_EL)
 setattr(sample, 'mode', RAXS_FIT_MODE)
 #/sample/end#
 
 #setup bond valence attributes
 locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini'))
 for i in range(num_surface_slabs):
-    vars()['bv_constraint_domain{}'.format(i+1)] = \
-        bond_valence_constraint.factory_function_hematite_rcut_new(r0_container = R0_BV,\
+    vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_hematite_rcut_new(r0_container = R0_BV,\ 
                                                                    domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)], \
                                                                    lattice_abc = np.array([unitcell.a, unitcell.b, unitcell.c]))
 
@@ -218,7 +223,7 @@ def Sim(data,VARS=vars()):
         F_ = abs(f_*f_)
         #you need to edit the list of extra scaling factor accordingly
         #scaling_factors = [[rgh.scale_nonspecular_rods, rgh.scale_specular_rod][int(each=='specular_rod')] for each in data.scaling_tag]
-        F_raxs = data.split_fullset(F_,scaling_factors=1, data_type = 'RAXS')
+        F_raxs = data.split_fullset(F_,scale_factors=1, data_type = 'RAXS')
     else:
         F_raxs = []
 
@@ -227,6 +232,7 @@ def Sim(data,VARS=vars()):
     fom_scaler = [1]*len(F)
 
     #calculate bv panelty factor
+    bv = 0
     if USE_BV:
         for i in range(num_surface_slabs):
             bv += VARS['bv_constraint_domain{}'.format(i+1)].cal_distance()

@@ -281,7 +281,8 @@ class Sample:
         #print(np.where(self.domain.id == id))
         #print(self.domain.id)
         #print(id)
-        index = np.where(domain.id == id)[0][0]
+        #index = np.where(domain.id == id)[0][0]
+        index = list(domain.id).index(id)
         x = domain.x[index] + domain.dx1[index] + domain.dx2[index] + domain.dx3[index] + domain.dx4[index]
         y = domain.y[index] + domain.dy1[index] + domain.dy2[index] + domain.dy3[index] + domain.dy4[index]
         z = domain.z[index] + domain.dz1[index] + domain.dz2[index] + domain.dz3[index] + domain.dz4[index]
@@ -379,20 +380,25 @@ class Sample:
                 f.write(s)
 
     #only substrate atoms at the top layer for top view show
-    def extract_xyz_top(self, which_domain = 0):
+    def extract_xyz_top(self, which_domain = 0, num_of_atomic_layers = 1):
         xyz_list = []
         which_key = list(self.domain.keys())[which_domain]
-        bond_index = []
+        # bond_index = []
         number_items_slab = 0
         for key in self.domain.keys():
             #print(key)
             if key == which_key:
                 z_list_temp = np.array(self.domain[key]['slab'].z) + self.domain[key]['slab'].dz1 + self.domain[key]['slab'].dz2 + self.domain[key]['slab'].dz3 + self.domain[key]['slab'].dz4
-                z_max = z_list_temp.max()*self.unit_cell.c
+                #z_max = z_list_temp.max()*self.unit_cell.c
+                z_list_sorted = sorted(list(set(z_list_temp * self.unit_cell.c)))[::-1]
+                if num_of_atomic_layers>len(z_list_sorted):
+                    num_of_atomic_layers = len(z_list_sorted)
+                z_min = z_list_sorted[num_of_atomic_layers-1]
+
                 for i in range(len(self.domain[key]['slab'].id)):
                     el = self.domain[key]['slab'].el[i]
                     x_, y_, z_ = self._extract_coord(self.domain[key]['slab'], self.domain[key]['slab'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
-                    if z_ == z_max:
+                    if z_ >= z_min:
                         translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
                         for each in translation_offsets:
                             x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
@@ -401,7 +407,7 @@ class Sample:
                         pass
                 number_items_slab = len(xyz_list)
                 if type(self.domain[key]['sorbate'])!=list:
-                    bond_index = self.domain[key]['sorbate'].bond_index
+                    # bond_index = self.domain[key]['sorbate'].bond_index
                     for i in range(len(self.domain[key]['sorbate'].id)):
                         el = self.domain[key]['sorbate'].el[i]
                         x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
@@ -412,7 +418,7 @@ class Sample:
                             xyz_list.append((el, x, y, z))
                 else:
                     for sorbate_temp in self.domain[key]['sorbate']:
-                        bond_index = sorbate_temp.bond_index
+                        # bond_index = sorbate_temp.bond_index
                         for i in range(len(sorbate_temp.id)):
                             el = sorbate_temp.el[i]
                             x_, y_, z_ = self._extract_coord(sorbate_temp, sorbate_temp.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
@@ -424,8 +430,8 @@ class Sample:
 
             else:
                 pass
-        bond_index = [np.array(each) + number_items_slab for each in bond_index]
-        return xyz_list, bond_index
+        # bond_index = [np.array(each) + number_items_slab for each in bond_index]
+        return xyz_list
 
     def bond_distance_constraint(self, which_domain = 0, atm_id = None, max_distance = 2.2, p_factor = 100):
         x_list, y_list, z_list, el_list, atm_id_list, tag_list = [],[],[],[],[],[]
@@ -638,7 +644,7 @@ class Sample:
                 if self.mode == 'MD':
                     f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l, E, self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])
                 elif self.mode == 'MI':
-                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(E)
+                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(h,k,l,E)
 
                 f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
                 if self.domain[key]['wt']!=0:
@@ -2676,20 +2682,31 @@ class Sample:
                 for sym_op in sorbate_sym], 0)
                         ,1)
 
-    def calc_fs_sorbate_RAXS_MI(self, E):
+    def calc_fs_sorbate_RAXS_MI(self, h,k,l,E):
+
         def _extract_abcAP():
             a, b, c, A, P = [], [], [], [], []
-            unique_hkl = list(set(zip(h,k,l)))
-            data_points = {}
-            for i in range(len(unique_hkl)):
-                each = unique_hkl[i]
-                h_, k_, l_ = each
-                data_points = len(df.loc[(df['h']==h_) & (df['k']==k_) & (df['l']==l_)])
-                a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
-                b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
-                c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
-                A = A + [getattr(self.rgh_raxs,'A{}'.format(i+1))]*data_points
-                P = P + [getattr(self.rgh_raxs,'P{}'.format(i+1))]*data_points
+            if not hasattr(self, 'data_points_raxs'):
+                unique_hkl = list(set(zip(h,k,l)))
+                self.data_points_raxs = {}
+                df = pd.DataFrame({'h':h,'k':k,'l':l})
+                for i in range(len(unique_hkl)):
+                    each = unique_hkl[i]
+                    h_, k_, l_ = each
+                    data_points = len(df.loc[(df['h']==h_) & (df['k']==k_) & (df['l']==l_)])
+                    self.data_points_raxs[i] = data_points
+                    a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
+                    b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
+                    c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
+                    A = A + [getattr(self.rgh_raxs,'A_{}'.format(i+1))]*data_points
+                    P = P + [getattr(self.rgh_raxs,'P_{}'.format(i+1))]*data_points
+            else:
+                for i in range(len(self.data_points_raxs)):
+                    a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*self.data_points_raxs[i]
+                    b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*self.data_points_raxs[i]
+                    c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*self.data_points_raxs[i]
+                    A = A + [getattr(self.rgh_raxs,'A_{}'.format(i+1))]*self.data_points_raxs[i]
+                    P = P + [getattr(self.rgh_raxs,'P_{}'.format(i+1))]*self.data_points_raxs[i]
             return np.array(a), np.array(b), np.array(c), np.array(A), np.array(P)
 
         def _extract_f1f2(f1f2,E):
@@ -2704,12 +2721,12 @@ class Sample:
         a, b, c, A, P = _extract_abcAP()
         if hasattr(self,'new_f1f2'):
             if len(self.new_f1f2)!=len(E):
-                self.new_f1f2=_extract_f1f2(self.f1f2,E)
+                self.new_f1f2=np.array(_extract_f1f2(self.f1f2,E))
         else:
-            self.new_f1f2=_extract_f1f2(self.f1f2,E)
+            self.new_f1f2=np.array(_extract_f1f2(self.f1f2,E))
         #f1f2 = self.new_f1f2
         scaling_factor = np.exp(-a*(E-self.E0)**2/self.E0**2+b*(E-self.E0)/self.E0)*c
-        return (f1f2[:,0]+1.0J*self.new_f1f2[:,1])*A*np.exp(1.0J*np.pi*2*P),scaling_factor
+        return (self.new_f1f2[:,0]+1.0J*self.new_f1f2[:,1])*A*np.exp(1.0J*np.pi*2*P),scaling_factor
 
     def calc_fs_sorbate_RAXS_MD(self, h, k, l,E, slabs, sorbate_sym):
         '''Calculate the structure factors from the surface
