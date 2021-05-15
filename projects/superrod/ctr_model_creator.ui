@@ -15,6 +15,63 @@
   </property>
   <layout class="QVBoxLayout" name="verticalLayout_2">
    <item>
+    <layout class="QHBoxLayout" name="horizontalLayout_8">
+     <item>
+      <widget class="QLabel" name="label_26">
+       <property name="sizePolicy">
+        <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+         <horstretch>0</horstretch>
+         <verstretch>0</verstretch>
+        </sizepolicy>
+       </property>
+       <property name="font">
+        <font>
+         <weight>75</weight>
+         <bold>true</bold>
+        </font>
+       </property>
+       <property name="text">
+        <string>Load</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_hematite">
+       <property name="text">
+        <string>Hematite(1-102)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_cu">
+       <property name="text">
+        <string>Cu(100)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QPushButton" name="pushButton_mica">
+       <property name="text">
+        <string>Muscovite(001)</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <spacer name="horizontalSpacer_3">
+       <property name="orientation">
+        <enum>Qt::Horizontal</enum>
+       </property>
+       <property name="sizeHint" stdset="0">
+        <size>
+         <width>40</width>
+         <height>20</height>
+        </size>
+       </property>
+      </spacer>
+     </item>
+    </layout>
+   </item>
+   <item>
     <widget class="QLabel" name="label_6">
      <property name="font">
       <font>
@@ -63,6 +120,20 @@
       </widget>
      </item>
      <item>
+      <widget class="QLabel" name="label_25">
+       <property name="text">
+        <string>Surface_offset</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QLineEdit" name="lineEdit_surface_offset">
+       <property name="text">
+        <string>{'delta1':0.,'delta2':0.1391}</string>
+       </property>
+      </widget>
+     </item>
+     <item>
       <widget class="QLabel" name="label_8">
        <property name="text">
         <string>Energy (keV)</string>
@@ -73,7 +144,7 @@
       <widget class="QLineEdit" name="lineEdit_E">
        <property name="maximumSize">
         <size>
-         <width>200</width>
+         <width>100</width>
          <height>10000</height>
         </size>
        </property>
@@ -87,7 +158,7 @@
    <item>
     <widget class="QTabWidget" name="tabWidget">
      <property name="currentIndex">
-      <number>1</number>
+      <number>0</number>
      </property>
      <widget class="QWidget" name="tab">
       <attribute name="title">

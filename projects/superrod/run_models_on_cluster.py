@@ -31,7 +31,7 @@ ray.init(address=os.environ["ip_head"], _redis_password=redis_password)
 '''
 
 #provide the folder where all model files (*.rod) are stored
-folder_holding_model_files = os.path.join(DaFy_path,"examples/Cu100_CO2_EC/test_batch")
+folder_holding_model_files = os.path.join(DaFy_path,"examples/hematite_rcut_AD/test_batch")
 #folder_holding_model_files = "/User/cqiu/app/DaFy/examples/Cu100_CO2_EC/test_batch"
 def obtain_rod_files(folder):
     '''

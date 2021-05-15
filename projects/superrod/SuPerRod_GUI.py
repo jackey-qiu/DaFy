@@ -47,6 +47,7 @@ from pyqtgraph.Qt import QtGui
 from threading import Thread
 import syntax_pars
 from models.structure_tools import sorbate_tool
+from models.structure_tools import sorbate_tool_beta
 import logging
 from superrod_ui import Ui_MainWindow
 
@@ -135,7 +136,6 @@ class PandasModel(QtCore.QAbstractTableModel):
         self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
         self.layoutChanged.emit()
 
-from models.structure_tools import sorbate_tool_beta
 class ScriptGeneraterDialog(QDialog):
     def __init__(self, parent=None):
         # print(sorbate_tool_beta.STRUCTURE_MOTIFS)
@@ -173,12 +173,35 @@ class ScriptGeneraterDialog(QDialog):
         self.pushButton_draw_structure.clicked.connect(self.show_3d_structure)
         self.pushButton_pan.clicked.connect(self.pan_view)
 
+        self.pushButton_hematite.clicked.connect(self.load_hematite)
+        self.pushButton_mica.clicked.connect(self.load_mica)
+        self.pushButton_cu.clicked.connect(self.load_cu)
+
         self.script_lines_sorbate = {}
         self.script_lines_update_sorbate = {'update_sorbate':[]}
         self.script_container = {}
         self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Cu100','Cu100_bulk.str'))
         self.lineEdit_folder_suface.setText(os.path.join(DaFy_path,'util','batchfile','Cu100'))
         self.lineEdit_template_script.setText(os.path.join(script_path,'standard_scripts','template_script_Cu.py'))
+
+    def load_hematite(self):
+        self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','hematite_rcut','bulk.str'))
+        self.lineEdit_folder_suface.setText(os.path.join(DaFy_path,'util','batchfile','hematite_rcut'))
+        self.lineEdit_files_surface.setText('half_layer2.str')
+        self.lineEdit_lattice.setText(str([5.038,5.434,7.3707,90,90,90]))
+        self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.1391}))
+        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script_hematite_rcut.py'))
+
+    def load_cu(self):
+        self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Cu100','Cu100_bulk.str'))
+        self.lineEdit_folder_suface.setText(os.path.join(DaFy_path,'util','batchfile','Cu100'))
+        self.lineEdit_files_surface.setText('Cu100_surface_1.str')
+        self.lineEdit_lattice.setText(str([3.615,3.615,3.615,90,90,90]))
+        self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.}))
+        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script_Cu.py'))
+
+    def load_mica(self):
+        pass
 
     def show_3d_structure(self):
         self.widget_structure.clear()
@@ -339,6 +362,7 @@ class ScriptGeneraterDialog(QDialog):
         self.plainTextEdit_script.setPlainText(self.generate_script_surface_slabs()+'\n\n'+self.generate_script_surface_atm_group())
 
     def generate_script_bulk(self):
+        self.script_container['sample'] = {'surface_parms':self.lineEdit_surface_offset.text()}
         if os.path.isfile(self.lineEdit_bulk.text()):
             self.script_container['bulk'] = "bulk = model.Slab()\ntool_box.add_atom_in_slab(bulk,'{}')\n".format(self.lineEdit_bulk.text())
 

@@ -2771,7 +2771,7 @@ class Sample:
         f_offset=np.zeros(shape=shape)+0J
         for i in range(shape[0]):
             for j in range(shape[1]):
-                if res_el==el[j]:
+                if self.res_el==el[j]:
                     f_offset[i][j]=self.new_f1f2[i][0]+1.0J*self.new_f1f2[i][1]
         #here we calculate only the raxs part, the non-raxs part is calcuated in CTR
         f=f_offset

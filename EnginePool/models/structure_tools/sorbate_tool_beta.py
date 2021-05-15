@@ -363,7 +363,7 @@ class TrigonalPyramid(StructureMotif):
         p_O2_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][1])
         anchor_index=None
         if self.anchored_ids['anchor_ref']!=None:
-            anchor_index=np.where(self.substrate_domain.id==self.anchored_ids['anchor_ref'])
+            anchor_index=list(self.substrate_domain.id).index(self.anchored_ids['anchor_ref'])
         
         def _translate_offset_symbols(symbol):
             if symbol=='-x':return np.array([-1.,0.,0.])
@@ -388,8 +388,10 @@ class TrigonalPyramid(StructureMotif):
                 anchor=np.dot(self.T,pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset'])*self.lat_pars[0:3])
         #print "O1",p_O1
         #print "O2",p_O2
+        # print(pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset']))
+        # print(anchor_index,self.substrate_domain.x[anchor_index],self.substrate_domain.y[anchor_index],self.substrate_domain.z[anchor_index])
         if not update:
-            pyramid_distortion=trigonal_pyramid_distortion_B2.trigonal_pyramid_distortion(p0=p_O1,p1=p_O2,ref=anchor,top_angle=self.rgh.top_angle/180.*np.pi,len_offset=[self.rgh.edge_offset_1, self.rgh.edge_offset_2])
+            pyramid_distortion=trigonal_pyramid_distortion_B2.trigonal_pyramid_distortion(p0=p_O1,p1=p_O2,ref=np.array(anchor),top_angle=self.rgh.top_angle/180.*np.pi,len_offset=[self.rgh.edge_offset_1, self.rgh.edge_offset_2])
             pyramid_distortion.all_in_all(switch=self.binding_mode['switch'],phi=self.rgh.phi/180*np.pi,mirror=self.binding_mode['mirror'],angle_offset=self.rgh.angle_offset/180.*np.pi)
             self.geometry_object = pyramid_distortion
         else:

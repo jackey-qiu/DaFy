@@ -80,7 +80,7 @@ class trigonal_pyramid_distortion():
     #then use phi and theta (sharp angle) to solve the cross_point(CP on file) and apex (A on file)
     #note phi is in range of [0,2pi]
 
-        p0,p1=self.p0,self.p1
+        p0,p1=np.array(self.p0),np.array(self.p1)
         if switch==True:
             p0,p1=self.p1,self.p0
         n_v=p0-p1
@@ -107,6 +107,7 @@ class trigonal_pyramid_distortion():
         theta=self.sharp_angle
         cross_pt_new = np.array([r1*np.cos(phi)*np.sin(theta),r1*np.sin(phi)*np.sin(theta),r1*np.cos(theta)])
         apex_new = np.array([r2*np.cos(phi)*np.sin(theta),r2*np.sin(phi)*np.sin(theta),r2*np.cos(theta)])
+        # print('ref_p=',ref_p)
         self.cross_pt = np.dot(inv(T),cross_pt_new)+origin
         self.apex = np.dot(inv(T),apex_new)+origin
         self.cal_p2(p0,p1,mirror,angle_offset)
