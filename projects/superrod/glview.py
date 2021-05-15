@@ -353,7 +353,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     ii +=2
             #append text item at the end
             [self.addItem(item) for item in self.text_item]
-        self.setProjection()
+        # self.setProjection()
 
     def update_structure(self, xyz):
         for i in range(len(xyz)):

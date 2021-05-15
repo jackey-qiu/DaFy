@@ -262,6 +262,7 @@ class TrigonalPyramid(StructureMotif):
 
     @classmethod
     def generate_script_from_setting_table(cls, use_predefined_motif = False, predefined_motif = '', structure_index = 1, kwargs = {}):
+        '''
         template_settings = {'ids':str(['Pb1', 'O1']), 
                     'els': str(['Pb', 'O']), 
                     'anchor_id': 'Pb1', 
@@ -278,11 +279,12 @@ class TrigonalPyramid(StructureMotif):
                     'T':'None',
                     'T_INV':'None'}
         settings = {}
+        '''
         if use_predefined_motif:
             temp = globals()[predefined_motif]
             temp['substrate_domain'] = 'surface_{}'.format(structure_index)
         else:
-            temp = template_settings
+            temp = kwargs
         ids = str(temp.get('ids'))
         els = str(temp.get('els'))
         anchor_id = str(temp.get('anchor_id'))
@@ -301,7 +303,7 @@ class TrigonalPyramid(StructureMotif):
         rgh_name = 'rgh_sorbate_{}'.format(structure_index)
         domain_name = 'domain_sorbate_{}'.format(structure_index)
         atm_gp_name = 'atm_gp_sorbate_{}'.format(structure_index)
-        line1 = "{} = sorbate_tool.TrigonalPyramid.build_instance(substrate_domain = {},anchored_ids={},binding_mode = {},structure_pars_dict={},anchor_id = {},ids = {}, els = {}, lat_pars = {}, T={}, T_INV = {})".format(instance_name,substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV)
+        line1 = "{} = sorbate_tool.TrigonalPyramid.build_instance(substrate_domain = {},anchored_ids={},binding_mode = {},structure_pars_dict={},anchor_id = '{}',ids = {}, els = {}, lat_pars = {}, T={}, T_INV = {})".format(instance_name,substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV)
         line2 = f"{domain_name} = {instance_name}.domain"
         line3 = f"{rgh_name} = {instance_name}.rgh"
         line4 = f"{atm_gp_name} = {instance_name}.make_atm_group(instance_name = \'{atm_gp_name}\')"

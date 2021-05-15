@@ -240,10 +240,11 @@ class ScriptGeneraterDialog(QDialog):
     def setup_sorbate_setting_table(self):
         module = getattr(sorbate_tool_beta,self.comboBox_motif_types.currentText())
         data_ = {}
-        if self.checkBox_use_predefined.isChecked():
-            data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
-            data_['motif'] = [self.comboBox_predefined_subMotifs.currentText()]
-            data_.update(module.get_par_dict(self.comboBox_predefined_subMotifs.currentText()))
+        #if self.checkBox_use_predefined.isChecked():
+        data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
+        data_['motif'] = [self.comboBox_predefined_subMotifs.currentText()]
+        data_.update(module.get_par_dict(self.comboBox_predefined_subMotifs.currentText()))
+        '''
         else:
             data_['sorbate'] = [str(self.spinBox_sorbate_index.value())]
             data_['xyzu_oc_m'] = str([0.5, 0.5, 1.5, 0.1, 1, 1])
@@ -254,6 +255,7 @@ class ScriptGeneraterDialog(QDialog):
             data_['structure_pars_dict'] = str({'r':1.5, 'delta':0})
             data_['binding_mode'] = 'OS'
             data_['structure_index'] = str(self.spinBox_sorbate_index.value())
+        '''
         self.pandas_model = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_sorbate_setting, main_gui = self.parent)
         self.tableView_sorbate_setting.setModel(self.pandas_model)
         self.tableView_sorbate_setting.resizeColumnsToContents()
@@ -262,15 +264,17 @@ class ScriptGeneraterDialog(QDialog):
     def apply_settings_for_one_sorbate(self):
         module = getattr(sorbate_tool_beta,self.comboBox_motif_types.currentText())
         # module = eval(f"sorbate_tool_beta.{self.comboBox_motif_types.currentText()}")
+        '''
         if self.checkBox_use_predefined.isChecked():
             results = module.generate_script_from_setting_table(use_predefined_motif = True, predefined_motif = self.pandas_model._data.iloc[0]['motif'], structure_index = self.pandas_model._data.iloc[0]['sorbate'])
             self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=results[0]
             self.script_lines_update_sorbate['update_sorbate'].append(results[1])
         else:
-            kwargs = {each:self.pandas_model._data.iloc[0][each] for each in self.pandas_model._data.columns}
-            results = module.generate_script_from_setting_table(use_predefined_motif = False, structure_index = self.pandas_model._data.iloc[0]['sorbate'], kwargs = kwargs)
-            self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=results[0]
-            self.script_lines_update_sorbate['update_sorbate'].append(results[1])
+        '''
+        kwargs = {each:self.pandas_model._data.iloc[0][each] for each in self.pandas_model._data.columns}
+        results = module.generate_script_from_setting_table(use_predefined_motif = False, structure_index = self.pandas_model._data.iloc[0]['sorbate'], kwargs = kwargs)
+        self.script_lines_sorbate[self.pandas_model._data.iloc[0]['sorbate']]=results[0]
+        self.script_lines_update_sorbate['update_sorbate'].append(results[1])
         self.reset_sorbate_set()
 
     def reset_sorbate_set(self):
@@ -1965,8 +1969,13 @@ class MyMainWindow(QMainWindow):
         # self.widget_msv_top.abc = self.widget_edp.abc
         xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value())
         self.widget_edp.show_structure(xyz)
-        self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=0)
-        self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = 0)
+        try:
+            azimuth = self.widget_edp.opts['azimuth']
+            elevation = self.widget_edp.opts['elevation']
+        except:
+            azimuth, elevation = 0, 0
+        self.update_camera_position(widget_name = 'widget_edp', angle_type="azimuth", angle=azimuth)
+        self.update_camera_position(widget_name = 'widget_edp', angle_type = 'elevation', angle = elevation)
         self.update_electron_density_profile()
 
         # xyz,_ = self.model.script_module.sample.extract_xyz_top(domain_tag)
