@@ -588,7 +588,12 @@ class DataList:
             else:
                 all_ctr_data = np.vstack((all_ctr_data,temp_data))
         self.ctr_data_all = all_ctr_data
+        self.ctr_data_summary = {each:item for each, item in self.ctr_data_info.items() if each<100}
+        self.raxs_data_summary = {each:item for each, item in self.ctr_data_info.items() if each>=100}
         return all_ctr_data
+
+    def binary_comparison_and(self, bool_list1=[True, False,True], bool_list2=[False,False,True]):
+        return [int(first)+int(second) == 2 for first, second in zip(bool_list1, bool_list2)]
 
     def save_full_dataset(self, filename):
         np.savetxt(filename, self.ctr_data_all[:,[0,1,2,3,4,5]],header = '#h k x y LB dL')
@@ -609,6 +614,38 @@ class DataList:
         for i in range(len(data_info)):
             sub_sets.append(full_set[cum_sum[i]:cum_sum[i+1]]*scale_factors[i])
         return sub_sets
+
+    def split_used_dataset(self,full_set, data_type = 'CTR'):
+        if data_type == 'CTR':
+            #datasets with tag>1 but <100 are ctr data
+            data_info = {each:item for each, item in self.ctr_data_info.items() if (each<100 and self.items[self.data_sequence.index(each)].use)}
+        elif data_type == 'RAXS':
+            #datasets with tag>100 are raxs data
+            data_info = {each:item for each, item in self.ctr_data_info.items() if (each>=100 and self.items[self.data_sequence.index(each)].use)}
+        sub_sets = []
+        cum_sum = np.cumsum([0]+list(data_info.values()))
+        for i in range(len(data_info)):
+            sub_sets.append(full_set[cum_sum[i]:cum_sum[i+1]])
+        return sub_sets, data_info
+
+    def insert_datasets(self, full_set, sub_sets, data_info, data_type = 'CTR'):
+        if data_type == 'CTR':
+            keys_all = list(self.ctr_data_summary.keys())
+            begin_indexs = []
+            for each in data_info:
+                begin_indexs.append(sum([self.ctr_data_summary[keys_all[i]] for i in range(keys_all.index(each))]))
+            for i in range(len(begin_indexs)):
+                end_index = int(begin_indexs[i]+data_info[list(data_info.keys())[i]])
+                full_set[int(begin_indexs[i]):end_index] = sub_sets[i]
+        elif data_type == 'RAXS':
+            keys_all = list(self.raxs_data_summary.keys())
+            begin_indexs = []
+            for each in data_info:
+                begin_indexs.append(sum([self.raxs_data_summary[keys_all[i]] for i in range(keys_all.index(each))]))
+            for i in range(len(begin_indexs)):
+                end_index = int(begin_indexs[i]+data_info[list(data_info.keys())[i]])
+                full_set[int(begin_indexs[i]):end_index] = sub_sets[i]
+        return full_set
 
     def merge_datasets(self, ctr_datasets, raxs_datasets):
         assert (len(ctr_datasets)+len(raxs_datasets))==len(self.ctr_data_info),'The length of datasets does not match the total length of provided datasets!'

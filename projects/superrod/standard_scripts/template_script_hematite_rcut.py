@@ -181,11 +181,13 @@ setattr(sample, 'mode', RAXS_FIT_MODE)
 #/sample/end#
 
 #setup bond valence attributes
-locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini'))
+locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini')))
 for i in range(num_surface_slabs):
-    vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_hematite_rcut_new(r0_container = R0_BV,\ 
-                                                                   domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)], \
+    vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_hematite_rcut_new(r0_container = R0_BV,\
+                                                                   domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)],\
                                                                    lattice_abc = np.array([unitcell.a, unitcell.b, unitcell.c]))
+
+data_use_array = np.array(sum([[each_set.use]*len(each_set.x) for each_set in data],[]))
 
 def Sim(data,VARS=vars()):
     F =[]
@@ -193,9 +195,70 @@ def Sim(data,VARS=vars()):
     beta=rgh.beta
 
 #/update_sorbate/begin#
+#/update_sorbate/end#
+
+    #normalize the domain weight to make total = 1
+    wt_list = [getattr(rgh_wt, 'wt_domain{}'.format(i+1)) for i in range(num_surface_slabs)]
+    total_wt = sum(wt_list)
+    for i in range(num_surface_slabs):
+        sample.domain['domain{}'.format(i+1)]['wt']=wt_list[i]/total_wt
+
+    #faster solution(a factor of two faster than using loop)
+    #ctr datasets
+    condition_ctr = data.ctr_data_all[:,-1]<100
+    condition_used_ctr = data.binary_comparison_and(data_use_array, condition_ctr)
+    if True in list(condition_used_ctr):
+        h_, k_, x_,LB_,dL_ = data.ctr_data_all[condition_used_ctr][:,0], data.ctr_data_all[condition_used_ctr][:,1], data.ctr_data_all[condition_used_ctr][:,2],data.ctr_data_all[condition_used_ctr][:,4],data.ctr_data_all[condition_used_ctr][:,5]
+        rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(x_-LB_)/dL_)**2)**0.5
+        f_ = rough_*sample.calc_f_all(h_, k_, x_)
+        F_ = abs(f_*f_)
+        F_all = data.ctr_data_all[condition_ctr][:,0]*0
+        sub_sets, data_info = data.split_used_dataset(F_, data_type = 'CTR')
+        F_ = data.insert_datasets(full_set = F_all, sub_sets = sub_sets, data_info = data_info, data_type = 'CTR')
+        #you need to edit the list of extra scaling factor accordingly
+        scaling_factors = [[rgh.scale_nonspecular_rods, rgh.scale_specular_rod][int(each=='specular_rod')] for each in data.scaling_tag]
+        F_ctr = data.split_fullset(F_,scaling_factors)
+    else:
+        F_ctr = data.split_fullset(data.ctr_data_all[condition_ctr][:,0]*0,scale_factors=1)
+
+    #raxs datasets
+    condition_raxs = data.ctr_data_all[:,-1]>=100
+    condition_used_raxs = data.binary_comparison_and(data_use_array, condition_raxs)
+    if True in list(condition_used_raxs):
+        h_, k_, E_, l_, LB_,dL_ = data.ctr_data_all[condition_used_raxs][:,0], data.ctr_data_all[condition_used_raxs][:,1], data.ctr_data_all[condition_used_raxs][:,2],data.ctr_data_all[condition_used_raxs][:,3], data.ctr_data_all[condition_used_raxs][:,4],data.ctr_data_all[condition_used_raxs][:,5]
+        rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(l_-LB_)/dL_)**2)**0.5
+        f_ = rough_*sample.calc_f_all_RAXS(h_, k_, l_, E_)
+        F_ = abs(f_*f_)
+        F_all = data.ctr_data_all[condition_raxs][:,0]*0
+        sub_sets, data_info = data.split_used_dataset(F_, data_type = 'RAXS')
+        F_ = data.insert_datasets(full_set = F_all, sub_sets = sub_sets, data_info = data_info, data_type = 'RAXS')
+        #you need to edit the list of extra scaling factor accordingly
+        #scaling_factors = [[rgh.scale_nonspecular_rods, rgh.scale_specular_rod][int(each=='specular_rod')] for each in data.scaling_tag]
+        F_raxs = data.split_fullset(F_,scale_factors=1, data_type = 'RAXS')
+    else:
+        F_raxs=data.split_fullset(data.ctr_data_all[condition_raxs][:,0]*0,scale_factors=1)
+
+    #Now merge both datasets together
+    F = data.merge_datasets(ctr_datasets = F_ctr, raxs_datasets = F_raxs)    
+    fom_scaler = [1]*len(F)
+
+    #calculate bv panelty factor
+    bv = 0
+    if USE_BV:
+        for i in range(num_surface_slabs):
+            bv += VARS['bv_constraint_domain{}'.format(i+1)].cal_distance()
+
+    return F,1+bv,fom_scaler
+'''
+def Sim(data,VARS=vars()):
+    F =[]
+    fom_scaler=[]
+    beta=rgh.beta
+
+    #/update_sorbate/begin#
     for i in range(num_sorbate_slabs):
         VARS['{}{}'.format(VARS['sorbate_instance_head'],i+1)].set_coordinate_all_rgh()
-#/update_sorbate/end#
+    #/update_sorbate/end#
 
     #normalize the domain weight to make total = 1
     wt_list = [getattr(rgh_wt, 'wt_domain{}'.format(i+1)) for i in range(num_surface_slabs)]
@@ -238,3 +301,4 @@ def Sim(data,VARS=vars()):
             bv += VARS['bv_constraint_domain{}'.format(i+1)].cal_distance()
 
     return F,1+bv,fom_scaler
+'''
