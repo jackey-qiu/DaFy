@@ -187,6 +187,7 @@ for i in range(num_surface_slabs):
                                                                    domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)],\
                                                                    lattice_abc = np.array([unitcell.a, unitcell.b, unitcell.c]))
 
+#a long list storing the info whether each dataset is used (flatten to the full length of each dataset)
 data_use_array = np.array(sum([[each_set.use]*len(each_set.x) for each_set in data],[]))
 
 def Sim(data,VARS=vars()):
@@ -195,6 +196,7 @@ def Sim(data,VARS=vars()):
     beta=rgh.beta
 
 #/update_sorbate/begin#
+
 #/update_sorbate/end#
 
     #normalize the domain weight to make total = 1

@@ -628,6 +628,11 @@ class DataList:
             sub_sets.append(full_set[cum_sum[i]:cum_sum[i+1]])
         return sub_sets, data_info
 
+    #update the partial datasets to the full_set
+    #full_set a list
+    #sub_sets a list of list, each item is one dataset
+    #data_info is a dict giving the info about the sub_sets, ie key = dataset_id, value = length of the associated dataset
+    #data_type = 'CTR' or 'RAXS'
     def insert_datasets(self, full_set, sub_sets, data_info, data_type = 'CTR'):
         if data_type == 'CTR':
             keys_all = list(self.ctr_data_summary.keys())
