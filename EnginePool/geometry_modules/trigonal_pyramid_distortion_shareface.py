@@ -21,7 +21,10 @@ class trigonal_pyramid_distortion_shareface():
         #len_offset[0] is CP_P1 in ppt, the other one not specified in the file
         self.top_angle=top_angle
         self.p0,self.p1,self.p2=np.array(p0),np.array(p1),np.array(p2)
-     
+
+    def reset_attributes(self, p0, p1, p2, top_angle):
+        self.p0, self.p1, self.p2, self.top_angle = p0, p1, p2, top_angle 
+    
     def cal_apex_coor(self,mirror=True):
     #basis idea: set a new coordinate frame with p0p1 as the z vector (start from p1)
     #set a arbitrary y vector on the normal plane, and cross product to solve the x vector
@@ -40,8 +43,9 @@ class trigonal_pyramid_distortion_shareface():
             theta=np.pi-np.arcsin(f2(self.p0,self.p1)/2.*np.tan(np.pi/6)/r)
         apex_new = np.array([r*np.cos(phi)*np.sin(theta),r*np.sin(phi)*np.sin(theta),r*np.cos(theta)])
         self.apex = np.dot(inv(T),apex_new)+origin
-               
-    def cal_coor_o3(self,p0,p1,p3):
+    
+    @staticmethod
+    def cal_coor_o3(p0,p1,p3):
         r=f2(p0,p1)/2.*np.tan(np.pi/3.)
         norm_vt=(p0-p1)/2.
         cent_pt=(p0+p1)/2.

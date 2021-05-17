@@ -21,6 +21,24 @@ class share_face():
     def __init__(self,face=np.array([[0.,0.,0.],[0.5,0.5,0.5],[1.0,1.0,1.0]])):
         self.face=face
 
+    @staticmethod
+    def cal_coor_o3(p0,p1,p3):
+        #function to calculate the new point for p3, see document file #2 for detail procedures
+        r=f2(p0,p1)/2.*np.tan(np.pi/3)
+        norm_vt=p0-p1
+        cent_pt=(p0+p1)/2
+        a,b,c=norm_vt[0],norm_vt[1],norm_vt[2]
+        d=-a*cent_pt[0]-b*cent_pt[1]-c*cent_pt[2]
+        u,v,w=p3[0],p3[1],p3[2]
+        k=(a*u+b*v+c*w+d)/(a**2+b**2+c**2)
+        #projection of O3 to the normal plane see http://www.9math.com/book/projection-point-plane for detail algorithm
+        O3_proj=np.array([u-a*k,v-b*k,w-c*k])
+        cent_proj_vt=O3_proj-cent_pt
+        l=f2(O3_proj,cent_pt)
+        ptOnCircle_cent_vt=cent_proj_vt/l*r
+        ptOnCircle=ptOnCircle_cent_vt+cent_pt
+        return ptOnCircle
+
     def share_face_init(self,**args):
         p0,p1,p2=self.face[0,:],self.face[1,:],self.face[2,:]
         #consider the possible unregular shape for the known triangle
@@ -93,6 +111,11 @@ class share_edge(share_face):
         self.edge=edge
         self.flag=None
         self.p0,self.p1=edge[0],edge[1]
+
+    def update_anchor_points(self, edge):
+        self.edge = edge
+        self.p0, self.p1 = edge[0],edge[1]
+
     def cal_p2(self,ref_p=None,phi=0,**args):
         p0=self.edge[0,:]
         p1=self.edge[1,:]

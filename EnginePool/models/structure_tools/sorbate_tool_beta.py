@@ -40,7 +40,8 @@ def rotation_matrix(axis, theta):
 
 ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO', 'CO3','CO2']
 STRUCTURE_MOTIFS = {'CarbonOxygenMotif':['OCCO','CCO', 'CO', 'CO3','CO2'],
-                    'TrigonalPyramid': ['BD_CASE_TP']}
+                    'TrigonalPyramid': ['BD_CASE_TP','TD_CASE_TP'],
+                    'Tetrahedra':['BD_CASE_TH','TD_CASE_TH']}
 from .structure_motif_collection import *
 
 ##OCCO##
@@ -262,24 +263,6 @@ class TrigonalPyramid(StructureMotif):
 
     @classmethod
     def generate_script_from_setting_table(cls, use_predefined_motif = False, predefined_motif = '', structure_index = 1, kwargs = {}):
-        '''
-        template_settings = {'ids':str(['Pb1', 'O1']), 
-                    'els': str(['Pb', 'O']), 
-                    'anchor_id': 'Pb1', 
-                    'substrate_domain':'surface_{}'.format(structure_index), 
-                    'anchored_ids':str({'attach_atm_ids':['id1','id2'],'offset':[None,None],'anchor_ref':None,'anchor_offset':None}), 
-                    'mode':'BD',
-                    'mirror':'False', 
-                    'switch':'False',
-                    'top_angle':str(70.),
-                    'phi':str(0.),
-                    'edge_offset':str([0,0]), 
-                    'angle_offset':str(0),
-                    'lat_pars':str([3.615, 3.615, 3.615, 90, 90, 90]),
-                    'T':'None',
-                    'T_INV':'None'}
-        settings = {}
-        '''
         if use_predefined_motif:
             temp = globals()[predefined_motif]
             temp['substrate_domain'] = 'surface_{}'.format(structure_index)
@@ -291,8 +274,12 @@ class TrigonalPyramid(StructureMotif):
         substrate_domain = str(temp.get('substrate_domain'))
         anchored_ids = str({'attach_atm_ids':eval(temp.get('attach_atm_ids')),'offset':eval(temp.get('offset')),'anchor_ref':temp.get('anchor_ref'),'anchor_offset':temp.get('anchor_offset')})
         lat_pars = str(temp.get('lat_pars'))
-        binding_mode = str({'mode':temp['mode'],'mirror':bool(temp['mirror']),'switch':bool(temp['switch'])})
-        structure_pars_dict = str({'top_angle':eval(temp['top_angle']),'phi':eval(temp['phi']),'edge_offset':eval(temp['edge_offset']), 'angle_offset':eval(temp['angle_offset'])})
+        if temp['mode'] == 'BD':
+            binding_mode = str({'mode':temp['mode'],'mirror':bool(temp['mirror']),'switch':bool(temp['switch'])})
+            structure_pars_dict = str({'top_angle':eval(temp['top_angle']),'phi':eval(temp['phi']),'edge_offset':eval(temp['edge_offset']), 'angle_offset':eval(temp['angle_offset'])})
+        elif temp['mode'] == 'TD':
+            binding_mode = str({'mode':temp['mode'],'mirror':bool(temp['mirror'])})
+            structure_pars_dict = str({'top_angle':eval(temp['top_angle'])})
         T = str(temp['T'])
         T_INV = str(temp['T_INV'])
         return cls.generate_script_snippet(substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV, structure_index)
@@ -344,6 +331,8 @@ class TrigonalPyramid(StructureMotif):
         #to be implimented for each specific motif
         if self.binding_mode['mode'] == 'BD':
             self._build_structure_BD()
+        elif self.binding_mode['mode'] == 'TD':
+            self._build_structure_TD()
         else:
             print('Current binding mode is Not implemented yet!')
 
@@ -351,8 +340,61 @@ class TrigonalPyramid(StructureMotif):
         #to be implimented for each specific motif
         if self.binding_mode['mode'] == 'BD':
             self._update_structure_BD()
+        elif self.binding_mode['mode'] == 'TD':
+            self._update_structure_TD()
         else:
             print('Current binding mode is Not implemented yet!')
+
+    def _translate_offset_symbols(self, symbol):
+        if symbol=='-x':return np.array([-1.,0.,0.])
+        elif symbol=='+x':return np.array([1.,0.,0.])
+        elif symbol=='-y':return np.array([0.,-1.,0.])
+        elif symbol=='+y':return np.array([0.,1.,0.])
+        elif symbol==None:return np.array([0.,0.,0.])
+
+    def _add_sorbate(self, domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
+        sorbate_index=None
+        try:
+            sorbate_index=np.where(domain.id==id_sorbate)[0][0]
+        except:
+            domain.add_atom( id_sorbate, el,  sorbate_v[0] ,sorbate_v[1], sorbate_v[2] ,0.5,     1.00000e+00 ,     1.00000e+00 )
+        if sorbate_index!=None:
+            domain.x[sorbate_index]=sorbate_v[0]
+            domain.y[sorbate_index]=sorbate_v[1]
+            domain.z[sorbate_index]=sorbate_v[2]
+
+    def _update_structure_TD(self):
+        self._build_structure_TD(update = True)
+
+    def _build_structure_TD(self, update = False):
+        #The added sorbates (including Pb and one Os) will form a edge-distorted trigonal pyramid configuration with the attached ones
+        p_O1_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+        p_O2_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][1])
+        p_O3_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][2])
+
+        f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
+        if self.T==None:
+            p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
+            p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
+            p_O3=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3]
+        else:
+            p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])
+            p_O2=np.dot(self.T,pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3])
+            p_O3=np.dot(self.T,pt_ct(self.substrate_domain,p_O3_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3])
+        p_O3 = trigonal_pyramid_distortion_shareface.trigonal_pyramid_distortion_shareface.cal_coor_o3(p_O1, p_O2, p_O3)
+        if not update:
+            pyramid_distortion=trigonal_pyramid_distortion_shareface.trigonal_pyramid_distortion_shareface(p0=p_O1,p1=p_O2,p2=p_O3, top_angle=self.rgh.top_angle/180.*np.pi)
+            pyramid_distortion.cal_apex_coor(mirror=self.binding_mode['mirror'])
+            self.geometry_object = pyramid_distortion
+        else:
+            self.geometry_object.reset_attributes(p_O1,p_O2,p_O3,self.rgh.top_angle/180.*np.pi)
+            self.geometry_object.cal_apex_coor(mirror=self.binding_mode['mirror'])
+        
+        if self.T==None:        
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.apex/self.basis)
+        else:
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.apex)/self.basis)
 
     def _update_structure_BD(self):
         self._build_structure_BD(update = True)
@@ -364,16 +406,9 @@ class TrigonalPyramid(StructureMotif):
         anchor_index=None
         if self.anchored_ids['anchor_ref']!=None:
             anchor_index=list(self.substrate_domain.id).index(self.anchored_ids['anchor_ref'])
-        
-        def _translate_offset_symbols(symbol):
-            if symbol=='-x':return np.array([-1.,0.,0.])
-            elif symbol=='+x':return np.array([1.,0.,0.])
-            elif symbol=='-y':return np.array([0.,-1.,0.])
-            elif symbol=='+y':return np.array([0.,1.,0.])
-            elif symbol==None:return np.array([0.,0.,0.])
 
         f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
-        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+_translate_offset_symbols(symbol)
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
         if self.T==None:
             p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
             p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
@@ -398,27 +433,230 @@ class TrigonalPyramid(StructureMotif):
             attrs_reset = {'p0':p_O1, 'p1': p_O2, 'ref':anchor, 'top_angle':self.rgh.top_angle/180.*np.pi, 'len_offset':[self.rgh.edge_offset_1, self.rgh.edge_offset_2]}
             self.geometry_object.all_in_all_reset(switch=self.binding_mode['switch'],phi=self.rgh.phi/180*np.pi,mirror=self.binding_mode['mirror'],angle_offset=self.rgh.angle_offset/180.*np.pi, attrs = attrs_reset)
         
-        def _add_sorbate(domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
-            sorbate_index=None
-            try:
-                sorbate_index=np.where(domain.id==id_sorbate)[0][0]
-            except:
-                domain.add_atom( id_sorbate, el,  sorbate_v[0] ,sorbate_v[1], sorbate_v[2] ,0.5,     1.00000e+00 ,     1.00000e+00 )
-            if sorbate_index!=None:
-                domain.x[sorbate_index]=sorbate_v[0]
-                domain.y[sorbate_index]=sorbate_v[1]
-                domain.z[sorbate_index]=sorbate_v[2]
-
         O_id = [each for each in self.ids if each!=self.anchor_id]
         if self.T==None:        
-            _add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.apex/self.basis)
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.apex/self.basis)
             if O_id!=[]:
-                _add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=self.geometry_object.p2/self.basis)
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=self.geometry_object.p2/self.basis)
             #return [pyramid_distortion.apex/basis,pyramid_distortion.p2/basis]
         else:
-            _add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.apex)/self.basis)
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.apex)/self.basis)
             if O_id!=[]:
-                _add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=np.dot(self.T_INV,self.geometry_object.p2)/self.basis)
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=np.dot(self.T_INV,self.geometry_object.p2)/self.basis)
+            #return [np.dot(T_INV,pyramid_distortion.apex)/basis,np.dot(T_INV,pyramid_distortion.p2)/basis
+
+    def make_atm_group(self, instance_name = 'instance_name'):
+        atm_gp = model_2.AtomGroup(instance_name = instance_name)
+        for id in self.domain.id:
+            atm_gp.add_atom(self.domain, id)
+        return atm_gp
+
+class Tetrahedra(StructureMotif):
+    def __init__(self,domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs):
+        super(Tetrahedra, self).__init__(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs)
+
+    @classmethod
+    def generate_script_from_setting_table(cls, use_predefined_motif = False, predefined_motif = '', structure_index = 1, kwargs = {}):
+        if use_predefined_motif:
+            temp = globals()[predefined_motif]
+            temp['substrate_domain'] = 'surface_{}'.format(structure_index)
+        else:
+            temp = kwargs
+        ids = str(temp.get('ids'))
+        els = str(temp.get('els'))
+        anchor_id = str(temp.get('anchor_id'))
+        substrate_domain = str(temp.get('substrate_domain'))
+        anchored_ids = str({'attach_atm_ids':eval(temp.get('attach_atm_ids')),'offset':eval(temp.get('offset')),'anchor_ref':temp.get('anchor_ref'),'anchor_offset':temp.get('anchor_offset')})
+        lat_pars = str(temp.get('lat_pars'))
+        if temp['mode'] == 'BD':
+            binding_mode = str({'mode':temp['mode']})
+            structure_pars_dict = str({'top_angle_offset':eval(temp['top_angle_offset']),'angle_offset':eval(temp['angle_offset']),'phi':eval(temp['phi']),'edge_offset':eval(temp['edge_offset'])})
+        elif temp['mode'] == 'TD':
+            binding_mode = str({'mode':temp['mode'],'mirror':bool(temp['mirror'])})
+            structure_pars_dict = str({'center_offset':eval(temp['center_offset']),'edge_offset':eval(temp['edge_offset'])})
+        T = str(temp['T'])
+        T_INV = str(temp['T_INV'])
+        return cls.generate_script_snippet(substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV, structure_index)
+
+    @classmethod
+    def generate_script_snippet(cls, substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV, structure_index):
+        instance_name = 'sorbate_instance_{}'.format(structure_index)
+        rgh_name = 'rgh_sorbate_{}'.format(structure_index)
+        domain_name = 'domain_sorbate_{}'.format(structure_index)
+        atm_gp_name = 'atm_gp_sorbate_{}'.format(structure_index)
+        line1 = "{} = sorbate_tool.Tetrahedra.build_instance(substrate_domain = {},anchored_ids={},binding_mode = {},structure_pars_dict={},anchor_id = '{}',ids = {}, els = {}, lat_pars = {}, T={}, T_INV = {})".format(instance_name,substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV)
+        line2 = f"{domain_name} = {instance_name}.domain"
+        line3 = f"{rgh_name} = {instance_name}.rgh"
+        line4 = f"{atm_gp_name} = {instance_name}.make_atm_group(instance_name = \'{atm_gp_name}\')"
+        return('\n'.join([line1,line2,line3,line4]),f"    {instance_name}.update_structure()")
+
+    @classmethod
+    def build_instance(cls,substrate_domain = None,anchored_ids = {'attach_atm_ids':['id1','id2'],'offset':[None,None],'anchor_ref':None,'anchor_offset':None}, binding_mode = {'mode':'BD'},
+                       structure_pars_dict = {'top_angle_offset':0, 'angle_offset':[0.,0],'phi':0.,'edge_offset':[0,0]},anchor_id='pb_id',ids = ['Pb_id','id1','id2'], els = ['Pb','O','O'], lat_pars = np.array([5.038,5.434,7.3707,90,90,90]), T=None,T_INV=None):
+        #initialize slab
+        domain = model_2.Slab(T_factor = 'u')
+        instance = cls(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars,T = T,T_INV = T_INV)
+        instance.set_class_attributes()
+        instance.create_rgh()
+        instance.build_structure()
+        return instance
+
+    def set_class_attributes(self):
+        # self.geometry_object = geometry_object
+        for each in self.kwargs:
+            setattr(self, each, self.kwargs[each])
+        self.basis = self.lat_pars[0:3]
+
+    def create_rgh(self):
+        rgh = UserVars()
+        for each,item in self.structure_pars_dict.items():
+            if type(item)!=type([]):
+                rgh.new_var(each,self.structure_pars_dict[each])
+            else:
+                for i in range(len(item)):
+                    rgh.new_var(each+'_'+str(i+1),item[i])
+        self.rgh = rgh
+        return self.rgh
+
+    def get_dict_from_rgh(self):
+        return {'top_angle':self.rgh.top_angle,'phi':self.rgh.phi,'edge_offset':[self.rgh.edge_offset_1,self.rgh.edge_offset_2], 'angle_offset':self.rgh.angle_offset}
+
+    def build_structure(self):
+        #to be implimented for each specific motif
+        if self.binding_mode['mode'] == 'BD':
+            self._build_structure_BD()
+        elif self.binding_mode['mode'] == 'TD':
+            self._build_structure_TD()
+        else:
+            print('Current binding mode is Not implemented yet!')
+
+    def update_structure(self):
+        #to be implimented for each specific motif
+        if self.binding_mode['mode'] == 'BD':
+            self._update_structure_BD()
+        elif self.binding_mode['mode'] == 'TD':
+            self._update_structure_TD()
+        else:
+            print('Current binding mode is Not implemented yet!')
+
+    def _translate_offset_symbols(self, symbol):
+        if symbol=='-x':return np.array([-1.,0.,0.])
+        elif symbol=='+x':return np.array([1.,0.,0.])
+        elif symbol=='-y':return np.array([0.,-1.,0.])
+        elif symbol=='+y':return np.array([0.,1.,0.])
+        elif symbol==None:return np.array([0.,0.,0.])
+
+    def _add_sorbate(self, domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
+        sorbate_index=None
+        try:
+            sorbate_index=np.where(domain.id==id_sorbate)[0][0]
+        except:
+            domain.add_atom( id_sorbate, el,  sorbate_v[0] ,sorbate_v[1], sorbate_v[2] ,0.5,     1.00000e+00 ,     1.00000e+00 )
+        if sorbate_index!=None:
+            domain.x[sorbate_index]=sorbate_v[0]
+            domain.y[sorbate_index]=sorbate_v[1]
+            domain.z[sorbate_index]=sorbate_v[2]
+
+    def _update_structure_TD(self):
+        self._build_structure_TD(update = True)
+
+    def _build_structure_TD(self, update = False):
+        #The added sorbates (including Pb and one Os) will form a edge-distorted trigonal pyramid configuration with the attached ones
+        p_O1_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+        p_O2_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][1])
+        p_O3_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][2])
+
+        f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
+        if self.T==None:
+            p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
+            p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
+            p_O3=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3]
+        else:
+            p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])
+            p_O2=np.dot(self.T,pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3])
+            p_O3=np.dot(self.T,pt_ct(self.substrate_domain,p_O3_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3])
+        p_O3 = tetrahedra.share_face.cal_coor_o3(p_O1, p_O2, p_O3)
+        if not update:
+            if self.binding_mode['mirror']:
+                tetrahedra_distortion=tetrahedra.share_face(np.array([p_O1,p_O2,p_O3]))
+            else:
+                tetrahedra_distortion=tetrahedra.share_face(np.array([p_O1,p_O3,p_O2]))
+            tetrahedra_distortion.share_face_init()
+            tetrahedra_distortion.apply_top_angle_offset(self.rgh.center_offset)
+            tetrahedra_distortion.apply_edge_offset(self.rgh.edge_offset)
+            self.geometry_object = tetrahedra_distortion
+        else:
+            if self.binding_mode['mirror']:
+                self.geometry_object.face = np.array([p_O1,p_O2,p_O3])
+            else:
+                self.geometry_object.face = np.array([p_O1,p_O3,p_O2])
+            self.geometry_object.share_face_init()
+            self.geometry_object.apply_top_angle_offset(self.rgh.center_offset)
+            self.geometry_object.apply_edge_offset(self.rgh.edge_offset)
+        O_id = [each for each in self.ids if each!=self.anchor_id]
+        if self.T==None:        
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.center_point/self.basis)
+            self._add_sorbate(domain=self.domain,id_sorbate=O_id[0],el=self.els[self.ids.index(O_id[0])],sorbate_v=self.geometry_object.p3/self.basis)
+        else:
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.center_point)/self.basis)
+            self._add_sorbate(domain=self.domain,id_sorbate=O_id[0],el=self.els[self.ids.index(O_id[0])],sorbate_v=np.dot(self.T_INV,self.geometry_object.center_point)/self.basis)
+
+    def _update_structure_BD(self):
+        self._build_structure_BD(update = True)
+
+    def _build_structure_BD(self, update = False):
+        #The added sorbates (including Pb and one Os) will form a edge-distorted trigonal pyramid configuration with the attached ones
+        p_O1_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+        p_O2_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][1])
+        anchor_index=None
+        if self.anchored_ids['anchor_ref']!=None:
+            anchor_index=list(self.substrate_domain.id).index(self.anchored_ids['anchor_ref'])
+
+        f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
+        if self.T==None:
+            p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
+            p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
+        else:
+            p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])
+            p_O2=np.dot(self.T,pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3])
+        anchor=None
+        if anchor_index!=None:
+            if self.T==None:
+                anchor=pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset'])*self.lat_pars[0:3]
+            else:
+                anchor=np.dot(self.T,pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset'])*self.lat_pars[0:3])
+        #print "O1",p_O1
+        #print "O2",p_O2
+        # print(pt_ct(self.substrate_domain,anchor_index,self.anchored_ids['anchor_offset']))
+        # print(anchor_index,self.substrate_domain.x[anchor_index],self.substrate_domain.y[anchor_index],self.substrate_domain.z[anchor_index])
+        if not update:
+            tetrahedra_distortion=tetrahedra.share_edge(edge=np.array([p_O1,p_O2]))
+            tetrahedra_distortion.cal_p2(ref_p=anchor,phi=self.rgh.phi/180*np.pi)
+            tetrahedra_distortion.share_face_init()
+            tetrahedra_distortion.apply_top_angle_offset_BD(top_angle_offset = self.rgh.top_angle_offset)
+            tetrahedra_distortion.apply_angle_offset_BD(distal_angle_offset = [self.rgh.angle_offset_1,self.rgh.angle_offset_2],distal_length_offset = [self.rgh.edge_offset_1,self.rgh.edge_offset_2])
+            self.geometry_object = tetrahedra_distortion
+        else:
+            self.geometry_object.update_anchor_points(np.array([p_O1,p_O2]))
+            self.geometry_object.cal_p2(ref_p=anchor,phi=self.rgh.phi/180*np.pi)
+            self.geometry_object.share_face_init()
+            self.geometry_object.apply_top_angle_offset_BD(top_angle_offset = self.rgh.top_angle_offset)
+            self.geometry_object.apply_angle_offset_BD(distal_angle_offset = [self.rgh.angle_offset_1,self.rgh.angle_offset_2],distal_length_offset = [self.rgh.edge_offset_1,self.rgh.edge_offset_2])
+        
+        O_id = [each for each in self.ids if each!=self.anchor_id]
+        if self.T==None:        
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=self.geometry_object.center_point/self.basis)
+            if O_id!=[]:
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=self.geometry_object.p2/self.basis)
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[1],el='O',sorbate_v=self.geometry_object.p3/self.basis)
+            #return [pyramid_distortion.apex/basis,pyramid_distortion.p2/basis]
+        else:
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,self.geometry_object.center_point)/self.basis)
+            if O_id!=[]:
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[0],el='O',sorbate_v=np.dot(self.T_INV,self.geometry_object.p2)/self.basis)
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[1],el='O',sorbate_v=np.dot(self.T_INV,self.geometry_object.p3)/self.basis)
             #return [np.dot(T_INV,pyramid_distortion.apex)/basis,np.dot(T_INV,pyramid_distortion.p2)/basis
 
     def make_atm_group(self, instance_name = 'instance_name'):
