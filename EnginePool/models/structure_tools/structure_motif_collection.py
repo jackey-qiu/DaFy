@@ -77,6 +77,41 @@ OS_CASE_TH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4']),
             'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
             'T':'None',
             'T_INV':'None'}
+
+BD_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4']), 
+            'els': str(['As', 'O', 'O', 'O', 'O']), 
+            'anchor_id': 'As1', 
+            'substrate_domain':'surface_1', 
+            'attach_atm_ids':str(['O1_1_0','O1_2_0']),
+            'offset':str([None,None]),
+            'anchor_ref':None,
+            'anchor_offset':None,
+            'mode':'BD',
+            'mirror':'True',
+            'phi':str(0.),
+            'dr1':str(0.),
+            'dr2':str(0.),
+            'dr3':str(0.),
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
+            'T':'None',
+            'T_INV':'None'}
+
+TD_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3']), 
+            'els': str(['As', 'O', 'O', 'O']), 
+            'anchor_id': 'As1', 
+            'substrate_domain':'surface_1', 
+            'attach_atm_ids':str(['O1_1_0','O1_2_0','O1_3_0']),
+            'offset':str([None,None,None]),
+            'anchor_ref':None,
+            'anchor_offset':None,
+            'mode':'TD',
+            'mirror':'True',
+            'dr1':str(0.),
+            'dr2':str(0.),
+            'dr3':str(0.),
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
+            'T':'None',
+            'T_INV':'None'}            
 '''
 #corner-sharing of type 1 in short Half layer termination
 CS1_TP_SHL = {**BD_CASE, **{'anchored_ids':str({'attach_atm_ids':['O1_7_0','O1_8_0'],'offset':[None,None],'anchor_ref':None,'anchor_offset':None})}}

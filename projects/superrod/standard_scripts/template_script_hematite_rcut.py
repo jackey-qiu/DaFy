@@ -213,7 +213,7 @@ def Sim(data,VARS=vars()):
         h_, k_, x_,LB_,dL_ = data.ctr_data_all[condition_used_ctr][:,0], data.ctr_data_all[condition_used_ctr][:,1], data.ctr_data_all[condition_used_ctr][:,2],data.ctr_data_all[condition_used_ctr][:,4],data.ctr_data_all[condition_used_ctr][:,5]
         rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(x_-LB_)/dL_)**2)**0.5
         f_ = rough_*sample.calc_f_all(h_, k_, x_)
-        F_ = abs(f_*f_)
+        F_ = abs(f_*f_)#either f_*f_ for intensity or f_ only structure factor
         F_all = data.ctr_data_all[condition_ctr][:,0]*0
         sub_sets, data_info = data.split_used_dataset(F_, data_type = 'CTR')
         F_ = data.insert_datasets(full_set = F_all, sub_sets = sub_sets, data_info = data_info, data_type = 'CTR')
@@ -230,7 +230,7 @@ def Sim(data,VARS=vars()):
         h_, k_, E_, l_, LB_,dL_ = data.ctr_data_all[condition_used_raxs][:,0], data.ctr_data_all[condition_used_raxs][:,1], data.ctr_data_all[condition_used_raxs][:,2],data.ctr_data_all[condition_used_raxs][:,3], data.ctr_data_all[condition_used_raxs][:,4],data.ctr_data_all[condition_used_raxs][:,5]
         rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(l_-LB_)/dL_)**2)**0.5
         f_ = rough_*sample.calc_f_all_RAXS(h_, k_, l_, E_)
-        F_ = abs(f_*f_)
+        F_ = abs(f_*f_)#either f_*f_ for intensity or f_ only structure factor
         F_all = data.ctr_data_all[condition_raxs][:,0]*0
         sub_sets, data_info = data.split_used_dataset(F_, data_type = 'RAXS')
         F_ = data.insert_datasets(full_set = F_all, sub_sets = sub_sets, data_info = data_info, data_type = 'RAXS')
@@ -238,7 +238,7 @@ def Sim(data,VARS=vars()):
         #scaling_factors = [[rgh.scale_nonspecular_rods, rgh.scale_specular_rod][int(each=='specular_rod')] for each in data.scaling_tag]
         F_raxs = data.split_fullset(F_,scale_factors=1, data_type = 'RAXS')
     else:
-        F_raxs=data.split_fullset(data.ctr_data_all[condition_raxs][:,0]*0,scale_factors=1)
+        F_raxs=data.split_fullset(data.ctr_data_all[condition_raxs][:,0]*0,scale_factors=1, data_type = 'RAXS')
 
     #Now merge both datasets together
     F = data.merge_datasets(ctr_datasets = F_ctr, raxs_datasets = F_raxs)    

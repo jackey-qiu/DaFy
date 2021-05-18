@@ -92,7 +92,7 @@ class share_face():
         index=dist_list.index(max(dist_list))
 
         if flag=='right_triangle':
-            def _cal_points(center_point,p0,p1,p2):
+            def _cal_points(center_point,p0,p1,p2,dr=[0,0,0]):
                 #here p0-->p1 is the long lateral
                 z_v=f3(np.zeros(3),p2-center_point)
                 x_v=f3(np.zeros(3),p0-center_point)
@@ -100,18 +100,19 @@ class share_face():
                 T=f1(x0_v,y0_v,z0_v,x_v,y_v,z_v)
                 r=f2(center_point,p0)
                 #print [r*np.cos(np.pi/2)*np.sin(np.pi/2),r*np.sin(np.pi/2)*np.sin(np.pi/2),0]
-                p3_new=np.array([r*np.cos(np.pi/2)*np.sin(np.pi/2),r*np.sin(np.pi/2)*np.sin(np.pi/2),0])
-                p4_new=np.array([r*np.cos(3*np.pi/2)*np.sin(np.pi/2),r*np.sin(3*np.pi/2)*np.sin(np.pi/2),0])
+                p3_new=np.array([(r+dr[0])*np.cos(np.pi/2)*np.sin(np.pi/2),(r+dr[0])*np.sin(np.pi/2)*np.sin(np.pi/2),0])
+                p4_new=np.array([(r+dr[1])*np.cos(3*np.pi/2)*np.sin(np.pi/2),(r+dr[1])*np.sin(3*np.pi/2)*np.sin(np.pi/2),0])
                 p3_old=np.dot(inv(T),p3_new)+center_point
                 p4_old=np.dot(inv(T),p4_new)+center_point
                 p5_old=2*center_point-p2
+                p5_old = (p5_old-center_point)*((r+dr[2])/r)+center_point
                 return T,r,p3_old,p4_old,p5_old
             if index==0:#p0-->p1 long lateral
-                self.T,self.r,self.p3,self.p4,self.p5=_cal_points(center_point,p0,p1,p2)
+                self.T,self.r,self.p3,self.p4,self.p5=_cal_points(center_point,p0,p1,p2,dr)
             elif index==1:#p1-->p2 long lateral
-                self.T,self.r,self.p3,self.p4,self.p5=_cal_points(center_point,p1,p2,p0)
+                self.T,self.r,self.p3,self.p4,self.p5=_cal_points(center_point,p1,p2,p0,dr)
             elif index==2:#p0-->p2 long lateral
-                self.T,self.r,self.p3,self.p4,self.p5=_cal_points(center_point,p0,p2,p1)
+                self.T,self.r,self.p3,self.p4,self.p5=_cal_points(center_point,p0,p2,p1,dr)
         elif flag=='regular_triangle':
             x_v=f3(np.zeros(3),p2-center_point)
             y_v=f3(np.zeros(3),p0-center_point)
