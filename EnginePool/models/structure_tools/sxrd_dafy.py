@@ -380,7 +380,7 @@ class Sample:
                 f.write(s)
 
     #only substrate atoms at the top layer for top view show
-    def extract_xyz_top(self, which_domain = 0, num_of_atomic_layers = 1):
+    def extract_xyz_top(self, which_domain = 0, num_of_atomic_layers = 1, use_sym = False):
         xyz_list = []
         which_key = list(self.domain.keys())[which_domain]
         # bond_index = []
@@ -410,23 +410,28 @@ class Sample:
                     # bond_index = self.domain[key]['sorbate'].bond_index
                     for i in range(len(self.domain[key]['sorbate'].id)):
                         el = self.domain[key]['sorbate'].el[i]
-                        x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                        x_, y_, z_ = self._extract_coord(self.domain[key]['sorbate'], self.domain[key]['sorbate'].id[i])
                         # translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
-                        translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
-                        for each in translation_offsets:
-                            x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                            xyz_list.append((el, x, y, z))
+                        #translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
+                        if use_sym:
+                            for each in self.domain[key]['sorbate_sym']:
+                                x, y, z = each.trans_x(x_,y_)*self.unit_cell.a,each.trans_y(x_,y_)*self.unit_cell.b, z_*self.unit_cell.c
+                                xyz_list.append((el, x, y, z))
+                        else:
+                            xyz_list.append((el, x_*self.unit_cell.a, y_*self.unit_cell.b, z_*self.unit_cell.c))
                 else:
                     for sorbate_temp in self.domain[key]['sorbate']:
                         # bond_index = sorbate_temp.bond_index
                         for i in range(len(sorbate_temp.id)):
                             el = sorbate_temp.el[i]
-                            x_, y_, z_ = self._extract_coord(sorbate_temp, sorbate_temp.id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                            x_, y_, z_ = self._extract_coord(sorbate_temp, sorbate_temp.id[i])
                             # translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
-                            translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
-                            for each in translation_offsets:
-                                x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
-                                xyz_list.append((el, x, y, z))
+                            if use_sym:
+                                for each in self.domain[key]['sorbate_sym']:
+                                    x, y, z = each.trans_x(x_,y_)*self.unit_cell.a,each.trans_y(x_,y_)*self.unit_cell.b, z_*self.unit_cell.c
+                                    xyz_list.append((el, x, y, z))
+                            else:
+                                xyz_list.append((el, x_*self.unit_cell.a, y_*self.unit_cell.b, z_*self.unit_cell.c))
 
             else:
                 pass
@@ -2295,7 +2300,7 @@ class Sample:
             eden_domain_plot.append(eden_domains)
         return z_plot,eden_plot,eden_domain_plot
 
-    def plot_electron_density_superrod(self,el_lib={'C':6,'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\",**kwargs):
+    def plot_electron_density_superrod(self,el_lib={'C':6,'O':8,'Fe':26,'As':33,'Pb':82,'Sb':51,'P':15,'Cr':24,'Cd':48,'Cu':29,'Zn':30,'Al':13,'Si':14,'K':19},z_min=0.,z_max=28.,N_layered_water=10,resolution=1000,file_path="D:\\", use_sym = False, **kwargs):
         #print dinv
         slabs = self.domain
         e_data=[]
@@ -2311,6 +2316,8 @@ class Sample:
                 sorbate = [slabs[key]['sorbate']]
             x, y, z, u_par, u_ver, oc, el = self._surf_pars(slab)
             x_, y_, z_, u_par_, u_ver_, oc_, el_ = self._surf_pars(sorbate)
+            if use_sym:
+                oc_ = oc_*len(slabs[key]['sorbate_sym'])
             #take in to account the symmetry copies
             #oc_ = oc_
             #note u is in B unit, B = 8pi**2u**2

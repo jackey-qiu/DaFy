@@ -1074,7 +1074,7 @@ class MyMainWindow(QMainWindow):
                 # edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
                 # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
                 #edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
-                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
+                label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el, use_sym = self.checkBox_symmetry.isChecked())
                 #eden_plot = [each*int(each>0) for each in eden_plot]
                 #here only plot the total electron density of domain specified by domain_tag
                 domain_tag = int(self.spinBox_domain.text())
@@ -1991,7 +1991,7 @@ class MyMainWindow(QMainWindow):
         # self.widget_msv_top.items = []
         self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
         # self.widget_msv_top.abc = self.widget_edp.abc
-        xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value())
+        xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(), use_sym = self.checkBox_symmetry.isChecked())
         self.widget_edp.show_structure(xyz)
         try:
             azimuth = self.widget_edp.opts['azimuth']
@@ -2034,7 +2034,7 @@ class MyMainWindow(QMainWindow):
                 domain_tag = size_domain -1
             else:
                 pass        
-            xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value())
+            xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(),use_sym = self.checkBox_symmetry.isChecked())
             if self.run_fit.running: 
                 self.widget_edp.update_structure(xyz)
             else:
