@@ -23,7 +23,7 @@ f1=lambda x1,y1,z1,x2,y2,z2:np.array([[np.dot(x2,x1),np.dot(x2,y1),np.dot(x2,z1)
                                       [np.dot(z2,x1),np.dot(z2,y1),np.dot(z2,z1)]])
 
 #f2 calculate the distance b/ p1 and p2
-f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
+f2=lambda p1_,p2_:np.sqrt(np.sum((p1_-p2_)**2))
 
 #anonymous function f3 is to calculate the coordinates of basis with magnitude of 1.,p1 and p2 are coordinates for two known points, the 
 #direction of the basis is pointing from p1 to p2
@@ -212,6 +212,26 @@ class StructureMotif(object):
             print('No rgh attribute was created in the instance!')
         else:
             return self.rgh
+
+    def cal_coor_o3(self,p0,p1,p3):
+        #function to calculate the new point for p3, see document file #2 for detail procedures
+        f2=lambda p1_,p2_:np.sqrt(np.sum((p1_-p2_)**2))
+        r=f2(p0,p1)/2.*np.tan(np.pi/3)
+        norm_vt=p0-p1
+        cent_pt=(p0+p1)/2
+        a,b,c=norm_vt[0],norm_vt[1],norm_vt[2]
+        d=-a*cent_pt[0]-b*cent_pt[1]-c*cent_pt[2]
+        u,v,w=p3[0],p3[1],p3[2]
+        k=(a*u+b*v+c*w+d)/(a**2+b**2+c**2)
+        #projection of O3 to the normal plane see http://www.9math.com/book/projection-point-plane for detail algorithm
+        O3_proj=np.array([u-a*k,v-b*k,w-c*k])
+        cent_proj_vt=O3_proj-cent_pt
+        l=f2(O3_proj,cent_pt)
+        ptOnCircle_cent_vt=cent_proj_vt/l*r
+        ptOnCircle=ptOnCircle_cent_vt+cent_pt
+        # print(p0,p1,ptOnCircle)
+        # print(f2(p0,p1),f2(p0,ptOnCircle),f2(p1,ptOnCircle))
+        return ptOnCircle
 
     def build_structure(self):
         #customized function to first calculate atom positions and add atoms to self.domain
@@ -647,7 +667,7 @@ class Tetrahedra(StructureMotif):
         if self.T==None:
             p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
             p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
-            p_O3=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3]
+            p_O3=pt_ct(self.substrate_domain,p_O3_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3]
         else:
             p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])
             p_O2=np.dot(self.T,pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3])
@@ -916,12 +936,12 @@ class Octahedra(StructureMotif):
         if self.T==None:
             p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3]
             p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3]
-            p_O3=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3]
+            p_O3=pt_ct(self.substrate_domain,p_O3_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3]
         else:
             p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])
             p_O2=np.dot(self.T,pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3])
             p_O3=np.dot(self.T,pt_ct(self.substrate_domain,p_O3_index,self.anchored_ids['offset'][2])*self.lat_pars[0:3])
-        p_O3 = tetrahedra.share_face.cal_coor_o3(p_O1, p_O2, p_O3)
+        p_O3 = self.cal_coor_o3(p_O1, p_O2, p_O3)
         if not update:
             octahedra_distortion=octahedra.share_face(np.array([p_O1,p_O2,p_O3]),self.binding_mode['mirror'])
             octahedra_distortion.share_face_init(flag='regular_triangle',dr = [self.rgh.dr1,self.rgh.dr2,self.rgh.dr3])
