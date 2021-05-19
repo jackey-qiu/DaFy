@@ -60,9 +60,9 @@ def rotation_matrix(axis, theta):
 
 ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO', 'CO3','CO2']
 STRUCTURE_MOTIFS = {'CarbonOxygenMotif':['OCCO','CCO', 'CO', 'CO3','CO2'],
-                    'TrigonalPyramid': ['BD_CASE_TP','TD_CASE_TP'],
+                    'TrigonalPyramid': ['BD_CASE_TP','TD_CASE_TP','OS_CASE_TP'],
                     'Tetrahedra':['BD_CASE_TH','TD_CASE_TH','OS_CASE_TH'],
-                    'Octahedra':['BD_CASE_OH','TD_CASE_OH']}
+                    'Octahedra':['BD_CASE_OH','TD_CASE_OH','OS_CASE_OH']}
 from .structure_motif_collection import *
 
 ##OCCO##
@@ -321,6 +321,9 @@ class TrigonalPyramid(StructureMotif):
         elif temp['mode'] == 'TD':
             binding_mode = str({'mode':temp['mode'],'mirror':bool(temp['mirror'])})
             structure_pars_dict = str({'top_angle':eval(temp['top_angle'])})
+        elif temp['mode'] == 'OS':
+            binding_mode = str({'mode':temp['mode']})
+            structure_pars_dict = str({'r_sorbate_O':eval(temp['r_sorbate_O']),'ang_O_M_O':eval(temp['ang_O_M_O']),'rotation_x':eval(temp['rotation_x']),'rotation_y':eval(temp['rotation_y']),'rotation_z':eval(temp['rotation_z'])})
         T = str(temp['T'])
         T_INV = str(temp['T_INV'])
         return cls.generate_script_snippet(substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV, structure_index)
@@ -374,6 +377,8 @@ class TrigonalPyramid(StructureMotif):
             self._build_structure_BD()
         elif self.binding_mode['mode'] == 'TD':
             self._build_structure_TD()
+        elif self.binding_mode['mode'] == 'OS':
+            self._build_structure_OS()
         else:
             print('Current binding mode is Not implemented yet!')
 
@@ -383,6 +388,8 @@ class TrigonalPyramid(StructureMotif):
             self._update_structure_BD()
         elif self.binding_mode['mode'] == 'TD':
             self._update_structure_TD()
+        elif self.binding_mode['mode'] == 'OS':
+            self._update_structure_OS()
         else:
             print('Current binding mode is Not implemented yet!')
 
@@ -403,6 +410,49 @@ class TrigonalPyramid(StructureMotif):
             domain.x[sorbate_index]=sorbate_v[0]
             domain.y[sorbate_index]=sorbate_v[1]
             domain.z[sorbate_index]=sorbate_v[2]
+
+    def _update_structure_OS(self):
+        self._build_structure_OS()
+
+    def _build_structure_OS(self):
+        def _cal_geometry(cent_point,phi,r_Pb_O, O_Pb_O_ang, rotation_x,rotation_y,rotation_z):
+            a,b,c=self.lat_pars[0:3]
+
+            r0=r_Pb_O*np.sin(O_Pb_O_ang/2*np.pi/180)/np.cos(np.pi/6)
+            r1=r_Pb_O*(np.square(np.cos(O_Pb_O_ang/2*np.pi/180))-np.square(np.sin(O_Pb_O_ang/2*np.pi/180))*np.square(np.tan(np.pi/6)))**0.5
+            phi=phi/180*np.pi
+            p1_x,p1_y,p1_z=r0*np.cos(phi)*np.sin(np.pi/2.)/a+cent_point[0],r0*np.sin(phi)*np.sin(np.pi/2.)/b+cent_point[1],r0*np.cos(np.pi/2.)/c+cent_point[2]
+            p2_x,p2_y,p2_z=r0*np.cos(phi+2*np.pi/3)*np.sin(np.pi/2.)/a+cent_point[0],r0*np.sin(phi+2*np.pi/3)*np.sin(np.pi/2.)/b+cent_point[1],r0*np.cos(np.pi/2.)/c+cent_point[2]
+            p3_x,p3_y,p3_z=r0*np.cos(phi+4*np.pi/3)*np.sin(np.pi/2.)/a+cent_point[0],r0*np.sin(phi+4*np.pi/3)*np.sin(np.pi/2.)/b+cent_point[1],r0*np.cos(np.pi/2.)/c+cent_point[2]
+            apex_x,apex_y,apex_z=cent_point[0],cent_point[1],cent_point[2]+r1/c
+
+            T_rot=f4(rotation_x,rotation_y,rotation_z)
+            origin=np.array([apex_x,apex_y,apex_z])*[a,b,c]
+            p1=np.array([p1_x,p1_y,p1_z])*[a,b,c]
+            p2=np.array([p2_x,p2_y,p2_z])*[a,b,c]
+            p3=np.array([p3_x,p3_y,p3_z])*[a,b,c]
+            p1_new=(np.dot(T_rot,p1-origin)+origin)/[a,b,c]
+            p2_new=(np.dot(T_rot,p2-origin)+origin)/[a,b,c]
+            p3_new=(np.dot(T_rot,p3-origin)+origin)/[a,b,c]
+            return np.array([apex_x,apex_y,apex_z]),p1_new, p2_new, p3_new
+        center_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
+        if self.T==None:
+            center=pt_ct(self.substrate_domain,center_index,self.anchored_ids['offset'][0])
+        else:
+            center=np.dot(self.T,pt_ct(self.substrate_domain,center_index,self.anchored_ids['offset'][0]))
+        apex, p1, p2, p3 = _cal_geometry(cent_point = center, phi = 0, r_Pb_O = self.rgh.r_sorbate_O, O_Pb_O_ang = self.rgh.ang_O_M_O, rotation_x = self.rgh.rotation_x,rotation_y = self.rgh.rotation_y,rotation_z = self.rgh.rotation_z)
+        O_coords = [p1,p2,p3]
+        O_id = [each for each in self.ids if each!=self.anchor_id]
+        assert len(O_coords)==len(O_id), 'len of O_coords and len of O_id does not match!'
+        if self.T==None:        
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=apex)
+            for i in range(len(O_id)):
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[i],el=self.els[self.ids.index(O_id[i])],sorbate_v=O_coords[i])
+        else:
+            self._add_sorbate(domain=self.domain,id_sorbate=self.anchor_id,el=self.els[self.ids.index(self.anchor_id)],sorbate_v=np.dot(self.T_INV,apex*self.basis)/self.basis)
+            for i in range(len(O_id)):
+                self._add_sorbate(domain=self.domain,id_sorbate=O_id[i],el=self.els[self.ids.index(O_id[i])],sorbate_v=np.dot(self.T_INV,O_coords[i]*self.basis)/self.basis)
 
     def _update_structure_TD(self):
         self._build_structure_TD(update = True)
@@ -878,39 +928,40 @@ class Octahedra(StructureMotif):
         self._build_structure_OS()
 
     def _build_structure_OS(self):
-        def _cal_geometry(cent_point,phi,r_sorbate_O,rotation_x,rotation_y,rotation_z):
+        def _cal_geometry(cent_point,phi,r0,rotation_x,rotation_y,rotation_z):
             a,b,c=self.lat_pars[0:3]
-            O_Pb_O_ang=109.5
-            r0=r_sorbate_O*np.sin(O_Pb_O_ang/2*np.pi/180)/np.cos(np.pi/6)
-            r1=r_sorbate_O*(np.square(np.cos(O_Pb_O_ang/2*np.pi/180))-np.square(np.sin(O_Pb_O_ang/2*np.pi/180))*np.square(np.tan(np.pi/6)))**0.5
-            phi=phi/180*np.pi
-            cent_point=cent_point-np.array([0,0,r1/c])
-            p1_x,p1_y,p1_z=r0*np.cos(phi)*np.sin(np.pi/2.)/a+cent_point[0],r0*np.sin(phi)*np.sin(np.pi/2.)/b+cent_point[1],r0*np.cos(np.pi/2.)/c+cent_point[2]
-            p2_x,p2_y,p2_z=r0*np.cos(phi+2*np.pi/3)*np.sin(np.pi/2.)/a+cent_point[0],r0*np.sin(phi+2*np.pi/3)*np.sin(np.pi/2.)/b+cent_point[1],r0*np.cos(np.pi/2.)/c+cent_point[2]
-            p3_x,p3_y,p3_z=r0*np.cos(phi+4*np.pi/3)*np.sin(np.pi/2.)/a+cent_point[0],r0*np.sin(phi+4*np.pi/3)*np.sin(np.pi/2.)/b+cent_point[1],r0*np.cos(np.pi/2.)/c+cent_point[2]
-            apex_x,apex_y,apex_z=cent_point[0],cent_point[1],cent_point[2]+r1/c
-            p4_x,p4_y,p4_z=apex_x,apex_y,apex_z+r_sorbate_O/c
-            rot_x,rot_y,rot_z=rotation_x/180*np.pi,rotation_y/180*np.pi,rotation_z/180*np.pi
-            T_rot=f4(rot_x,rot_y,rot_z)
+            cent_point=cent_point+np.array([0,0,r0/c])
+            angle=np.pi
+            p1_x,p1_y,p1_z=r0*np.cos(phi)*np.sin(0.95531)/a+cent_point[0],r0*np.sin(phi)*np.sin(0.95531)/b+cent_point[1],r0*np.cos(0.95531)/c+cent_point[2]
+            p2_x,p2_y,p2_z=r0*np.cos(phi+np.pi*1/3)*np.sin(angle-0.95531)/a+cent_point[0],r0*np.sin(phi+np.pi*1/3)*np.sin(angle-0.95531)/b+cent_point[1],r0*np.cos(angle-0.95531)/c+cent_point[2]
+            p3_x,p3_y,p3_z=r0*np.cos(phi+np.pi*2/3)*np.sin(0.95531)/a+cent_point[0],r0*np.sin(phi+np.pi*2/3)*np.sin(0.95531)/b+cent_point[1],r0*np.cos(0.95531)/c+cent_point[2]
+            p4_x,p4_y,p4_z=r0*np.cos(phi+np.pi*3/3)*np.sin(angle-0.95531)/a+cent_point[0],r0*np.sin(phi+np.pi*3/3)*np.sin(angle-0.95531)/b+cent_point[1],r0*np.cos(angle-0.95531)/c+cent_point[2]
+            p5_x,p5_y,p5_z=r0*np.cos(phi+np.pi*4/3)*np.sin(0.95531)/a+cent_point[0],r0*np.sin(phi+np.pi*4/3)*np.sin(0.95531)/b+cent_point[1],r0*np.cos(0.95531)/c+cent_point[2]
+            p6_x,p6_y,p6_z=r0*np.cos(phi+np.pi*5/3)*np.sin(angle-0.95531)/a+cent_point[0],r0*np.sin(phi+np.pi*5/3)*np.sin(angle-0.95531)/b+cent_point[1],r0*np.cos(angle-0.95531)/c+cent_point[2]
+            apex_x,apex_y,apex_z=cent_point[0],cent_point[1],cent_point[2]
+            T_rot=f4(rotation_x,rotation_y,rotation_z)
             origin=np.array([apex_x,apex_y,apex_z])*[a,b,c]
             p1=np.array([p1_x,p1_y,p1_z])*[a,b,c]
             p2=np.array([p2_x,p2_y,p2_z])*[a,b,c]
             p3=np.array([p3_x,p3_y,p3_z])*[a,b,c]
             p4=np.array([p4_x,p4_y,p4_z])*[a,b,c]
+            p5=np.array([p5_x,p5_y,p5_z])*[a,b,c]
+            p6=np.array([p6_x,p6_y,p6_z])*[a,b,c]
             p1_new=(np.dot(T_rot,p1-origin)+origin)/[a,b,c]
             p2_new=(np.dot(T_rot,p2-origin)+origin)/[a,b,c]
             p3_new=(np.dot(T_rot,p3-origin)+origin)/[a,b,c]
             p4_new=(np.dot(T_rot,p4-origin)+origin)/[a,b,c]
-            return np.array([apex_x,apex_y,apex_z]),p1_new, p2_new, p3_new, p4_new
-        #The added sorbates (including Pb and one Os) will form a edge-distorted trigonal pyramid configuration with the attached ones
+            p5_new=(np.dot(T_rot,p5-origin)+origin)/[a,b,c]
+            p6_new=(np.dot(T_rot,p6-origin)+origin)/[a,b,c]
+            return np.array([apex_x,apex_y,apex_z]),p1_new, p2_new, p3_new, p4_new, p5_new, p6_new
         center_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
         pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
         if self.T==None:
             center=pt_ct(self.substrate_domain,center_index,self.anchored_ids['offset'][0])
         else:
             center=np.dot(self.T,pt_ct(self.substrate_domain,center_index,self.anchored_ids['offset'][0]))
-        apex, p1, p2, p3, p4 = _cal_geometry(cent_point = center, phi = 0, r_sorbate_O = self.rgh.r_sorbate_O,rotation_x = self.rgh.rotation_x,rotation_y = self.rgh.rotation_y,rotation_z = self.rgh.rotation_z)
-        O_coords = [p1,p2,p3,p4]
+        apex, p1, p2, p3, p4, p5, p6 = _cal_geometry(cent_point = center, phi = 0, r0 = self.rgh.r_sorbate_O,rotation_x = self.rgh.rotation_x,rotation_y = self.rgh.rotation_y,rotation_z = self.rgh.rotation_z)
+        O_coords = [p1,p2,p3,p4, p5, p6]
         O_id = [each for each in self.ids if each!=self.anchor_id]
         assert len(O_coords)==len(O_id), 'len of O_coords and len of O_id does not match!'
         if self.T==None:        
