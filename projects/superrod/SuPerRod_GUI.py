@@ -1044,11 +1044,11 @@ class MyMainWindow(QMainWindow):
         raxs_A_list, raxs_P_list = [], []
         #num_raxs = len(self.model.data)-1
         #items for raxs dates have value >=100 in the data_sequence attribute
-        num_raxs = sum(np.array(self.model.data.data_sequence)>=100)-1
+        num_raxs = sum(np.array(self.model.data.data_sequence)>=100)
         if hasattr(self.model.script_module, "rgh_raxs"):
             for i in range(num_raxs):
-                raxs_A_list.append(eval("self.model.script_module.rgh_raxs.getA_{}".format(i+1)))
-                raxs_P_list.append(eval("self.model.script_module.rgh_raxs.getP_{}".format(i+1)))
+                raxs_A_list.append(eval("self.model.script_module.rgh_raxs.getA_{}()".format(i+1)))
+                raxs_P_list.append(eval("self.model.script_module.rgh_raxs.getP_{}()".format(i+1)))
         else:
             raxs_A_list.append(0)
             raxs_P_list.append(0)
@@ -1056,7 +1056,7 @@ class MyMainWindow(QMainWindow):
         # raxs_P_list = raxs_P_list[0:2]
         HKL_raxs_list = [[],[],[]]
         for each in self.model.data:
-            if each.x[0]>100:
+            if each.x[0]>=100:
                 HKL_raxs_list[0].append(each.extra_data['h'][0])
                 HKL_raxs_list[1].append(each.extra_data['k'][0])
                 HKL_raxs_list[2].append(each.extra_data['Y'][0])
@@ -1065,7 +1065,6 @@ class MyMainWindow(QMainWindow):
             raxs_el = getattr(self.model.script_module, "RAXS_EL")
         else:
             raxs_el = None
-        # label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el)
         try:
             if self.run_fit.running or self.run_batch.running:
                 #if model is running, disable showing e profile
@@ -1088,14 +1087,14 @@ class MyMainWindow(QMainWindow):
                     # print(raxs_P_list) 
                     # print(raxs_A_list)
                     # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
-                    z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
+                    z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.RAXS_EL,resolution=1000,water_scaling=0.33)
                     self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,200,100),clear = False)
                 self.fom_scan_profile.autoRange()
         except:
             self.statusbar.clearMessage()
             self.statusbar.showMessage('Failure to draw e density profile!')
             logging.getLogger().exception('Fatal error encountered during drawing e density profile!')
-            self.tabWidget_data.setCurrentIndex(4)
+            self.tabWidget_data.setCurrentIndex(6)
 
     def update_plot_data_view_upon_simulation(self):
         def _get_index(index_in_use):

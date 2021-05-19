@@ -2242,6 +2242,7 @@ class Sample:
             z_plot.append(z_each)
             eden=0
             eden_domains=[]
+            # print(A_list, P_list, q_list_sorted)
             eden_each_domain=ZR/Auc/np.pi/2*np.sum(A_list*np.cos(2*np.pi*P_list-np.array(q_list_sorted)*z_each)*delta_q)/water_scaling
             eden_domains.append(eden_each_domain)
             eden+=eden_each_domain
