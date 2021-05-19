@@ -145,6 +145,19 @@ OS_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4', 'O5', 'O6']),
             'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
             'T':'None',
             'T_INV':'None'}
+
+GS_FLAT = {'ids':str(['As1', 'O1', 'O2', 'O3']),
+            'els': str(['As', 'O', 'O', 'O']), 
+            'anchor_id': 'As1', 
+            'substrate_domain':'surface_1', 
+            'attach_atm_ids':str(['O1_1_0']),
+            'offset':str([None]),
+            'mode':'OS',
+            'first_peak_height':str(2.0),
+            'inter_peak_spacing':str(2),
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
+            'T':'None',
+            'T_INV':'None'}
 '''
 #corner-sharing of type 1 in short Half layer termination
 CS1_TP_SHL = {**BD_CASE, **{'anchored_ids':str({'attach_atm_ids':['O1_7_0','O1_8_0'],'offset':[None,None],'anchor_ref':None,'anchor_offset':None})}}

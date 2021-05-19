@@ -62,7 +62,8 @@ ALL_MOTIF_COLLECTION = ['OCCO','CCO', 'CO', 'CO3','CO2']
 STRUCTURE_MOTIFS = {'CarbonOxygenMotif':['OCCO','CCO', 'CO', 'CO3','CO2'],
                     'TrigonalPyramid': ['BD_CASE_TP','TD_CASE_TP','OS_CASE_TP'],
                     'Tetrahedra':['BD_CASE_TH','TD_CASE_TH','OS_CASE_TH'],
-                    'Octahedra':['BD_CASE_OH','TD_CASE_OH','OS_CASE_OH']}
+                    'Octahedra':['BD_CASE_OH','TD_CASE_OH','OS_CASE_OH'],
+                    'Gaussian':['GS_FLAT']}
 from .structure_motif_collection import *
 
 ##OCCO##
@@ -212,6 +213,24 @@ class StructureMotif(object):
             print('No rgh attribute was created in the instance!')
         else:
             return self.rgh
+
+    def _translate_offset_symbols(self, symbol):
+        if symbol=='-x':return np.array([-1.,0.,0.])
+        elif symbol=='+x':return np.array([1.,0.,0.])
+        elif symbol=='-y':return np.array([0.,-1.,0.])
+        elif symbol=='+y':return np.array([0.,1.,0.])
+        elif symbol==None:return np.array([0.,0.,0.])
+
+    def _add_sorbate(self, domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
+        sorbate_index=None
+        try:
+            sorbate_index=np.where(domain.id==id_sorbate)[0][0]
+        except:
+            domain.add_atom( id_sorbate, el,  sorbate_v[0] ,sorbate_v[1], sorbate_v[2] ,0.5,     1.00000e+00 ,     1.00000e+00 )
+        if sorbate_index!=None:
+            domain.x[sorbate_index]=sorbate_v[0]
+            domain.y[sorbate_index]=sorbate_v[1]
+            domain.z[sorbate_index]=sorbate_v[2]
 
     def cal_coor_o3(self,p0,p1,p3):
         #function to calculate the new point for p3, see document file #2 for detail procedures
@@ -392,13 +411,6 @@ class TrigonalPyramid(StructureMotif):
             self._update_structure_OS()
         else:
             print('Current binding mode is Not implemented yet!')
-
-    def _translate_offset_symbols(self, symbol):
-        if symbol=='-x':return np.array([-1.,0.,0.])
-        elif symbol=='+x':return np.array([1.,0.,0.])
-        elif symbol=='-y':return np.array([0.,-1.,0.])
-        elif symbol=='+y':return np.array([0.,1.,0.])
-        elif symbol==None:return np.array([0.,0.,0.])
 
     def _add_sorbate(self, domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
         sorbate_index=None
@@ -636,24 +648,6 @@ class Tetrahedra(StructureMotif):
             self._update_structure_OS()
         else:
             print('Current binding mode is Not implemented yet!')
-
-    def _translate_offset_symbols(self, symbol):
-        if symbol=='-x':return np.array([-1.,0.,0.])
-        elif symbol=='+x':return np.array([1.,0.,0.])
-        elif symbol=='-y':return np.array([0.,-1.,0.])
-        elif symbol=='+y':return np.array([0.,1.,0.])
-        elif symbol==None:return np.array([0.,0.,0.])
-
-    def _add_sorbate(self, domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
-        sorbate_index=None
-        try:
-            sorbate_index=np.where(domain.id==id_sorbate)[0][0]
-        except:
-            domain.add_atom( id_sorbate, el,  sorbate_v[0] ,sorbate_v[1], sorbate_v[2] ,0.5,     1.00000e+00 ,     1.00000e+00 )
-        if sorbate_index!=None:
-            domain.x[sorbate_index]=sorbate_v[0]
-            domain.y[sorbate_index]=sorbate_v[1]
-            domain.z[sorbate_index]=sorbate_v[2]
 
     def _update_structure_OS(self):
         self._build_structure_OS()
@@ -906,23 +900,9 @@ class Octahedra(StructureMotif):
         else:
             print('Current binding mode is Not implemented yet!')
 
-    def _translate_offset_symbols(self, symbol):
-        if symbol=='-x':return np.array([-1.,0.,0.])
-        elif symbol=='+x':return np.array([1.,0.,0.])
-        elif symbol=='-y':return np.array([0.,-1.,0.])
-        elif symbol=='+y':return np.array([0.,1.,0.])
-        elif symbol==None:return np.array([0.,0.,0.])
 
-    def _add_sorbate(self, domain=None,id_sorbate=None,el='Pb',sorbate_v=[]):
-        sorbate_index=None
-        try:
-            sorbate_index=np.where(domain.id==id_sorbate)[0][0]
-        except:
-            domain.add_atom( id_sorbate, el,  sorbate_v[0] ,sorbate_v[1], sorbate_v[2] ,0.5,     1.00000e+00 ,     1.00000e+00 )
-        if sorbate_index!=None:
-            domain.x[sorbate_index]=sorbate_v[0]
-            domain.y[sorbate_index]=sorbate_v[1]
-            domain.z[sorbate_index]=sorbate_v[2]
+
+
 
     def _update_structure_OS(self):
         self._build_structure_OS()
@@ -1310,7 +1290,223 @@ class CarbonOxygenMotif(StructureMotif):
         # z = self.domain.z[index]
         return np.array([x, y, z])
 
+class Gaussian(StructureMotif):
+    def __init__(self,domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs):
+        super(Gaussian, self).__init__(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars, **kwargs)
 
+    @classmethod
+    def generate_script_from_setting_table(cls, use_predefined_motif = False, predefined_motif = '', structure_index = 1, kwargs = {}):
+        if use_predefined_motif:
+            temp = globals()[predefined_motif]
+            temp['substrate_domain'] = 'surface_{}'.format(structure_index)
+        else:
+            temp = kwargs
+        ids = eval(str(temp.get('ids')))
+        els = eval(str(temp.get('els')))
+        anchor_id = str(temp.get('anchor_id'))
+        substrate_domain = str(temp.get('substrate_domain'))
+        anchored_ids = str({'attach_atm_ids':eval(temp.get('attach_atm_ids')),'offset':eval(temp.get('offset')),'anchor_ref':temp.get('anchor_ref'),'anchor_offset':temp.get('anchor_offset')})
+        lat_pars = str(temp.get('lat_pars'))
+        binding_mode = str({'mode':'OS','peak_number':len(ids)})
+        structure_pars_dict = str({'first_peak_height':eval(temp['first_peak_height']),'inter_peak_spacing':eval(temp['inter_peak_spacing'])})
+        T = str(temp['T'])
+        T_INV = str(temp['T_INV'])
+        return cls.generate_script_snippet(substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV, structure_index)
+
+    @classmethod
+    def generate_script_snippet(cls, substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV, structure_index):
+        instance_name = 'sorbate_instance_{}'.format(structure_index)
+        rgh_name = 'rgh_sorbate_{}'.format(structure_index)
+        domain_name = 'domain_sorbate_{}'.format(structure_index)
+        atm_gp_name = 'atm_gp_sorbate_{}'.format(structure_index)
+        line1 = "{} = sorbate_tool.Gaussian.build_instance(substrate_domain = {},anchored_ids={},binding_mode = {},structure_pars_dict={},anchor_id = '{}',ids = {}, els = {}, lat_pars = {}, T={}, T_INV = {})".format(instance_name,substrate_domain,anchored_ids,binding_mode,structure_pars_dict,anchor_id,ids,els,lat_pars,T,T_INV)
+        line2 = f"{domain_name} = {instance_name}.domain"
+        line3 = f"{rgh_name} = {instance_name}.rgh"
+        line4 = f"{atm_gp_name} = {instance_name}.make_atm_group(instance_name = \'{atm_gp_name}\')"
+        print(ids)
+        lines = [f"{atm_gp_name}_{i+1} = {atm_gp_name}[{i}]" for i in range(len(ids))]
+        return('\n'.join([line1,line2,line3,line4]+lines),f"    {instance_name}.update_structure()")
+
+    @classmethod
+    def build_instance(cls,substrate_domain = None,anchored_ids = {'attach_atm_ids':['id1','id2'],'offset':[None,None],'anchor_ref':None,'anchor_offset':None}, binding_mode = {'mode':'BD'},
+                       structure_pars_dict = {'phi':0.,'edge_offset':[0,0]},anchor_id='pb_id',ids = ['Pb_id','id1','id2'], els = ['Pb','O','O'], lat_pars = np.array([5.038,5.434,7.3707,90,90,90]), T=None,T_INV=None):
+        #initialize slab
+        domain = model_2.Slab(T_factor = 'u')
+        instance = cls(domain, ids, els, anchor_id, substrate_domain, anchored_ids, binding_mode, structure_pars_dict, lat_pars,T = T,T_INV = T_INV)
+        instance.set_class_attributes()
+        instance.create_rgh()
+        instance.build_structure()
+        return instance
+
+    def set_class_attributes(self):
+        # self.geometry_object = geometry_object
+        for each in self.kwargs:
+            setattr(self, each, self.kwargs[each])
+        self.basis = self.lat_pars[0:3]
+
+    def create_rgh(self):
+        rgh = UserVars()
+        for each,item in self.structure_pars_dict.items():
+            if type(item)!=type([]):
+                rgh.new_var(each,self.structure_pars_dict[each])
+            else:
+                for i in range(len(item)):
+                    rgh.new_var(each+'_'+str(i+1),item[i])
+        self.rgh = rgh
+        return self.rgh
+
+    def get_dict_from_rgh(self):
+        return {'top_angle':self.rgh.top_angle,'phi':self.rgh.phi,'edge_offset':[self.rgh.edge_offset_1,self.rgh.edge_offset_2], 'angle_offset':self.rgh.angle_offset}
+
+    def build_structure(self):
+        #to be implimented for each specific motif
+        #The added sorbates (including Pb and one Os) will form a edge-distorted trigonal pyramid configuration with the attached ones
+        f2=lambda p1,p2:np.sqrt(np.sum((p1-p2)**2))
+        pt_ct=lambda domain_,p_O1_index,symbol:np.array([domain_.x[p_O1_index]+domain_.dx1[p_O1_index]+domain_.dx2[p_O1_index]+domain_.dx3[p_O1_index],domain_.y[p_O1_index]+domain_.dy1[p_O1_index]+domain_.dy2[p_O1_index]+domain_.dy3[p_O1_index],domain_.z[p_O1_index]+domain_.dz1[p_O1_index]+domain_.dz2[p_O1_index]+domain_.dz3[p_O1_index]])+self._translate_offset_symbols(symbol)
+        if len(self.anchored_ids['attach_atm_ids'])==2:
+            p_O1_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+            p_O2_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][1])
+            if self.T ==None:
+                p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])
+                p_O2=pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])
+            else:
+                p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])/self.lat_pars[0:3]
+                p_O2=np.dot(self.T,pt_ct(self.substrate_domain,p_O2_index,self.anchored_ids['offset'][1])*self.lat_pars[0:3])/self.lat_pars[0:3]
+            ref_pt = ((p_O1 + p_O2)/2)
+        else:
+            p_O1_index=list(self.substrate_domain.id).index(self.anchored_ids['attach_atm_ids'][0])
+            if self.T==None:
+                p_O1=pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])
+            else:
+                p_O1=np.dot(self.T,pt_ct(self.substrate_domain,p_O1_index,self.anchored_ids['offset'][0])*self.lat_pars[0:3])/self.lat_pars[0:3]
+            ref_pt = p_O1
+        height_list = ref_pt[2]+np.array([self.rgh.inter_peak_spacing/self.basis[2]*i+self.rgh.first_peak_height/self.basis[2] for i in range(self.binding_mode['peak_number'])])
+        coords = [np.array([ref_pt[0], ref_pt[1], each]) for each in height_list]
+        assert len(coords)==len(self.ids), 'The len of coords and the len of ids do not match!'
+        if self.T==None: 
+            for i, each in enumerate(self.ids):    
+                self._add_sorbate(domain=self.domain,id_sorbate=each,el=self.els[i],sorbate_v=coords[i])
+        else:
+            self._add_sorbate(domain=self.domain,id_sorbate=each,el=self.els[i],sorbate_v=np.dot(self.T_INV,coords[i]*self.basis)/self.basis)
+
+    def update_structure(self):
+        #to be implimented for each specific motif
+        self.build_structure()
+
+    def make_atm_group(self, instance_name = 'instance_name'):
+        atm_gps = []
+        for i in range(len(self.domain.id)):
+            id = self.domain.id[i]
+            atm_gp = model_2.AtomGroup(instance_name = instance_name+'_{}'.format(i+1))
+            atm_gp.add_atom(self.domain, id)
+            atm_gps.append(atm_gp)
+        return atm_gps
+
+def add_gaussian(domain,el='O',number=3,first_peak_height=2,spacing=10,u_init=0.008,occ_init=1,height_offset=0,c=20.1058,domain_tag='_D1',shape='Flat',gaussian_rms=2,freeze_tag=False):
+    '''
+    If shape is Flat then those gaussian peaks are evenly spaced with equivalent occ,
+    If shape is Single_Gaussian then those gaussian peaks are evenly spaced with occs in a Gaussian distribution, determined by the spacing and gaussian_rms
+    Note all those items about length are in unit of A
+    The freeze_tag=True will change the group and id names whith a header of 'Freezed_el' from 'Gaussian_'
+    '''
+    #height_list=[]
+    #oc_list=[]
+    if type(el)!=type([]):
+        if type(number)==type([]):#for type of Double_Gaussian
+            el=[el]*number[0]+[el]*number[1]
+        else:
+            el=[el]*number
+
+    if shape=='Flat':
+        height_list=1.6685+height_offset+np.array([spacing/c*i+first_peak_height/c for i in range(number)])
+        oc_list=[occ_init]*number
+    elif shape=='Single_Gaussian':
+        center=1.6685+height_offset+first_peak_height/c+spacing/c/2
+        delta_z=spacing/c/float(number-1)
+        peaks_left=[center]+[center-(i+1)*delta_z for i in range((number-1)/2)]
+        peaks_right=[center+(i+1)*delta_z for i in range((number-1)/2)]
+        height_list=peaks_left+peaks_right
+        height_list.sort()
+        oc_list=occ_init*np.exp(-0.5*gaussian_rms**-2*(np.array(height_list)*c-center*c)**2)
+        #print spacing,number,delta_z
+        #print height_list
+    elif shape=='Double_Gaussian':#make sure the number of each Gaussian peak cluster is an odd number
+        #peak one
+        center=1.6685+height_offset+first_peak_height[0]/c+spacing[0]/c/2
+        delta_z=spacing[0]/c/float(number[0]-1)
+        peaks_left=[center]+[center-(i+1)*delta_z for i in range((number[0]-1)/2)]
+        peaks_right=[center+(i+1)*delta_z for i in range((number[0]-1)/2)]
+        height_list=peaks_left+peaks_right
+        height_list.sort()
+        oc_list=occ_init[0]*np.exp(-0.5*gaussian_rms[0]**-2*(np.array(height_list)*c-center*c)**2)
+        #peak two
+        center2=1.6685+height_offset+first_peak_height[0]/c+spacing[0]/c+first_peak_height[1]/c+spacing[1]/c/2
+        delta_z2=spacing[1]/c/float(number[1]-1)
+        peaks_left2=[center2]+[center2-(i+1)*delta_z2 for i in range((number[1]-1)/2)]
+        peaks_right2=[center2+(i+1)*delta_z2 for i in range((number[1]-1)/2)]
+        height_list2=peaks_left2+peaks_right2
+        height_list2.sort()
+        oc_list2=occ_init[1]*np.exp(-0.5*gaussian_rms[1]**-2*(np.array(height_list2)*c-center2*c)**2)
+    group_names1=[]
+    groups1=[]
+    group_names2=[]
+    groups2=[]
+    if shape=='Single_Gaussian':
+        name_header=None
+        if freeze_tag:
+            name_header='Freezed_el_set1_'
+        else:
+            name_header='Gaussian_set1_'
+        group_names1=[name_header+el[i]+'_'+str(i+1)+domain_tag for i in range(number)]
+        for i in range(number):
+            try:
+                groups1.append(domain.add_atom(id=name_header+el[i]+'_'+str(i+1)+domain_tag, element=el[i], x=0.5, y=0.5, z=height_list[i], u = u_init, oc = oc_list[i], m = 1.0))
+            except:
+                id=name_header+el[i]+'_'+str(i+1)+domain_tag
+                index=list(domain.id).index(id)
+                domain.z[index]=height_list[i]
+                domain.oc[index]=oc_list[i]
+    elif shape=='Double_Gaussian':
+        name_header=None
+        if freeze_tag:
+            name_header='Freezed_el_'
+        else:
+            name_header='Gaussian_'
+        group_names1=[name_header+'set1_'+el[i]+'_'+str(i+1)+domain_tag for i in range(number[0])]
+        group_names2=[name_header+'set2_'+el[i]+'_'+str(i+1)+domain_tag for i in range(number[1])]
+        for i in range(number[0]):
+            try:
+                groups1.append(domain.add_atom(id=name_header+'set1_'+el[i]+'_'+str(i+1)+domain_tag, element=el[i], x=0.5, y=0.5, z=height_list[i], u = u_init[0], oc = oc_list[i], m = 1.0))
+            except:
+                id=name_header+'set1_'+el[i]+'_'+str(i+1)+domain_tag
+                index=list(domain.id).index(id)
+                domain.z[index]=height_list[i]
+                domain.oc[index]=oc_list[i]
+        for i in range(number[1]):
+            try:
+                groups2.append(domain.add_atom(id=name_header+'set2_'+el[i]+'_'+str(i+1)+domain_tag, element=el[i], x=0.5, y=0.5, z=height_list2[i], u = u_init[1], oc = oc_list2[i], m = 1.0))
+            except:
+                id=name_header+'set2_'+el[i]+'_'+str(i+1)+domain_tag
+                index=list(domain.id).index(id)
+                domain.z[index]=height_list2[i]
+                domain.oc[index]=oc_list2[i]
+    elif shape=='Flat':
+        name_header=None
+        if freeze_tag:
+            name_header='Freezed_el_'
+        else:
+            name_header='Gaussian_'
+        group_names1=[name_header+el[i]+'_'+str(i+1)+domain_tag for i in range(number)]
+        for i in range(number):
+            try:
+                groups1.append(domain.add_atom(id=name_header+el[i]+'_'+str(i+1)+domain_tag, element=el[i], x=0.5, y=0.5, z=height_list[i], u = u_init, oc = occ_init, m = 1.0))
+            except:
+                id=name_header+el[i]+'_'+str(i+1)+domain_tag
+                index=list(domain.id).index(id)
+                domain.z[index]=height_list[i]
+                #domain.oc[index]=oc_list2[i]
+
+    return domain,groups1+groups2,group_names1+group_names2
 class CarbonOxygenMotif2(object):
     def __init__(self, domain, ids, anchor_id, r = 2, delta =0, gamma = 0, flat_down_index = None, lat_pars = [3.615, 3.615, 3.615, 90, 90, 90]):
         self.domain = domain
