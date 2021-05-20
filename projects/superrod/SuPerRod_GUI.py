@@ -1004,7 +1004,10 @@ class MyMainWindow(QMainWindow):
         self.f_ideal = []
         for i in range(len(self.model.data)):
             each = self.model.data[i]
-            self.f_ideal.append(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2)
+            if each.x[0]>1000:#indicate energy column
+                self.f_ideal.append(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.extra_data['Y'])**2)
+            else:
+                self.f_ideal.append(self.model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2)
 
     def update_plot_data_view(self):
         """update views of all figures if script is compiled, while only plot data profiles if otherwise"""
@@ -1128,7 +1131,8 @@ class MyMainWindow(QMainWindow):
                 
                 #plot ideal structure factor
                 try:
-                    scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int("00L" in self.model.data[i].name)]
+                    specular_condition = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0))==0 and int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))==0
+                    scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int(specular_condition)]
                     h_, k_ = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0)),int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))
                     extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
                     if hasattr(self.model.script_module.rgh,extra_scale_factor):

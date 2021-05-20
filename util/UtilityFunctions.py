@@ -28,11 +28,27 @@ import inspect
 currentdir = os.path.dirname(os.path.abspath(inspect.getfile(inspect.currentframe())))
 DaFy_Path = os.path.dirname(currentdir)
 sys.path.append(os.path.join(DaFy_Path,'EnginePool'))
+from models.utils import UserVars
 import FitEnginePool
 import matplotlib.pyplot as pyplot
 #make compatibility of py 2 and py 3#
 if (sys.version_info > (3, 0)):
     raw_input = input
+
+def setup_raxr_pars_new(NUMBER_SPECTRA,F1F2_FILE):
+    if NUMBER_SPECTRA!=0:
+        F1F2=np.loadtxt(os.path.join(F1F2_FILE))
+        rgh_raxr=UserVars()
+        for i in range(NUMBER_SPECTRA):
+            rgh_raxr.new_var('a'+str(i+1),1.0)
+            rgh_raxr.new_var('b'+str(i+1),1.0)
+            rgh_raxr.new_var('c'+str(i+1),1.0)
+            rgh_raxr.new_var('A_'+str(i+1),0.2)
+            rgh_raxr.new_var('P_'+str(i+1),0.0) 
+    else:
+        rgh_raxr=None
+        F1F2=None
+    return rgh_raxr,F1F2
 
 def config_file_parser_bv(config_file):
     return_lib = {}

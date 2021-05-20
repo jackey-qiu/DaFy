@@ -562,6 +562,7 @@ class DataList:
         all_ctr_data = []
         self.ctr_data_info = {}
         self.scaling_tag = []
+        self.scaling_tag_raxs = []
         self.data_sequence = []
         for i,each in enumerate(self.items):
             if hasattr(each,'mask'):
@@ -572,6 +573,10 @@ class DataList:
             if x[0]>100:#x column is energy for raxs (in ev); but x column is L for CTR (smaller than 10 usually)
                 data_type_tag = 100+i#datasets with tag>100 are raxs data 
                 self.data_sequence.append(data_type_tag)
+                if int(h[0])==0 and int(k[0])==0:
+                    self.scaling_tag_raxs.append('specular_rod')
+                else:
+                    self.scaling_tag_raxs.append('nonspecular_rod')
             else:
                 data_type_tag = 1+i#datasets with tag>1 but <100 are ctr data
                 self.data_sequence.append(data_type_tag)
