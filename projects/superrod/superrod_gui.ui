@@ -40,7 +40,7 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tab_13">
         <attribute name="title">
@@ -204,6 +204,13 @@
             <widget class="QPushButton" name="pushButton_save_data">
              <property name="text">
               <string>SaveData</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_dummy_data">
+             <property name="text">
+              <string>DummyData</string>
              </property>
             </widget>
            </item>

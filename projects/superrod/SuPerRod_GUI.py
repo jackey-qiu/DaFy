@@ -136,6 +136,88 @@ class PandasModel(QtCore.QAbstractTableModel):
         self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
         self.layoutChanged.emit()
 
+class DummydataGeneraterDialog(QDialog):
+    def __init__(self, parent=None):
+        super().__init__(parent)
+        self.parent = parent
+        # Load the dialog's GUI
+        uic.loadUi(os.path.join(script_path,"generate_dummy_data_gui.ui"), self)
+        self.setWindowTitle('Dummy data Generator in an easy way')
+
+        self.pushButton_extract_ctr.clicked.connect(self.extract_ctr_set_table)
+        self.pushButton_extract_raxs.clicked.connect(self.extract_raxs_set_table)
+        self.pushButton_generate.clicked.connect(self.generate_dummy_data)
+
+    def extract_ctr_set_table(self):
+        rows = self.spinBox_ctr.value()
+        data_ = {'h':[0]*rows, 'k':[0]*rows, 'l_min':[0]*rows, 'l_max':[5]*rows, 'delta_l': [0.1]*rows, 'Bragg_Ls':[str([2,4,6])]*rows}
+        self.pandas_model_ctr = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_ctr, main_gui = self.parent)
+        self.tableView_ctr.setModel(self.pandas_model_ctr)
+        self.tableView_ctr.resizeColumnsToContents()
+        self.tableView_ctr.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+
+    def extract_raxs_set_table(self):
+        rows = self.spinBox_raxs.value()
+        data_ = {'h':[0]*rows, 'k':[0]*rows, 'l':[0.3]*rows, 'E_min':[float(self.lineEdit_E_min.text())]*rows, 'E_max':[float(self.lineEdit_E_max.text())]*rows, 'delta_E': [1]*rows, 'E0':[float(self.lineEdit_E0.text())]*rows}
+        self.pandas_model_raxs = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_raxs, main_gui = self.parent)
+        self.tableView_raxs.setModel(self.pandas_model_raxs)
+        self.tableView_raxs.resizeColumnsToContents()
+        self.tableView_raxs.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+
+    @staticmethod
+    def _generate_dummy_data(data,file_path):
+        np.savetxt(file_path,data)
+
+    def generate_dummy_data(self):
+        from functools import partial
+        data_ctr = self._extract_hkl_all()
+        data_raxs = self._extract_hkl_all_raxs()
+        kwargs = {'ctr':data_ctr,'raxs':data_raxs,'func':partial(self._generate_dummy_data, file_path = self.lineEdit_data_path.text())}
+        self.parent.model.script_module.Sim(self.parent.model.script_module.data, kwargs = kwargs)
+
+    def _extract_hkl_one_rod(self, h, k, l_min, l_max, Bragg_ls, delta_l):
+        ls = np.linspace(l_min, l_max, int((l_max-l_min)/delta_l))
+        for each in Bragg_ls:
+            ls = ls[abs(ls - each)>delta_l]
+        hs = np.array([h]*len(ls))
+        ks = np.array([k]*len(ls))
+        return np.array([hs,ks,ls]).T
+
+    def _extract_hkl_one_raxs(self, h, k, l, E_min, E_max, delta_E, E0):
+        Es_left = list(np.linspace(E_min, E0-20, int((E0-20-E_min)/10)))
+        Es_edge = list(np.linspace(E0-20, E0+20, int(40/delta_E)))
+        Es_right = list(np.linspace(E0+20, E_max, int((E_max-E0-20)/10)))
+        Es = Es_left + Es_edge + Es_right
+        #ls = [l]*len(Es)
+        hs = [h]*len(Es)
+        ks = [k]*len(Es)
+        ls = [l]*len(Es)
+        #dls = [2]*len(Es)
+        #Bls = [2]*len(Es)
+        #fs_ = self.parent.model.script_module.sample.calc_f_all_RAXS(np.array(hs), np.array(ks), np.array(ys), np.array(Es))
+        #fs = abs(fs_*fs_)
+        #errs = fs*0.005
+        return np.array([hs,ks,ls, Es]).T
+
+    def _extract_hkl_all(self):
+        rows = len(self.pandas_model_ctr._data.index)
+        data_temp = np.zeros((1,3))[0:0]
+        for i in range(rows):
+            h, k, l_min, l_max, delta_l, Bragg_ls = self.pandas_model_ctr._data.iloc[i,:].tolist()
+            Bragg_ls = eval(Bragg_ls)
+            result = self._extract_hkl_one_rod(int(h),int(k),float(l_min),float(l_max),Bragg_ls, float(delta_l))
+            data_temp = np.vstack((data_temp,result))
+        return data_temp
+
+    def _extract_hkl_all_raxs(self):
+        rows = len(self.pandas_model_raxs._data.index)
+        data_temp = np.zeros((1,4))[0:0]
+        for i in range(rows):
+            h, k, l, E_min, E_max, delta_E, E0 = self.pandas_model_raxs._data.iloc[i,:].tolist()
+            result = self._extract_hkl_one_raxs(int(h),int(k),float(l),float(E_min),float(E_max),float(delta_E), float(E0))
+            data_temp = np.vstack((data_temp,result))
+        return data_temp
+
 class ScriptGeneraterDialog(QDialog):
     def __init__(self, parent=None):
         # print(sorbate_tool_beta.STRUCTURE_MOTIFS)
@@ -143,6 +225,7 @@ class ScriptGeneraterDialog(QDialog):
         self.parent = parent
         # Load the dialog's GUI
         uic.loadUi(os.path.join(script_path,"ctr_model_creator.ui"), self)
+        self.setWindowTitle('Script Generator in an easy way')
         self.plainTextEdit_script.setStyleSheet("""QPlainTextEdit{
                         font-family:'Consolas';
                         font-size:14pt;
@@ -643,6 +726,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_use_none.clicked.connect(self.use_none_data)
         self.pushButton_use_selected.clicked.connect(self.use_selected_data)
         self.pushButton_invert_use.clicked.connect(self.invert_use_data)
+        self.pushButton_dummy_data.clicked.connect(self.generate_dummy_data_dialog)
 
         #pushbuttons for structure view
         self.pushButton_azimuth_0.clicked.connect(self.azimuth_0)
@@ -713,6 +797,10 @@ class MyMainWindow(QMainWindow):
         hightlight = syntax_pars.PythonHighlighter(dlg.plainTextEdit_script.document())
         dlg.plainTextEdit_script.show()
         dlg.plainTextEdit_script.setPlainText(dlg.plainTextEdit_script.toPlainText())
+        dlg.exec()
+
+    def generate_dummy_data_dialog(self):
+        dlg = DummydataGeneraterDialog(self)
         dlg.exec()
 
     def start_nlls(self):

@@ -49,7 +49,7 @@ def obtain_rod_files(folder):
 solver_settings = {
                    "set_pop_mult":False,
                    "set_pop_size":40,
-                   "set_max_generations":200,
+                   "set_max_generations":100,
                    "set_autosave_interval":50
                   }
 

@@ -190,7 +190,7 @@ for i in range(num_surface_slabs):
 #a long list storing the info whether each dataset is used (flatten to the full length of each dataset)
 data_use_array = np.array(sum([[each_set.use]*len(each_set.x) for each_set in data],[]))
 
-def Sim(data,VARS=vars()):
+def Sim(data,VARS=vars(),kwargs = {}):
     F =[]
     fom_scaler=[]
     beta=rgh.beta
@@ -205,6 +205,26 @@ def Sim(data,VARS=vars()):
     for i in range(num_surface_slabs):
         sample.domain['domain{}'.format(i+1)]['wt']=wt_list[i]/total_wt
 
+    #this is used to generate dummy data from GUI dialog
+    if 'ctr' in kwargs:
+        h_ctr, k_ctr, l_ctr = kwargs['ctr'][:,0], kwargs['ctr'][:,1], kwargs['ctr'][:,2]
+        f_ctr = sample.calc_f_all(h_ctr, k_ctr, l_ctr)
+        F_ctr = abs(f_ctr*f_ctr)
+        Ferr_ctr = F_ctr*0.01
+        y_ctr = F_ctr*0
+        LB_ctr = [2]*len(F_ctr)
+        dL_ctr = [2]*len(F_ctr)
+        dummy_data_ctr = np.array([l_ctr,h_ctr,k_ctr,y_ctr,F_ctr,Ferr_ctr,dL_ctr,LB_ctr]).T
+        if 'raxs' in kwargs:
+            h_rs, k_rs, l_rs, E_rs = kwargs['raxs'][:,0], kwargs['raxs'][:,1], kwargs['raxs'][:,2],kwargs['raxs'][:,3]
+            f_rs = sample.calc_f_all_RAXS(h_rs, k_rs, l_rs, E_rs)
+            F_rs = abs(f_rs*f_rs)
+            LB_rs = [2]*len(F_rs)
+            dL_rs = [2]*len(F_rs)
+            dummy_data_rs = np.array([E_rs,h_rs,k_rs,l_rs,F_rs, F_rs*0.001, dL_rs, LB_rs]).T
+            kwargs['func'](np.vstack((dummy_data_ctr,dummy_data_rs)))
+        else:
+            kwargs['func'](dummy_data_ctr)
     #faster solution(a factor of two faster than using loop)
     #ctr datasets
     condition_ctr = data.ctr_data_all[:,-1]<100
@@ -249,5 +269,7 @@ def Sim(data,VARS=vars()):
     if USE_BV:
         for i in range(num_surface_slabs):
             bv += VARS['bv_constraint_domain{}'.format(i+1)].cal_distance()
+
+
 
     return F,1+bv,fom_scaler
