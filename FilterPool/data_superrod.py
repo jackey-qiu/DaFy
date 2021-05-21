@@ -564,6 +564,7 @@ class DataList:
         self.scaling_tag = []
         self.scaling_tag_raxs = []
         self.data_sequence = []
+        current_raxs_tag = 100#first raxs dataset start from 100
         for i,each in enumerate(self.items):
             if hasattr(each,'mask'):
                 h,k,x,y,LB,dL = each.extra_data['h'][each.mask][:,np.newaxis],each.extra_data['k'][each.mask][:,np.newaxis],each.x[each.mask][:,np.newaxis],each.extra_data['Y'][each.mask][:,np.newaxis],each.extra_data['LB'][each.mask][:,np.newaxis],each.extra_data['dL'][each.mask][:,np.newaxis]
@@ -571,7 +572,9 @@ class DataList:
                 h,k,x,y,LB,dL = each.extra_data['h'][:,np.newaxis],each.extra_data['k'][:,np.newaxis],each.x[:,np.newaxis],each.extra_data['Y'][:,np.newaxis],each.extra_data['LB'][:,np.newaxis],each.extra_data['dL'][:,np.newaxis]
 
             if x[0]>100:#x column is energy for raxs (in ev); but x column is L for CTR (smaller than 10 usually)
-                data_type_tag = 100+i#datasets with tag>100 are raxs data 
+                #data_type_tag = 100+i#datasets with tag>100 are raxs data 
+                data_type_tag = current_raxs_tag
+                current_raxs_tag +=  1
                 self.data_sequence.append(data_type_tag)
                 if int(h[0])==0 and int(k[0])==0:
                     self.scaling_tag_raxs.append('specular_rod')

@@ -247,9 +247,9 @@ def Sim(data,VARS=vars(),kwargs = {}):
     condition_raxs = data.ctr_data_all[:,-1]>=100
     condition_used_raxs = data.binary_comparison_and(data_use_array, condition_raxs)
     if True in list(condition_used_raxs):
-        h_, k_, E_, l_, LB_,dL_ = data.ctr_data_all[condition_used_raxs][:,0], data.ctr_data_all[condition_used_raxs][:,1], data.ctr_data_all[condition_used_raxs][:,2],data.ctr_data_all[condition_used_raxs][:,3], data.ctr_data_all[condition_used_raxs][:,4],data.ctr_data_all[condition_used_raxs][:,5]
+        h_, k_, E_, l_, LB_,dL_, tag= data.ctr_data_all[condition_used_raxs][:,0], data.ctr_data_all[condition_used_raxs][:,1], data.ctr_data_all[condition_used_raxs][:,2],data.ctr_data_all[condition_used_raxs][:,3], data.ctr_data_all[condition_used_raxs][:,4],data.ctr_data_all[condition_used_raxs][:,5],data.ctr_data_all[condition_used_raxs][:,-1]-100
         rough_ = (1-beta)/((1-beta)**2 + 4*beta*np.sin(np.pi*(l_-LB_)/dL_)**2)**0.5
-        f_ = rough_*sample.calc_f_all_RAXS(h_, k_, l_, E_)
+        f_ = rough_*sample.calc_f_all_RAXS(h_, k_, l_, E_, tag)
         F_ = abs(f_*f_)#either f_*f_ for intensity or f_ only structure factor
         F_all = data.ctr_data_all[condition_raxs][:,0]*0
         sub_sets, data_info = data.split_used_dataset(F_, data_type = 'RAXS')

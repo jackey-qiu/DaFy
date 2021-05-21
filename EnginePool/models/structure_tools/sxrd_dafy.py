@@ -628,7 +628,7 @@ class Sample:
                         ftot = ftot+abs(fb+self.calc_fs(h, k, l,[self.domain[key]['slab']])+self.calc_fs_sorbate(h, k, l,[self.domain[key]['sorbate']],self.domain[key]['sorbate_sym'])+f_water)*self.domain[key]['wt']
         return abs(ftot)*self.inst.inten
 
-    def calc_f_all_RAXS(self, h, k, l, E):
+    def calc_f_all_RAXS(self, h, k, l, E,tag=None):
         '''
         Calculate the structure factors for the sample
         Here the surface structure is diveded into the subtrate itself and the sorbate atoms
@@ -647,9 +647,9 @@ class Sample:
         if self.coherence==True:
             for key in self.domain.keys():
                 if self.mode == 'MD':
-                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l, E, self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'])
+                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MD(h, k, l, E, self.domain[key]['sorbate'],self.domain[key]['sorbate_sym'], tag)
                 elif self.mode == 'MI':
-                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(h,k,l,E)
+                    f_raxs, scale = self.calc_fs_sorbate_RAXS_MI(h,k,l,E,tag)
 
                 f_water = self.calc_f_layered_water_copper(h, k, l, rgh = self.domain[key])
                 if self.domain[key]['wt']!=0:
@@ -2690,12 +2690,16 @@ class Sample:
                 for sym_op in sorbate_sym], 0)
                         ,1)
 
-    def calc_fs_sorbate_RAXS_MI(self, h,k,l,E):
+    def calc_fs_sorbate_RAXS_MI(self, h,k,l,E, tag = []):
 
         def _extract_abcAP():
             a, b, c, A, P = [], [], [], [], []
             if not hasattr(self, 'data_points_raxs'):
                 unique_hkl = list(set(zip(h,k,l)))
+                if len(tag)!=0:
+                    unique_tag = list(set(tag))
+                else:
+                    unique_tag = []
                 self.data_points_raxs = {}
                 df = pd.DataFrame({'h':h,'k':k,'l':l})
                 for i in range(len(unique_hkl)):
@@ -2703,18 +2707,36 @@ class Sample:
                     h_, k_, l_ = each
                     data_points = len(df.loc[(df['h']==h_) & (df['k']==k_) & (df['l']==l_)])
                     self.data_points_raxs[i] = data_points
-                    a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
-                    b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
-                    c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
-                    A = A + [getattr(self.rgh_raxs,'A_{}'.format(i+1))]*data_points
-                    P = P + [getattr(self.rgh_raxs,'P_{}'.format(i+1))]*data_points
+                    if len(unique_tag) != 0:
+                        a = a + [getattr(self.rgh_raxs,'a{}'.format(int(unique_tag[i]+1)))]*data_points
+                        b = b + [getattr(self.rgh_raxs,'b{}'.format(int(unique_tag[i]+1)))]*data_points
+                        c = c + [getattr(self.rgh_raxs,'c{}'.format(int(unique_tag[i]+1)))]*data_points
+                        A = A + [getattr(self.rgh_raxs,'A_{}'.format(int(unique_tag[i]+1)))]*data_points
+                        P = P + [getattr(self.rgh_raxs,'P_{}'.format(int(unique_tag[i]+1)))]*data_points
+                    else:
+                        a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
+                        b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
+                        c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
+                        A = A + [getattr(self.rgh_raxs,'A_{}'.format(i+1))]*data_points
+                        P = P + [getattr(self.rgh_raxs,'P_{}'.format(i+1))]*data_points
             else:
+                if len(tag)!=0:
+                    unique_tag = list(set(tag))
+                else:
+                    unique_tag = []
                 for i in range(len(self.data_points_raxs)):
-                    a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*self.data_points_raxs[i]
-                    b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*self.data_points_raxs[i]
-                    c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*self.data_points_raxs[i]
-                    A = A + [getattr(self.rgh_raxs,'A_{}'.format(i+1))]*self.data_points_raxs[i]
-                    P = P + [getattr(self.rgh_raxs,'P_{}'.format(i+1))]*self.data_points_raxs[i]
+                    if len(unique_tag)!=0:
+                        a = a + [getattr(self.rgh_raxs,'a{}'.format(int(unique_tag[i]+1)))]*self.data_points_raxs[i]
+                        b = b + [getattr(self.rgh_raxs,'b{}'.format(int(unique_tag[i]+1)))]*self.data_points_raxs[i]
+                        c = c + [getattr(self.rgh_raxs,'c{}'.format(int(unique_tag[i]+1)))]*self.data_points_raxs[i]
+                        A = A + [getattr(self.rgh_raxs,'A_{}'.format(int(unique_tag[i]+1)))]*self.data_points_raxs[i]
+                        P = P + [getattr(self.rgh_raxs,'P_{}'.format(int(unique_tag[i]+1)))]*self.data_points_raxs[i]
+                    else:
+                        a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*self.data_points_raxs[i]
+                        b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*self.data_points_raxs[i]
+                        c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*self.data_points_raxs[i]
+                        A = A + [getattr(self.rgh_raxs,'A_{}'.format(i+1))]*self.data_points_raxs[i]
+                        P = P + [getattr(self.rgh_raxs,'P_{}'.format(i+1))]*self.data_points_raxs[i]
             return np.array(a), np.array(b), np.array(c), np.array(A), np.array(P)
 
         def _extract_f1f2(f1f2,E):
@@ -2736,7 +2758,7 @@ class Sample:
         scaling_factor = np.exp(-a*(E-self.E0)**2/self.E0**2+b*(E-self.E0)/self.E0)*c
         return (self.new_f1f2[:,0]+1.0J*self.new_f1f2[:,1])*A*np.exp(1.0J*np.pi*2*P),scaling_factor
 
-    def calc_fs_sorbate_RAXS_MD(self, h, k, l,E, slabs, sorbate_sym):
+    def calc_fs_sorbate_RAXS_MD(self, h, k, l,E, slabs, sorbate_sym, tag = []):
         '''Calculate the structure factors from the surface
         '''
         df = pd.DataFrame({'h':h,'k':k,'l':l,'E':E})
@@ -2753,14 +2775,23 @@ class Sample:
         def _extract_abc():
             a, b, c = [], [], []
             unique_hkl = list(set(zip(h,k,l)))
+            if len(tag)!=0:
+                unique_tag = list(set(tag))
+            else:
+                unique_tag = []
             data_points = {}
             for i in range(len(unique_hkl)):
                 each = unique_hkl[i]
                 h_, k_, l_ = each
                 data_points = len(df.loc[(df['h']==h_) & (df['k']==k_) & (df['l']==l_)])
-                a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
-                b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
-                c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
+                if len(unique_tag)!=0:
+                    a = a + [getattr(self.rgh_raxs,'a{}'.format(int(unique_tag[i]+1)))]*data_points
+                    b = b + [getattr(self.rgh_raxs,'b{}'.format(int(unique_tag[i]+1)))]*data_points
+                    c = c + [getattr(self.rgh_raxs,'c{}'.format(int(unique_tag[i]+1)))]*data_points
+                else:
+                    a = a + [getattr(self.rgh_raxs,'a{}'.format(i+1))]*data_points
+                    b = b + [getattr(self.rgh_raxs,'b{}'.format(i+1))]*data_points
+                    c = c + [getattr(self.rgh_raxs,'c{}'.format(i+1))]*data_points
             return np.array(a), np.array(b), np.array(c)
         
         a, b, c = _extract_abc()

@@ -43,6 +43,23 @@ def obtain_rod_files(folder):
             files.append(os.path.join(folder,file))
     return files
 
+def get_data_type_tag(model):
+    condition_raxs = model.data.ctr_data_all[:,-1]>=100
+    return list(set(model.data.ctr_data_all[condition_raxs][:,-1])),list(set(model.data.ctr_data_all[:,-1]))
+
+def set_model(model, raxs_index, raxs_index_in_all_datasets):
+    for i in range(len(model.data)):
+        if i!=raxs_index_in_all_datasets:
+            model.data[i].use = False
+        else:
+            model.data[i].use = True
+    for i in range(len(model.parameters.data)):
+        if model.parameters.data[i][0] in [f"rgh_raxs.setA_{raxs_index+1}",f"rgh_raxs.setP_{raxs_index+1}",f"rgh_raxs.setA{raxs_index+1}",f"rgh_raxs.setB{raxs_index+1}",f"rgh_raxs.setC{raxs_index+1}"]:
+            model.parameters.data[i][2] = True
+        else:
+            model.parameters.data[i][2] = False
+    return model
+
 #partial set, add as many as you want
 #key is the set funcs defined in /.../DaFy/EnginePool/diffev.py
 #values are the associated value to be set
@@ -53,7 +70,7 @@ solver_settings = {
                    "set_autosave_interval":50
                   }
 
-
+RAXS_FIT = True
 model = model.Model()
 solver = solvergui.SolverController(model)
 
@@ -74,11 +91,24 @@ for each_file in obtain_rod_files(folder_holding_model_files):
     #update mask info
     model.data = copy.deepcopy(model.data_original)
     [each.apply_mask() for each in model.data]
-    #simulate the model first
-    print("Simulating the model now ...")
-    model.simulate()
-    print("Start the fit...")
-    solver.StartFit()
+    if RAXS_FIT:
+        raxs_tag, all_tag = get_data_type_tag(model)
+        for i in range(len(raxs_tag)):
+            model = set_model(model, int(raxs_tag[i]-100), all_tag.index(raxs_tag[i]))
+            #simulate the model first
+            print('Starting the RAXS fit, trial {} of {} trials in total'.format(i, len(raxs_tag)))
+            print("Simulating the model now ...")
+            model.simulate()
+            print("Start the fit...")
+            solver.StartFit()
+            model.save(each_file)
+    else:
+        #simulate the model first
+        print("Simulating the model now ...")
+        model.simulate()
+        print("Start the fit...")
+        solver.StartFit()
+
     
     
     
