@@ -1454,7 +1454,7 @@ class MyMainWindow(QMainWindow):
         else:
             pass
         attrs = eval("self.model.script_module.{}.__dir__()".format(par_selected))
-        attrs_wanted = [each for each in attrs if each.startswith("set")]
+        attrs_wanted = [each for each in attrs if each.startswith("set")][::-1]
 
         rows = self.tableWidget_pars.selectionModel().selectedRows()
         if len(rows) == 0:

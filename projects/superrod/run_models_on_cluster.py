@@ -65,12 +65,12 @@ def set_model(model, raxs_index, raxs_index_in_all_datasets):
 #values are the associated value to be set
 solver_settings = {
                    "set_pop_mult":False,
-                   "set_pop_size":40,
-                   "set_max_generations":100,
+                   "set_pop_size":200,
+                   "set_max_generations":2000,
                    "set_autosave_interval":50
                   }
 
-RAXS_FIT = True
+RAXS_FIT = False
 model = model.Model()
 solver = solvergui.SolverController(model)
 
