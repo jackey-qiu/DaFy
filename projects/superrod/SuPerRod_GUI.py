@@ -792,6 +792,13 @@ class MyMainWindow(QMainWindow):
         self.setup_plot()
         self._load_par()
 
+        #help tree widget
+        # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
+
+    def open_help_doc(self):
+        print('Double clicked signal received!')
+        # return self.treeWidget.currentItem()
+
     def generate_script_dialog(self):
         dlg = ScriptGeneraterDialog(self)
         hightlight = syntax_pars.PythonHighlighter(dlg.plainTextEdit_script.document())
