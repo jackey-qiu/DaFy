@@ -273,7 +273,7 @@ class ScriptGeneraterDialog(QDialog):
         self.lineEdit_files_surface.setText('half_layer2.str')
         self.lineEdit_lattice.setText(str([5.038,5.434,7.3707,90,90,90]))
         self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.1391}))
-        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script_hematite_rcut.py'))
+        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script.py'))
 
     def load_cu(self):
         self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Cu100','Cu100_bulk.str'))
@@ -281,7 +281,7 @@ class ScriptGeneraterDialog(QDialog):
         self.lineEdit_files_surface.setText('Cu100_surface_1.str')
         self.lineEdit_lattice.setText(str([3.615,3.615,3.615,90,90,90]))
         self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.}))
-        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script_Cu.py'))
+        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script.py'))
 
     def load_mica(self):
         pass
@@ -1537,7 +1537,11 @@ class MyMainWindow(QMainWindow):
         try:
             path = self.rod_file
             self.calculate_error_bars()
+            #self.model.script = (self.plainTextEdit_script.toPlainText())
+            self.update_data_check_attr()
+            self.update_par_upon_change()
             self.model.script = (self.plainTextEdit_script.toPlainText())
+            self.widget_solver.update_parameter_in_solver(self)
             self.model.save(path)
             save_add_ = 'success'
             try:
@@ -1559,7 +1563,11 @@ class MyMainWindow(QMainWindow):
             #update the rod_file attribute
             self.rod_file = path
             self.calculate_error_bars()
+            #self.model.script = (self.plainTextEdit_script.toPlainText())
+            self.update_data_check_attr()
+            self.update_par_upon_change()
             self.model.script = (self.plainTextEdit_script.toPlainText())
+            self.widget_solver.update_parameter_in_solver(self)
             self.model.save(path)
             save_add_ = 'success'
             try:

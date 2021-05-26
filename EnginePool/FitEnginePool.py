@@ -257,7 +257,7 @@ def backcor_confined(n,y,ord_cus,s,fct, peak_area_index = [0,1]):
     #print((t2-t1,t3-t2,t4-t3,t5-t4,t6-t5))
     return z,a,it,ord_cus,s,fct
 
-valence_lib = {'Pb':2, 'O':2, 'Fe':3, 'Al':3, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5}
+valence_lib = {'Pb':2, 'O':2, 'Fe':3, 'Al':3, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5, 'C':4}
 class bond_valence_constraint(object):
     def __init__(self, r0_container, domain, lattice_abc, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3],domains = []):
         self.r0_container = r0_container

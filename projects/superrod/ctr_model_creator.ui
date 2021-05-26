@@ -774,7 +774,7 @@ p, li { white-space: pre-wrap; }
      <item>
       <widget class="QLineEdit" name="lineEdit_template_script">
        <property name="text">
-        <string>/Users/canrong/apps/DaFy/projects/superrod/standard_scripts/template_script_Cu.py</string>
+        <string>/Users/canrong/apps/DaFy/projects/superrod/standard_scripts/template_script.py</string>
        </property>
       </widget>
      </item>
