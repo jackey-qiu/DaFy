@@ -508,6 +508,41 @@ class QTextEditLogger(logging.Handler):
         cursor.insertHtml('''<p><span style="color: red;">{} <br></span>'''.format(" "))
         self.textBrowser_error_msg.setText(notice + '\n' +separator+'\n'+error_msg)
 
+class ScanPar(QtCore.QObject):
+    def __init__(self,model):
+        super(ScanPar, self).__init__()
+        self.model = model
+        self.running = False
+        self.sign = 1
+        self.row = 0
+        self.steps = 10
+
+    def run(self):
+        self.running = True
+        while True:
+            # print('Running!')
+            if self.running:
+                self.rock_par()
+                time.sleep(1.5)
+            else:
+                break
+
+    def rock_par(self):
+        par_set = self.model.parameters.data[self.row]
+        par_min, par_max = par_set[-4], par_set[-3]
+        #steps = int(self.spinBox_steps.value())
+        steps = self.steps
+        old_value = self.model.parameters.get_value(self.row, 1)
+        new_value = (par_max - par_min)/steps*self.sign + old_value
+        if (new_value>par_max) or (new_value<par_min):
+            self.model.parameters.set_value(self.row, 1, new_value - 2*self.sign*(par_max - par_min)/steps)
+            self.sign = -self.sign
+        else:
+            self.model.parameters.set_value(self.row, 1, new_value)
+
+    def stop(self):
+        self.running = False
+
 class RunFit(QtCore.QObject):
     """
     RunFit class to interface GUI to operate fit-engine, which is ran on a different thread
@@ -678,12 +713,21 @@ class MyMainWindow(QMainWindow):
         self.batch_thread.started.connect(self.run_batch.run)
         # self.batch_thread.started.connect(lambda:self.timer_update_structure.start(2000))
 
+        self.scan_par = ScanPar(self.model)
+        self.scan_par_thread = QtCore.QThread()
+        self.scan_par.moveToThread(self.scan_par_thread)
+        self.scan_par_thread.started.connect(self.scan_par.run)
+        self.pushButton_scan.clicked.connect(self.start_scan_par_thread)
+        self.pushButton_stop_scan.clicked.connect(self.stop_scan_par_thread)
+        self.timer_scan_par = QTimer(self)
+        self.timer_scan_par.timeout.connect(self.update_structure_during_scan_par)
         #tool bar buttons to operate model
         self.actionNew.triggered.connect(self.init_new_model)
         self.actionOpen.triggered.connect(self.open_model)
         self.actionSaveas.triggered.connect(self.save_model_as)
         self.actionSave.triggered.connect(self.save_model)
-        self.actionSimulate.triggered.connect(self.simulate_model)
+        self.actionSimulate.triggered.connect(lambda:self.simulate_model(compile = True))
+        # self.actionCompile.triggered.connect(lambda:self.simulate_model(compile = False))
         self.actionRun.triggered.connect(self.run_model)
         self.actionStop.triggered.connect(self.stop_model)
         self.actionCalculate.triggered.connect(self.calculate_error_bars)
@@ -693,7 +737,7 @@ class MyMainWindow(QMainWindow):
         #menu items
         self.actionOpen_model.triggered.connect(self.open_model)
         self.actionSave_model.triggered.connect(self.save_model_as)
-        self.actionSimulate_2.triggered.connect(self.simulate_model)
+        self.actionSimulate_2.triggered.connect(lambda:self.simulate_model(compile = True))
         self.actionStart_fit.triggered.connect(self.run_model)
         self.actionNLLS.triggered.connect(self.start_nlls)
         self.actionStop_fit.triggered.connect(self.stop_model)
@@ -762,9 +806,10 @@ class MyMainWindow(QMainWindow):
         self.pushButton_invert_fit.clicked.connect(self.invert_fit)
         self.pushButton_update_pars.clicked.connect(self.update_model_parameter)
         self.horizontalSlider_par.valueChanged.connect(self.play_with_one_par)
+        self.pushButton_scan.clicked.connect(self.scan_one_par)
 
         #pushButton to operate plots
-        self.pushButton_update_plot.clicked.connect(self.update_structure_view)
+        self.pushButton_update_plot.clicked.connect(lambda:self.update_structure_view(compile = True))
         self.pushButton_update_plot.clicked.connect(self.update_plot_data_view_upon_simulation)
         self.pushButton_update_plot.clicked.connect(self.update_par_bar_during_fit)
         self.pushButton_update_plot.clicked.connect(self.update_electron_density_profile)
@@ -1635,7 +1680,7 @@ class MyMainWindow(QMainWindow):
             if hasattr(self,'textEdit_note'):
                 self.textEdit_note.setPlainText(model_info)
 
-    def simulate_model(self):
+    def simulate_model(self, compile = True):
         """
         simulate the model
         script will be updated and compiled to make name spaces in script_module
@@ -1647,8 +1692,8 @@ class MyMainWindow(QMainWindow):
         self.widget_solver.update_parameter_in_solver(self)
         self.tableWidget_pars.setShowGrid(True)
         try:
-            self.model.simulate()
-            self.update_structure_view()
+            self.model.simulate(compile = compile)
+            self.update_structure_view(compile = compile)
             try:
                 self.calc_f_ideal()
             except:
@@ -1682,6 +1727,8 @@ class MyMainWindow(QMainWindow):
             self.model.simulate()
             self.label_2.setText('FOM {}:{}'.format(self.model.fom_func.__name__,self.model.fom))
             self.update_plot_data_view_upon_simulation()
+            self.update_structure_view(compile = False)
+            self.update_electron_density_profile()
             self.statusbar.showMessage("Model is simulated now!")
         except model.ModelError as e:
             self.statusbar.clearMessage()
@@ -1703,6 +1750,54 @@ class MyMainWindow(QMainWindow):
         else:
             print('Doing nothing!')
             pass
+
+    def scan_one_par(self):
+        selected_rows = self.tableWidget_pars.selectionModel().selectedRows()
+        if len(selected_rows)>0:
+            par_set = self.model.parameters.data[selected_rows[0].row()]
+            par_min, par_max = par_set[-4], par_set[-3]
+            steps = int(self.spinBox_steps.value())
+            for i in range(steps+1):
+                value = (par_max - par_min)/steps*i + par_min
+                self.model.parameters.set_value(selected_rows[0].row(), 1, value)
+                self.horizontalSlider_par.setValue(int(i/steps*100))
+                self.lineEdit_scan_par.setText('{}:{}'.format(par_set[0],value))
+                self.simulate_model_light()
+
+    def rock_one_par(self, sign):
+        selected_rows = self.tableWidget_pars.selectionModel().selectedRows()
+        if len(selected_rows)>0:
+            par_set = self.model.parameters.data[selected_rows[0].row()]
+            par_min, par_max = par_set[-4], par_set[-3]
+            steps = int(self.spinBox_steps.value())
+            old_value = self.model.parameters.get_value(selected_rows[0].row(), 1)
+            new_value = (par_max - par_min)/steps*sign + old_value
+            if (new_value>par_max) or (new_value<par_min):
+                self.model.parameters.set_value(selected_rows[0].row(), 1, new_value - 2*sign*(par_max - par_min)/steps)
+                self.simulate_model_light()
+                return -sign
+            else:
+                self.model.parameters.set_value(selected_rows[0].row(), 1, new_value)
+                self.simulate_model_light()
+                return sign
+
+    def update_structure_during_scan_par(self):
+        self.simulate_model_light()
+
+    def start_scan_par_thread(self):
+        selected_rows = self.tableWidget_pars.selectionModel().selectedRows()
+        if len(selected_rows)>0:
+            self.scan_par.row = selected_rows()[0].row()
+            self.scan_par.steps = int(self.spinBox_steps.value())
+            self.scan_par_thread.start()
+            self.timer_scan_par.start(1000)
+        else
+            pass
+
+    def stop_scan_par_thread(self):
+        self.scan_par.stop()
+        self.scan_par_thread.terminate()
+        self.timer_scan_par.stop()
 
     def run_model(self):
         """start the model fit looping"""
@@ -2122,7 +2217,7 @@ class MyMainWindow(QMainWindow):
             pass
         """
 
-    def update_structure_view(self):
+    def update_structure_view(self, compile = True):
         if hasattr(self.model.script_module,"model_type"):
             if getattr(self.model.script_module,"model_type")=="ctr":
                 pass
@@ -2141,7 +2236,7 @@ class MyMainWindow(QMainWindow):
             else:
                 pass        
             xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(),use_sym = self.checkBox_symmetry.isChecked())
-            if self.run_fit.running: 
+            if self.run_fit.running or (not compile): 
                 self.widget_edp.update_structure(xyz)
             else:
                 self.widget_edp.clear()
