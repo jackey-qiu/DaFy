@@ -1791,7 +1791,7 @@ class MyMainWindow(QMainWindow):
             self.scan_par.steps = int(self.spinBox_steps.value())
             self.scan_par_thread.start()
             self.timer_scan_par.start(1000)
-        else
+        else:
             pass
 
     def stop_scan_par_thread(self):
