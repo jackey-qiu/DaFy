@@ -1787,7 +1787,7 @@ class MyMainWindow(QMainWindow):
     def start_scan_par_thread(self):
         selected_rows = self.tableWidget_pars.selectionModel().selectedRows()
         if len(selected_rows)>0:
-            self.scan_par.row = selected_rows()[0].row()
+            self.scan_par.row = selected_rows[0].row()
             self.scan_par.steps = int(self.spinBox_steps.value())
             self.scan_par_thread.start()
             self.timer_scan_par.start(1000)
