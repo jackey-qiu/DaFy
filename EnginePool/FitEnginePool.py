@@ -257,8 +257,185 @@ def backcor_confined(n,y,ord_cus,s,fct, peak_area_index = [0,1]):
     #print((t2-t1,t3-t2,t4-t3,t5-t4,t6-t5))
     return z,a,it,ord_cus,s,fct
 
-valence_lib = {'Pb':2, 'O':2, 'Fe':3, 'Al':3, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5, 'C':4}
+valence_lib = {'Pb':2, 'O':2, 'K':1, 'Fe':3, 'Al':3, 'Si':4, 'Sb':5, 'As':5, 'Zn':2, 'Cu':2, 'Cr':6, 'Cd':2, 'P':5, 'C':4}
 class bond_valence_constraint(object):
+    def __init__(self, r0_container, domain, TM, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3],domains = []):
+        self.r0_container = r0_container
+        self.waiver_ids = waiver_ids
+        self.panelty_factor = panelty_factor
+        self.panelty_factor_total = 0
+        self.domain = domain
+        if domains == []:
+            self.domains = [domain]
+        else:
+            self.domains = domains
+        self.TM = TM
+        self.valence_lib = valence_lib
+        self.covalent_H = covalent_H
+        self.H_bond = H_bond
+        self.consolidate_index_for_each_id = {}
+        self.consolidate_index_for_each_id_valence = {}
+        self.bv_container = {}
+        self.dist_container = {}
+        self.valence_panelty_container = {}
+        self.init_super_domain()
+
+    @classmethod
+    def factory_function_bv(cls,r0_container,domain_list, TM):
+        if len(domain_list)==1:
+            domain = domain_list[0]
+        elif len(domain_list)>1:
+            domain = domain_list[0]
+            for i in range(1,len(domain_list)):
+                domain = domain + domain_list[i]
+        return cls(r0_container, domain, TM, waiver_ids = [],domains = domain_list)
+
+    def init_super_domain(self):
+        self.id_super = []
+        self.xyz_super = []
+        self.el_super = []
+        translations = range(9)
+        translation_tag = ['','+x','-x','+y','-y','+x+y','-x-y','+x-y','-x+y']
+        if len(self.waiver_ids)!=0:
+            appended_ids = []
+            for each in translation_tag[1:]:
+                for id in self.waiver_ids:
+                    appended_ids.append(id+each)
+            self.waiver_ids = self.waiver_ids + appended_ids
+        translation_matrix = [[0,0,0],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[1,1,0],[-1,-1,0],[1,-1,0],[-1,1,0]]
+        for i in translations:
+            each_tag = translation_tag[i]
+            each_matrix = np.array(translation_matrix[i])
+            for j in range(len(self.domain.id)):
+                each_id = self.domain.id[j]
+                self.id_super.append(each_id+each_tag)
+                self.xyz_super.append(np.dot(self.TM,np.array([self.domain.x[j],self.domain.y[j],self.domain.z[j]])+each_matrix))
+                self.el_super.append(self.domain.el[j])
+        self.xyz_super = np.array(self.xyz_super)
+        self.dist_index = list(itertools.combinations(range(self.xyz_super.shape[0]),2))
+        self.R0_super = []
+        for each in self.dist_index:
+            i, j = each
+            el1, el2 = self.el_super[i],self.el_super[j]
+            if el1=='O' and el2=='O':
+                self.R0_super.append(-1)#arbitrary r0 for O-O so that when O-O = 2 A, the bv=2
+            elif el1==el2:#eg Fe-Fe, Fe-Fe = 2.5A, bv=0.001
+                self.R0_super.append(-1)
+            else:
+                if ((el1,el2) not in self.r0_container) and ((el2,el1) not in self.r0_container):#eg Pb-Fe
+                    self.R0_super.append(0)
+                else:#M-O cases
+                    if (el1,el2) in self.r0_container:
+                        self.R0_super.append(self.r0_container[(el1,el2)])
+                    elif (el2,el1) in self.r0_container:
+                        self.R0_super.append(self.r0_container[(el2,el1)])
+        self.R0_super = np.array(self.R0_super)
+        #eg dist_index = [(0,1),(2,3),(0,2),(1,2),(0,3),(0,4)]
+        #locate index of items containing 0
+        #note items of domain.id corresponding to index of range(len(domain.id))
+        dist_index_ = np.array(self.dist_index).reshape(len(self.dist_index)*2)
+        for ii in range(len(self.domain.id)):
+            temp = np.where(dist_index_==ii)[0]
+            id = self.domain.id[ii]
+            if id not in self.waiver_ids:
+                for each in temp:
+                    index_ = None
+                    paired_id = None
+                    if (each+1)%2:#eg, each=0,2,4 (even number)
+                        index_ = int(each/2)
+                        paired_id = self.id_super[dist_index_[each+1]]
+                    else:
+                        index_ = int((each-1)/2)#eg, each=1,3,5 (odd number)
+                        paired_id = self.id_super[dist_index_[each-1]]
+                    if paired_id not in self.waiver_ids:
+                        self.consolidate_index_for_each_id_valence[id] = self.valence_lib[self.domain.el[ii]]
+                        if id not in self.consolidate_index_for_each_id:
+                            self.consolidate_index_for_each_id[id] = [index_]
+                        else:
+                            self.consolidate_index_for_each_id[id].append(index_)
+
+    def update_super_domain(self):
+        if len(self.domains)==1:
+            dx = np.tile(self.domain.dx1+self.domain.dx2+self.domain.dx3+self.domain.dx4,9)[:,np.newaxis]
+            dy = np.tile(self.domain.dy1+self.domain.dy2+self.domain.dy3+self.domain.dy4,9)[:,np.newaxis]
+            dz = np.tile(self.domain.dz1+self.domain.dz2+self.domain.dz3+self.domain.dz4,9)[:,np.newaxis]
+            self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1).dot(self.TM)
+        else:
+            self.update_super_domains()
+
+    def update_super_domains(self):
+        domain1, domains = self.domains[0], self.domains[1:]
+        dx1 = domain1.dx1
+        dx2 = domain1.dx2
+        dx3 = domain1.dx3
+        dx4 = domain1.dx4
+
+        dy1 = domain1.dy1
+        dy2 = domain1.dy2
+        dy3 = domain1.dy3
+        dy4 = domain1.dy4
+
+        dz1 = domain1.dz1
+        dz2 = domain1.dz2
+        dz3 = domain1.dz3
+        dz4 = domain1.dz4
+
+        dx1 = np.append(dx1, [each.dx1 for each in domains])
+        dx2 = np.append(dx2, [each.dx2 for each in domains])
+        dx3 = np.append(dx3, [each.dx3 for each in domains])
+        dx4 = np.append(dx4, [each.dx4 for each in domains])
+
+        dy1 = np.append(dy1, [each.dy1 for each in domains])
+        dy2 = np.append(dy2, [each.dy2 for each in domains])
+        dy3 = np.append(dy3, [each.dy3 for each in domains])
+        dy4 = np.append(dy4, [each.dy4 for each in domains])
+
+        dz1 = np.append(dz1, [each.dz1 for each in domains])
+        dz2 = np.append(dz2, [each.dz2 for each in domains])
+        dz3 = np.append(dz3, [each.dz3 for each in domains])
+        dz4 = np.append(dz4, [each.dz4 for each in domains])
+
+        dx = np.tile(dx1+dx2+dx3+dx4,9)[:,np.newaxis]
+        dy = np.tile(dy1+dy2+dy3+dy4,9)[:,np.newaxis]
+        dz = np.tile(dz1+dz2+dz3+dz4,9)[:,np.newaxis]
+        self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1).dot(self.TM)
+
+    #for surface slab, xyz should not change, but for sorbate slab they will change. Therefore, you need to update xyz coordinates in Sim func.
+    def update_xyz_super(self):
+        if len(self.domains)==1:
+            self.domain = domain_list[0]
+        elif len(self.domains)>1:
+            self.domain = self.domains[0]
+            for i in range(1,len(self.domains)):
+                self.domain = self.domain + self.domains[i]
+        self.xyz_super = np.zeros((1,3))[0:0]
+        translations = range(9)
+        translation_tag = ['','+x','-x','+y','-y','+x+y','-x-y','+x-y','-x+y']
+        translation_matrix = [[0,0,0],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[1,1,0],[-1,-1,0],[1,-1,0],[-1,1,0]]
+        for i in translations:
+            each_matrix = np.array(translation_matrix[i])
+            x,y,z = self.domain.x + each_matrix[0],self.domain.y + each_matrix[1],self.domain.z + each_matrix[2]
+            self.xyz_super = np.vstack((self.xyz_super, np.concatenate((x[:,np.newaxis],y[:,np.newaxis],z[:,np.newaxis]),axis=1)))
+        self.xyz_super = self.xyz_super.dot(self.TM)
+
+    def cal_distance(self):
+        self.update_xyz_super()
+        self.update_super_domain()
+        dist_container = pdist(self.xyz_super + self.dxdydz_super,'euclidean')
+        bv_list = np.exp((self.R0_super-dist_container)/0.37)
+        #cutoff negligible constributions from atoms far away
+        #considering the H-bond contribute around 0.2 v.u.
+        bv_list[bv_list<0.1] = 0
+        keys = list(self.consolidate_index_for_each_id.keys())
+        for i in range(len(keys)):
+            each = keys[i]
+            self.bv_container[each] = bv_list[self.consolidate_index_for_each_id[each]].sum()
+            self.valence_panelty_container[each] = self.panelty_factor*int((self.bv_container[each]-self.consolidate_index_for_each_id_valence[each])>0.1)
+            # self.dist_container[each] = dist_container[self.consolidate_index_for_each_id[each]]
+        self.panelty_factor_total = sum(list(self.valence_panelty_container.values()))
+        return self.panelty_factor_total
+
+class bond_valence_constraint_old(object):
     def __init__(self, r0_container, domain, lattice_abc, valence_lib = valence_lib ,waiver_ids = [], panelty_factor = 10, covalent_H = [0.6,0.8], H_bond = [0.16,0.3],domains = []):
         self.r0_container = r0_container
         self.waiver_ids = waiver_ids

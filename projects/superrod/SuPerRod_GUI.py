@@ -274,6 +274,7 @@ class ScriptGeneraterDialog(QDialog):
         self.lineEdit_lattice.setText(str([5.038,5.434,7.3707,90,90,90]))
         self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.1391}))
         self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script.py'))
+        self.comboBox_T_factor.setCurrentText('B')
 
     def load_cu(self):
         self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Cu100','Cu100_bulk.str'))
@@ -282,9 +283,16 @@ class ScriptGeneraterDialog(QDialog):
         self.lineEdit_lattice.setText(str([3.615,3.615,3.615,90,90,90]))
         self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.}))
         self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script.py'))
+        self.comboBox_T_factor.setCurrentText('u')
 
     def load_mica(self):
-        pass
+        self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Muscovite001','muscovite_001_bulk_u_corrected_new.str'))
+        self.lineEdit_folder_suface.setText(os.path.join(DaFy_path,'util','batchfile','Muscovite001'))
+        self.lineEdit_files_surface.setText('muscovite_001_surface_AlSi_u_corrected_new_1.str')
+        self.lineEdit_lattice.setText(str([5.1988,9.0266,20.04156,90,95.782,90]))
+        self.lineEdit_surface_offset.setText(str({'delta1':0.,'delta2':0.}))
+        self.lineEdit_template_script.setText(os.path.join(DaFy_path,'projects','superrod','standard_scripts','template_script.py'))
+        self.comboBox_T_factor.setCurrentText('u')
 
     def show_3d_structure(self):
         self.widget_structure.clear()
@@ -421,7 +429,7 @@ class ScriptGeneraterDialog(QDialog):
         scripts = []
         files = [os.path.join(self.lineEdit_folder_suface.text(),each) for each in self.lineEdit_files_surface.text().rsplit()]
         for i in range(len(files)):
-            scripts.append('surface_{} = model.Slab(c = 1.0)'.format(i+1))
+            scripts.append("surface_{} = model.Slab(T_factor = '{}')".format(i+1,self.comboBox_T_factor.currentText()))
             scripts.append("tool_box.add_atom_in_slab(surface_{}, '{}')".format(i+1, files[i]))
         # scripts.append('\n')
         self.script_container['surfaceslab'] = '\n'.join(scripts) + '\n'
@@ -447,7 +455,7 @@ class ScriptGeneraterDialog(QDialog):
     def generate_script_bulk(self):
         self.script_container['sample'] = {'surface_parms':self.lineEdit_surface_offset.text()}
         if os.path.isfile(self.lineEdit_bulk.text()):
-            self.script_container['bulk'] = "bulk = model.Slab()\ntool_box.add_atom_in_slab(bulk,'{}')\n".format(self.lineEdit_bulk.text())
+            self.script_container['bulk'] = "bulk = model.Slab(T_factor = '{}')\ntool_box.add_atom_in_slab(bulk,'{}')\n".format(self.comboBox_T_factor.currentText(),self.lineEdit_bulk.text())
 
     def generate_script_raxs(self):
         self.script_container['raxs']  = "RAXS_EL = '{}'\nRAXS_FIT_MODE = '{}'\nNUMBER_SPECTRA = {}\nE0 = {}\nF1F2_FILE = '{}'\n".format(self.lineEdit_res_el.text(),

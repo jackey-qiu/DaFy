@@ -182,9 +182,9 @@ setattr(sample, 'mode', RAXS_FIT_MODE)
 #setup bond valence attributes
 locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini')))
 for i in range(num_surface_slabs):
-    vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_hematite_rcut_new(r0_container = R0_BV,\
+    vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_bv(r0_container = R0_BV,\
                                                                    domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)],\
-                                                                   lattice_abc = np.array([unitcell.a, unitcell.b, unitcell.c]))
+                                                                   TM = unitcell.lattice.RealTM)
 
 #a long list storing the info whether each dataset is used (flatten to the full length of each dataset)
 data_use_array = np.array(sum([[each_set.use]*len(each_set.x) for each_set in data],[]))
@@ -268,7 +268,4 @@ def Sim(data,VARS=vars(),kwargs = {}):
     if USE_BV:
         for i in range(num_surface_slabs):
             bv += VARS['bv_constraint_domain{}'.format(i+1)].cal_distance()
-
-
-
     return F,1+bv,fom_scaler

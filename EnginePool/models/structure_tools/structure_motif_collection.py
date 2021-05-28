@@ -14,9 +14,7 @@ BD_CASE_TP = {'ids':str(['Pb1', 'O1']),
             'phi':str(0.),
             'edge_offset':str([0,0]), 
             'angle_offset':str(0),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 TD_CASE_TP = {'ids':str(['Pb1']), 
             'els': str(['Pb']), 
@@ -27,9 +25,7 @@ TD_CASE_TP = {'ids':str(['Pb1']),
             'mode':'TD',
             'mirror':'False', 
             'top_angle':str(70.),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 OS_CASE_TP = {'ids':str(['As1', 'O1', 'O2', 'O3']),
             'els': str(['As', 'O', 'O', 'O']), 
@@ -44,9 +40,7 @@ OS_CASE_TP = {'ids':str(['As1', 'O1', 'O2', 'O3']),
             'rotation_x':str(0),
             'rotation_y':str(0),
             'rotation_z':str(0),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 BD_CASE_TH = {'ids':str(['As1', 'O1', 'O2']), 
             'els': str(['As', 'O', 'O']), 
@@ -61,9 +55,7 @@ BD_CASE_TH = {'ids':str(['As1', 'O1', 'O2']),
             'phi':str(0.),
             'edge_offset':str([0,0]), 
             'angle_offset':str([0,0]),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 TD_CASE_TH = {'ids':str(['As1', 'O1']), 
             'els': str(['As', 'O']), 
@@ -75,9 +67,7 @@ TD_CASE_TH = {'ids':str(['As1', 'O1']),
             'mirror':'True',
             'center_offset':str(0.),
             'edge_offset':str(0), 
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 OS_CASE_TH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4']),
             'els': str(['As', 'O', 'O', 'O', 'O']), 
@@ -91,9 +81,7 @@ OS_CASE_TH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4']),
             'rotation_x':str(0),
             'rotation_y':str(0),
             'rotation_z':str(0),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 BD_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4']), 
             'els': str(['As', 'O', 'O', 'O', 'O']), 
@@ -109,9 +97,7 @@ BD_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4']),
             'dr1':str(0.),
             'dr2':str(0.),
             'dr3':str(0.),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 TD_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3']), 
             'els': str(['As', 'O', 'O', 'O']), 
@@ -126,9 +112,7 @@ TD_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3']),
             'dr1':str(0.),
             'dr2':str(0.),
             'dr3':str(0.),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}            
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}            
 
 OS_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4', 'O5', 'O6']),
             'els': str(['As', 'O', 'O', 'O', 'O', 'O', 'O']), 
@@ -142,9 +126,7 @@ OS_CASE_OH = {'ids':str(['As1', 'O1', 'O2', 'O3', 'O4', 'O5', 'O6']),
             'rotation_x':str(0),
             'rotation_y':str(0),
             'rotation_z':str(0),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 
 GS_FLAT = {'ids':str(['As1', 'O1', 'O2', 'O3']),
             'els': str(['As', 'O', 'O', 'O']), 
@@ -155,9 +137,7 @@ GS_FLAT = {'ids':str(['As1', 'O1', 'O2', 'O3']),
             'mode':'OS',
             'first_peak_height':str(2.0),
             'inter_peak_spacing':str(2),
-            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90]),
-            'T':'None',
-            'T_INV':'None'}
+            'lat_pars':str([5.038, 5.434, 7.3707, 90, 90, 90])}
 '''
 #corner-sharing of type 1 in short Half layer termination
 CS1_TP_SHL = {**BD_CASE, **{'anchored_ids':str({'attach_atm_ids':['O1_7_0','O1_8_0'],'offset':[None,None],'anchor_ref':None,'anchor_offset':None})}}

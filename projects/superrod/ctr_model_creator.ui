@@ -101,6 +101,27 @@
        </property>
       </widget>
      </item>
+     <item>
+      <widget class="QLabel" name="label_27">
+       <property name="text">
+        <string>T_factor</string>
+       </property>
+      </widget>
+     </item>
+     <item>
+      <widget class="QComboBox" name="comboBox_T_factor">
+       <item>
+        <property name="text">
+         <string>u</string>
+        </property>
+       </item>
+       <item>
+        <property name="text">
+         <string>B</string>
+        </property>
+       </item>
+      </widget>
+     </item>
     </layout>
    </item>
    <item>

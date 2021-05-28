@@ -274,7 +274,7 @@ class Sample:
         if type(unit_cell) != type(UnitCell(1.0, 1.0, 1.0)):
             raise TypeError("The bulk slab has to be a member of class UnitCell")
         if unit_cell == None:
-            unit_cell = UnitCell(1.0, 1,.0, 1.0)
+            unit_cell = UnitCell(1.0, 1.0, 1.0)
         self.unit_cell = unit_cell
 
     def _extract_coord(self,domain,id):
@@ -401,7 +401,8 @@ class Sample:
                     if z_ >= z_min:
                         translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
                         for each in translation_offsets:
-                            x, y, z = np.array([x_, y_, z_]) + each * [self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]
+                            #transform to Cartisian coordinates
+                            x, y, z = np.dot(self.unit_cell.lattice.RealTM, np.array([x_, y_, z_])/[self.unit_cell.a, self.unit_cell.b,self.unit_cell.c] + each)
                             xyz_list.append((el, x, y, z))
                     else:
                         pass
@@ -415,10 +416,11 @@ class Sample:
                         #translation_offsets = [np.array([0,0,0])]#only show one symmetry copy on the top view for clarity
                         if use_sym:
                             for each in self.domain[key]['sorbate_sym']:
-                                x, y, z = each.trans_x(x_,y_)*self.unit_cell.a,each.trans_y(x_,y_)*self.unit_cell.b, z_*self.unit_cell.c
+                                x, y, z = np.dot(self.unit_cell.lattice.RealTM,np.array([each.trans_x(x_,y_),each.trans_y(x_,y_), z_]))
                                 xyz_list.append((el, x, y, z))
                         else:
-                            xyz_list.append((el, x_*self.unit_cell.a, y_*self.unit_cell.b, z_*self.unit_cell.c))
+                            x, y, z = np.dot(self.unit_cell.lattice.RealTM,np.array([x_, y_, z_]))
+                            xyz_list.append((el, x, y, z))
                 else:
                     for sorbate_temp in self.domain[key]['sorbate']:
                         # bond_index = sorbate_temp.bond_index
@@ -428,11 +430,11 @@ class Sample:
                             # translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
                             if use_sym:
                                 for each in self.domain[key]['sorbate_sym']:
-                                    x, y, z = each.trans_x(x_,y_)*self.unit_cell.a,each.trans_y(x_,y_)*self.unit_cell.b, z_*self.unit_cell.c
+                                    x, y, z = np.dot(self.unit_cell.lattice.RealTM, np.array([each.trans_x(x_,y_),each.trans_y(x_,y_), z_]))
                                     xyz_list.append((el, x, y, z))
                             else:
-                                xyz_list.append((el, x_*self.unit_cell.a, y_*self.unit_cell.b, z_*self.unit_cell.c))
-
+                                x, y, z = np.dot(self.unit_cell.lattice.RealTM,np.array([x_, y_, z_]))
+                                xyz_list.append((el, x, y, z))
             else:
                 pass
         # bond_index = [np.array(each) + number_items_slab for each in bond_index]
