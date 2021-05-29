@@ -36,7 +36,8 @@ import time
 import datetime
 import matplotlib
 # matplotlib.use("TkAgg")
-import _tkinter
+os.environ["QT_MAC_WANTS_LAYER"] = "1"
+#import _tkinter
 import pyqtgraph as pg
 import pyqtgraph.exporters
 from PyQt5 import QtCore
@@ -1130,6 +1131,8 @@ class MyMainWindow(QMainWindow):
         self.fom_evolution_profile = self.widget_fom.addPlot()
         self.par_profile = self.widget_pars.addPlot()
         self.fom_scan_profile = self.widget_fom_scan.addPlot()
+        self.fom_scan_profile.getAxis('left').setLabel('Electron denstiy (per water)')
+        self.fom_scan_profile.getAxis('bottom').setLabel('Height (Å)')
 
     def update_data_check_attr(self):
         """update the checkable attr of each dataset: use, show, showerror"""
@@ -1221,25 +1224,22 @@ class MyMainWindow(QMainWindow):
                 #if model is running, disable showing e profile
                 pass
             else:
-                # edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
-                # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
-                #edf = self.model.script_module.sample.plot_electron_density_muscovite_new(z_min=z_min,z_max=z_max,N_layered_water=500,resolution = 1000, freeze=self.model.script_module.freeze)
+                self.fom_scan_profile.addLegend(offset = (-10,20))
                 label,edf = self.model.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = raxs_el, use_sym = self.checkBox_symmetry.isChecked())
-                #eden_plot = [each*int(each>0) for each in eden_plot]
                 #here only plot the total electron density of domain specified by domain_tag
                 domain_tag = int(self.spinBox_domain.text())
                 self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][1],pen = {'color': "w", 'width': 1},clear = True)
-                self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][1],fillLevel=0, brush = (0,200,0,100),clear = False)
+                self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][1],fillLevel=0, brush = (0,200,0,100),clear = False, name = 'Total ED')
                 if len(edf[domain_tag])==4:
                     self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][2],fillLevel=0, brush = (200,0,0,80),clear = False)
-                    self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][3],fillLevel=0, brush = (0,0,250,80),clear = False)
+                    self.fom_scan_profile.plot(edf[domain_tag][0],edf[domain_tag][3],fillLevel=0, brush = (0,0,250,80),clear = False, name = 'Water Layer')
                 if hasattr(self.model.script_module, "rgh_raxs"):
                     # print(HKL_raxs_list)
                     # print(raxs_P_list) 
                     # print(raxs_A_list)
                     # z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.raxr_el,resolution=1000,water_scaling=0.33)
                     z_plot,eden_plot,_=self.model.script_module.sample.fourier_synthesis(np.array(HKL_raxs_list),np.array(raxs_P_list).transpose(),np.array(raxs_A_list).transpose(),z_min=z_min,z_max=z_max,resonant_el=self.model.script_module.RAXS_EL,resolution=1000,water_scaling=0.33)
-                    self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,200,100),clear = False)
+                    self.fom_scan_profile.plot(z_plot,eden_plot,fillLevel=0, brush = (200,0,200,100),clear = False, name = 'ED based on Fourier Synthesis')
                 self.fom_scan_profile.autoRange()
         except:
             self.statusbar.clearMessage()

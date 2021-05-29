@@ -35,6 +35,33 @@ import matplotlib.pyplot as pyplot
 if (sys.version_info > (3, 0)):
     raw_input = input
 
+#place timer at different places and check the time it took at different blocks
+#timer_placer.reset_timer()
+#timer_placer.add_timer(name = 't0')
+#timer_placer.add_timer(name = 't1')
+#timer_placer.add_timer(name = 't3')
+#timer_placer.report()
+class timer_placer:
+    def __init__(self):
+        self.time_container = []
+        self.place_container = []
+
+    def reset_timer(self):
+        self.time_container = []
+        self.place_container = []
+
+    def add_timer(self, name ='place'):
+        self.time_container.append(time.time())
+        self.place_container.append(name)
+
+    def report(self):
+        if len(self.time_container)==0:
+            print('Timer placer not started!')
+        else:
+            print('Starting at {}'.format(self.place_container[0]))
+            for i in range(1,len(self.place_container)):
+                print('It took {} seconds to reach {} from {}'.format(self.time_container[i]-self.time_container[i-1], self.place_container[i],self.place_container[i-1]))
+
 def setup_raxr_pars_new(NUMBER_SPECTRA,F1F2_FILE):
     if NUMBER_SPECTRA!=0:
         F1F2=np.loadtxt(os.path.join(F1F2_FILE))
