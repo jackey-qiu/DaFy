@@ -398,7 +398,9 @@ class bond_valence_constraint(object):
         dx = np.tile(dx1+dx2+dx3+dx4,9)[:,np.newaxis]
         dy = np.tile(dy1+dy2+dy3+dy4,9)[:,np.newaxis]
         dz = np.tile(dz1+dz2+dz3+dz4,9)[:,np.newaxis]
-        self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1).dot(self.TM)
+        #self.dxdydz_super = np.concatenate((dx,dy,dz),axis=1).dot(self.TM)
+        # self.xyz_super = [np.dot(self.TM, each) for each in self.xyz_super]
+        self.dxdydz_super = np.array([np.dot(self.TM, each) for each in np.concatenate((dx,dy,dz),axis=1)])
 
     #for surface slab, xyz should not change, but for sorbate slab they will change. Therefore, you need to update xyz coordinates in Sim func.
     def update_xyz_super(self):
@@ -416,7 +418,8 @@ class bond_valence_constraint(object):
             each_matrix = np.array(translation_matrix[i])
             x,y,z = self.domain.x + each_matrix[0],self.domain.y + each_matrix[1],self.domain.z + each_matrix[2]
             self.xyz_super = np.vstack((self.xyz_super, np.concatenate((x[:,np.newaxis],y[:,np.newaxis],z[:,np.newaxis]),axis=1)))
-        self.xyz_super = self.xyz_super.dot(self.TM)
+        #self.xyz_super = self.xyz_super.dot(self.TM)
+        self.xyz_super = np.array([np.dot(self.TM, each) for each in self.xyz_super])
 
     def cal_distance(self):
         self.update_xyz_super()

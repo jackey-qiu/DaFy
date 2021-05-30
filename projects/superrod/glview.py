@@ -162,10 +162,10 @@ Pb_O=2.19
 Sb_O=2.04
 P_O=1.534
 covalent_bond_length = {
-    ('Si','O'):1.8,
-    ('O','Si'):1.8,
-    ('Al','O'):1.9,
-    ('O','Al'):1.9,
+    ('Si','O'):2.0,
+    ('O','Si'):2.0,
+    ('Al','O'):2.0,
+    ('O','Al'):2.0,
     ('Cu','O'):2.2,
     ('O','Cu'):2.2,
     ('Cu','C'):3.5,
@@ -196,6 +196,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.opts['fov'] = 60
         self.grid_num = 15
         self.abc = np.array([5.038,5.434,7.3707])
+        self.T = np.array([[1,0,0],[0,1,0],[0,0,1]])
+        self.T_INV = np.array([[1,0,0],[0,1,0],[0,0,1]])
+        self.show_bond_length = False
+        self.super_cell_size = (3,3,2)
 
     def clear(self):
         """
@@ -227,7 +231,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         text = CustomTextItem(*v12, '{} Å'.format(round(np.linalg.norm(np.array(v1)-np.array(v2)),2)),font_size = 10)
         return item1, item2, text
 
-    def make_super_cell(self,super_cell_size = [3,3,1]):
+    def make_super_cell_(self,super_cell_size = [3,3,1]):
         a,b,c = self.abc
         x,y,z = np.array(super_cell_size) + 1
         items = []
@@ -272,6 +276,33 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
         return items
 
+    def make_super_cell(self,super_cell_size = [3,3,2]):
+        line_segments = self.prepare_apex_for_supercell(super_cell_size)
+        self.grid_num = len(line_segments)
+        return [gl.GLLinePlotItem(pos = np.array(each),color = (0.1,0.1,0.1,1)) for each in line_segments]
+
+    def prepare_apex_for_supercell(self, size = (3,3,2)):
+        def _get_matrix(bounds = (3,3,2)):
+            matrix_container = []
+            x, y, _ = bounds
+            for i in range(x):
+                for j in range(y):
+                    matrix_container.append([i-int(x/2),j-int(y/2),0])
+            return np.array(matrix_container)
+        translation_matrix_one_slab = _get_matrix(size)
+        #np.array([[0,0,0],[1,0,0],[-1,0,0],[0,1,0],[0,-1,0],[1,1,0],[-1,-1,0],[1,-1,0],[-1,1,0]])
+        translation_matrix = np.array([[0,0,0]])[0:0]
+        for i in range(size[2]):
+            translation_matrix = np.append(translation_matrix,translation_matrix_one_slab+[0,0,i],axis = 0)
+        apexs_in_one_unitcell = np.array([[0,0,0],[1,0,0],[0,1,0],[1,1,0],[0,0,1],[1,0,1],[0,1,1],[1,1,1]])
+        line_segment_index_tuple = [(0,1),(0,2),(0,4),(3,7),(3,1),(3,2),(6,4),(6,7),(6,2),(5,4),(5,7),(5,1)]
+        line_segment_coords = []
+        for sym in translation_matrix:
+            apexs_temp = [np.dot(self.T, apex) for apex in (apexs_in_one_unitcell + sym)]
+            for each in line_segment_index_tuple:
+                line_segment_coords.append((apexs_temp[each[0]],apexs_temp[each[1]]))
+        return line_segment_coords
+
     def show_structure(self, xyz, show_id = False):
         # self.setCameraPosition(distance=55, azimuth=-90)
         # self.setCameraPosition(azimuth=0)
@@ -286,7 +317,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         el_list = []
         self.text_item = []
         if len(self.items)==0:
-            for each in self.make_super_cell():
+            for each in self.make_super_cell(self.super_cell_size):
                 self.addItem(each)
             for i in range(len(xyz)):
                 each = xyz[i]
@@ -329,7 +360,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     self.text_item.append(items[-1])
                     [self.addItem(item) for item in items[0:2]]
             #append text item at the end
-            [self.addItem(item) for item in self.text_item]
+            if self.show_bond_length:
+                [self.addItem(item) for item in self.text_item]
 
         else:
             for each in xyz:
@@ -356,7 +388,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     self.items[ii+self.grid_num], self.items[ii+self.grid_num+1]= items[0:2]
                     ii +=2
             #append text item at the end
-            [self.addItem(item) for item in self.text_item]
+            if self.show_bond_length:
+                [self.addItem(item) for item in self.text_item]
         # self.setProjection()
 
     def update_structure(self, xyz):
@@ -383,5 +416,6 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 self.text_item.append(items[-1])
                 i +=2
             #append text item at the end
-            [self.addItem(item) for item in self.text_item]
+            if self.show_bond_length:
+                [self.addItem(item) for item in self.text_item]
 

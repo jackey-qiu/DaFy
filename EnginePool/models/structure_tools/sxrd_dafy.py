@@ -380,7 +380,15 @@ class Sample:
                 f.write(s)
 
     #only substrate atoms at the top layer for top view show
-    def extract_xyz_top(self, which_domain = 0, num_of_atomic_layers = 1, use_sym = False):
+    def extract_xyz_top(self, which_domain = 0, num_of_atomic_layers = 1, use_sym = False, size = (3,3,1)):
+        def _get_matrix(bounds = (3,3,2)):
+            matrix_container = []
+            x, y, _ = bounds
+            for i in range(x):
+                for j in range(y):
+                    matrix_container.append([i-int(x/2),j-int(y/2),0])
+            return np.array(matrix_container)
+
         xyz_list = []
         which_key = list(self.domain.keys())[which_domain]
         # bond_index = []
@@ -390,19 +398,22 @@ class Sample:
             if key == which_key:
                 z_list_temp = np.array(self.domain[key]['slab'].z) + self.domain[key]['slab'].dz1 + self.domain[key]['slab'].dz2 + self.domain[key]['slab'].dz3 + self.domain[key]['slab'].dz4
                 #z_max = z_list_temp.max()*self.unit_cell.c
-                z_list_sorted = sorted(list(set(z_list_temp * self.unit_cell.c)))[::-1]
+                # z_list_sorted = sorted(list(set(z_list_temp * self.unit_cell.c)))[::-1]
+                z_list_sorted = sorted(list(set(z_list_temp)))[::-1]
                 if num_of_atomic_layers>len(z_list_sorted):
                     num_of_atomic_layers = len(z_list_sorted)
                 z_min = z_list_sorted[num_of_atomic_layers-1]
 
                 for i in range(len(self.domain[key]['slab'].id)):
                     el = self.domain[key]['slab'].el[i]
-                    x_, y_, z_ = self._extract_coord(self.domain[key]['slab'], self.domain[key]['slab'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                    # x_, y_, z_ = self._extract_coord(self.domain[key]['slab'], self.domain[key]['slab'].id[i])*np.array([self.unit_cell.a, self.unit_cell.b,self.unit_cell.c]) 
+                    x_, y_, z_ = self._extract_coord(self.domain[key]['slab'], self.domain[key]['slab'].id[i]) 
                     if z_ >= z_min:
-                        translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
+                        translation_offsets = _get_matrix(size)
+                        #translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
                         for each in translation_offsets:
                             #transform to Cartisian coordinates
-                            x, y, z = np.dot(self.unit_cell.lattice.RealTM, np.array([x_, y_, z_])/[self.unit_cell.a, self.unit_cell.b,self.unit_cell.c] + each)
+                            x, y, z = np.dot(self.unit_cell.lattice.RealTM, np.array([x_, y_, z_]) + each)
                             xyz_list.append((el, x, y, z))
                     else:
                         pass

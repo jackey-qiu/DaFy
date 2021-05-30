@@ -2199,8 +2199,12 @@ class MyMainWindow(QMainWindow):
         # self.widget_edp.items = []
         # self.widget_msv_top.items = []
         self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
+        self.widget_edp.T = self.model.script_module.sample.unit_cell.lattice.RealTM
+        self.widget_edp.T_INV = self.model.script_module.sample.unit_cell.lattice.RealTMInv
+        self.widget_edp.super_cell_size = eval(self.lineEdit_super_cell.text())
+        self.widget_edp.show_bond_length = self.checkBox_label.isChecked()
         # self.widget_msv_top.abc = self.widget_edp.abc
-        xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(), use_sym = self.checkBox_symmetry.isChecked())
+        xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(), use_sym = self.checkBox_symmetry.isChecked(),size = eval(self.lineEdit_super_cell.text()))
         self.widget_edp.show_structure(xyz)
         try:
             azimuth = self.widget_edp.opts['azimuth']
@@ -2243,13 +2247,17 @@ class MyMainWindow(QMainWindow):
                 domain_tag = size_domain -1
             else:
                 pass        
-            xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(),use_sym = self.checkBox_symmetry.isChecked())
+            xyz = self.model.script_module.sample.extract_xyz_top(domain_tag, num_of_atomic_layers = self.spinBox_layers.value(),use_sym = self.checkBox_symmetry.isChecked(),size = eval(self.lineEdit_super_cell.text()))
             if self.run_fit.running or (not compile): 
                 self.widget_edp.update_structure(xyz)
             else:
                 self.widget_edp.clear()
                 #self.widget_edp.items = []
                 self.widget_edp.abc = [self.model.script_module.sample.unit_cell.a,self.model.script_module.sample.unit_cell.b,self.model.script_module.sample.unit_cell.c]
+                self.widget_edp.T = self.model.script_module.sample.unit_cell.lattice.RealTM
+                self.widget_edp.T_INV = self.model.script_module.sample.unit_cell.lattice.RealTMInv
+                self.widget_edp.super_cell_size = eval(self.lineEdit_super_cell.text())
+                self.widget_edp.show_bond_length = self.checkBox_label.isChecked()
                 self.widget_edp.show_structure(xyz)
             #let us also update the eden profile
             self.update_electron_density_profile()
