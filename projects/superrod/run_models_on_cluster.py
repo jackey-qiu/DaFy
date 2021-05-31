@@ -31,7 +31,7 @@ ray.init(address=os.environ["ip_head"], _redis_password=redis_password)
 '''
 
 #provide the folder where all model files (*.rod) are stored
-folder_holding_model_files = os.path.join(DaFy_path,"examples/muscovite001_AD/test_batch")
+folder_holding_model_files = os.path.join(DaFy_path,"examples/hematite_rcut_AD/test_batch")
 #folder_holding_model_files = "/User/cqiu/app/DaFy/examples/Cu100_CO2_EC/test_batch"
 def obtain_rod_files(folder):
     '''
@@ -65,7 +65,7 @@ def set_model(model, raxs_index, raxs_index_in_all_datasets):
 #values are the associated value to be set
 solver_settings = {
                    "set_pop_mult":False,
-                   "set_pop_size":100,
+                   "set_pop_size":50,
                    "set_max_generations":200,
                    "set_autosave_interval":50
                   }

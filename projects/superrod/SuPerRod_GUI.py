@@ -20,7 +20,7 @@ sys.path.append(os.path.join(DaFy_path,'dump_files'))
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
-sys.path.append(os.path.join(DaFy_path,'projects'))
+from models.structure_tools.sxrd_dafy import lattice
 from UtilityFunctions import locate_tag, replace_block
 from UtilityFunctions import apply_modification_of_code_block as script_block_modifier
 from models.structure_tools.sxrd_dafy import AtomGroup
@@ -224,6 +224,7 @@ class ScriptGeneraterDialog(QDialog):
         # print(sorbate_tool_beta.STRUCTURE_MOTIFS)
         super().__init__(parent)
         self.parent = parent
+        
         # Load the dialog's GUI
         uic.loadUi(os.path.join(script_path,"ctr_model_creator.ui"), self)
         self.setWindowTitle('Script Generator in an easy way')
@@ -296,6 +297,10 @@ class ScriptGeneraterDialog(QDialog):
         self.comboBox_T_factor.setCurrentText('u')
 
     def show_3d_structure(self):
+        self.lattice = lattice(*eval(self.lineEdit_lattice.text()))
+        self.widget_structure.T = self.lattice.RealTM
+        self.widget_structure.T_INV = self.lattice.RealTMInv
+        self.widget_structure.show_bond_length = True
         self.widget_structure.clear()
         self.widget_structure.opts['distance'] = 2000
         self.widget_structure.opts['fov'] = 1
@@ -303,6 +308,7 @@ class ScriptGeneraterDialog(QDialog):
         xyz_init = self.pandas_model_slab._data[self.pandas_model_slab._data['show']=='1'][['el','id','x','y','z']]
         translation_offsets = [np.array([0,0,0]),np.array([1,0,0]),np.array([-1,0,0]),np.array([0,1,0]),np.array([0,-1,0]),np.array([1,-1,0]),np.array([-1,1,0]),np.array([1,1,0]),np.array([-1,-1,0])]
         xyz_ = pd.DataFrame({'el':[],'id':[],'x':[],'y':[],'z':[]})
+        xyz = []
         for i in range(len(xyz_init.index)):
             el, id, x, y, z = xyz_init.iloc[i].tolist()
             for tt in translation_offsets:
@@ -319,7 +325,9 @@ class ScriptGeneraterDialog(QDialog):
                 _x, _y, _z = x+i, y+j, z+k
                 _id = id+tag
                 xyz_.loc[len(xyz_.index)] = [el, _id, _x, _y, _z]
-        xyz = list(zip(xyz_['el'].tolist(),xyz_['id'].tolist(),xyz_['x']*self.widget_structure.abc[0].tolist(),xyz_['y']*self.widget_structure.abc[1].tolist(),xyz_['z']*self.widget_structure.abc[2].tolist()))
+                x_c, y_c, z_c = np.dot(self.widget_structure.T,np.array([_x,_y,_z]))
+                xyz.append([el,_id, x_c, y_c, z_c])
+        #xyz = list(zip(xyz_['el'].tolist(),xyz_['id'].tolist(),xyz_['x']*self.widget_structure.abc[0].tolist(),xyz_['y']*self.widget_structure.abc[1].tolist(),xyz_['z']*self.widget_structure.abc[2].tolist()))
         self.widget_structure.show_structure(xyz, show_id = True)
 
     def pan_view(self):
