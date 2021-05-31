@@ -74,6 +74,7 @@ structure_OCCO="""
 #===================
 """
 OCCO = {
+        'substrate_domain':'surface_1', 
         "els":[str(['O','C','C', 'O'])],
         "anchor_index_list":[str([1, None, 1, 2 ])],
         "flat_down_index": [str([2])],
@@ -93,6 +94,7 @@ structure_CO3="""
 #===================
 """
 CO3 = {
+        'substrate_domain':'surface_1', 
         "els":str(['O','C','O', 'O']),
         "anchor_index_list":str([1, None, 1, 1 ]),
         "flat_down_index": str([]),
@@ -110,6 +112,7 @@ structure_CCO="""
 #====================
 """
 CCO = {
+        'substrate_domain':'surface_1', 
         "els":str(['C','C', 'O']),
         "anchor_index_list":str([None, 0, 1 ]),
         "flat_down_index": str([2]),
@@ -125,6 +128,7 @@ structure_CO2="""
 #====================
 """
 CO2 = {
+        'substrate_domain':'surface_1', 
         "els":str(['O','C', 'O']),
         "anchor_index_list":str([1, None, 1 ]),
         "flat_down_index": str([0,2]),
@@ -142,6 +146,7 @@ structure_CO="""
 #====================
 """
 CO = {
+        'substrate_domain':'surface_1', 
         "els":str(['C','O']),
         "anchor_index_list":str([None, 0]),
         "flat_down_index": str([]),
@@ -189,6 +194,7 @@ class StructureMotif(object):
         self.els = els
         self.anchor_id = anchor_id
         self.substrate_domain = substrate_domain
+        self.substrate_domain.bound_domains.append(self.domain)
         self.anchored_ids = anchored_ids
         self.binding_mode = binding_mode
         self.structure_pars_dict = structure_pars_dict
@@ -971,6 +977,7 @@ class CarbonOxygenMotif(StructureMotif):
         settings = {}
         if use_predefined_motif:
             temp = globals()[predefined_motif]
+            settings['substrate_domain'] = str(temp.get('substrate_domain', 'surface_1'))
             settings['xyzu_oc_m'] = str(temp.get('xyzu_oc_m', [0.5, 0.5, 1.5, 0.1, 1, 1]))
             settings['els'] = str(temp.get('els', ['O','C','C','O']))
             settings['flat_down_index'] = str(temp.get('flat_down_index',[2]))
@@ -980,6 +987,7 @@ class CarbonOxygenMotif(StructureMotif):
             settings['binding_mode'] = str(temp.get('binding_mode', 'OS'))
             settings['structure_index'] = structure_index
         else:
+            settings['substrate_domain'] = str(kwargs.get('substrate_domain', 'surface_1'))
             settings['xyzu_oc_m'] = str(kwargs.get('xyzu_oc_m', [0.5, 0.5, 1.5, 0.1, 1, 1]))
             settings['els'] = str(kwargs.get('els', ['O','C','C','O']))
             settings['flat_down_index'] = str(kwargs.get('flat_down_index',[2]))
@@ -988,7 +996,8 @@ class CarbonOxygenMotif(StructureMotif):
             settings['structure_pars_dict'] = str(kwargs.get('structure_pars_dict', {'r':1.5, 'delta':0}))
             settings['binding_mode'] = str(kwargs.get('binding_mode', 'OS'))
             settings['structure_index'] = structure_index
-        return cls.generate_script_snippet(xyzu_oc_m = settings['xyzu_oc_m'], 
+        return cls.generate_script_snippet(substrate_domain = settings['substrate_domain'],
+                                           xyzu_oc_m = settings['xyzu_oc_m'], 
                                            els = settings['els'], 
                                            flat_down_index = settings['flat_down_index'], 
                                            anchor_index_list = settings['anchor_index_list'], 
@@ -998,13 +1007,13 @@ class CarbonOxygenMotif(StructureMotif):
                                            structure_index = settings['structure_index'])
 
     @classmethod
-    def generate_script_snippet(cls, xyzu_oc_m = str([0.5, 0.5, 1.5, 0.1, 1, 1]), els = str(['O','C','C','O']), flat_down_index = str([2]), anchor_index_list = str([1, None, 1, 2 ]), lat_pars = str([3.615, 3.615, 3.615, 90, 90, 90]),structure_pars_dict = str({'r':1.5, 'delta':0}), binding_mode = 'OS', structure_index = 1):
+    def generate_script_snippet(cls, substrate_domain, xyzu_oc_m = str([0.5, 0.5, 1.5, 0.1, 1, 1]), els = str(['O','C','C','O']), flat_down_index = str([2]), anchor_index_list = str([1, None, 1, 2 ]), lat_pars = str([3.615, 3.615, 3.615, 90, 90, 90]),structure_pars_dict = str({'r':1.5, 'delta':0}), binding_mode = 'OS', structure_index = 1):
         #structure_index = structure_index
         instance_name = 'sorbate_instance_{}'.format(structure_index)
         rgh_name = 'rgh_sorbate_{}'.format(structure_index)
         domain_name = 'domain_sorbate_{}'.format(structure_index)
         atm_gp_name = 'atm_gp_sorbate_{}'.format(structure_index)
-        line1 = f"{instance_name} = sorbate_tool.CarbonOxygenMotif.build_instance(xyzu_oc_m = {xyzu_oc_m},els={els},flat_down_index = {flat_down_index},anchor_index_list={anchor_index_list},lat_pars = {lat_pars},structure_pars_dict = {structure_pars_dict}, binding_mode = \'{binding_mode}\',T = unitcell.lattice.RealTM, T_INV = unitcell.lattice.RealTMInv)"
+        line1 = f"{instance_name} = sorbate_tool.CarbonOxygenMotif.build_instance(substrate_domain = {substrate_domain}, xyzu_oc_m = {xyzu_oc_m},els={els},flat_down_index = {flat_down_index},anchor_index_list={anchor_index_list},lat_pars = {lat_pars},structure_pars_dict = {structure_pars_dict}, binding_mode = \'{binding_mode}\',T = unitcell.lattice.RealTM, T_INV = unitcell.lattice.RealTMInv)"
         line2 = f"{instance_name}.set_coordinate_all_rgh()"
         line3 = f"{domain_name} = {instance_name}.domain"
         line4 = f"{rgh_name} = {instance_name}.rgh"
@@ -1012,7 +1021,7 @@ class CarbonOxygenMotif(StructureMotif):
         return('\n'.join([line1,line2,line3,line4,line5]),f"    {instance_name}.set_coordinate_all_rgh()")
 
     @classmethod
-    def build_instance(cls,xyzu_oc_m = [0.5, 0.5, 1.5, 0.1, 1, 1], els = ['O','C','C','O'], flat_down_index = [2],anchor_index_list = [1, None, 1, 2 ], lat_pars = [3.615, 3.615, 3.615, 90, 90, 90], structure_pars_dict = {'r':1.5, 'delta':0}, binding_mode = 'OS', T= None, T_INV = None):
+    def build_instance(cls,substrate_domain = None, xyzu_oc_m = [0.5, 0.5, 1.5, 0.1, 1, 1], els = ['O','C','C','O'], flat_down_index = [2],anchor_index_list = [1, None, 1, 2 ], lat_pars = [3.615, 3.615, 3.615, 90, 90, 90], structure_pars_dict = {'r':1.5, 'delta':0}, binding_mode = 'OS', T= None, T_INV = None):
         #initialize slab
         domain = model_2.Slab(T_factor = 'u')
 
@@ -1038,7 +1047,7 @@ class CarbonOxygenMotif(StructureMotif):
             gamma_list_names.append("gamma_{}_{}".format(ids_all[i],ids_all[each]))
 
         #build instance
-        instance = cls(domain = domain, ids=ids, els=els, anchor_id=anchor_id, substrate_domain=None, anchored_ids = [], binding_mode = binding_mode, structure_pars_dict = structure_pars_dict, lat_pars = lat_pars)
+        instance = cls(domain = domain, ids=ids, els=els, anchor_id=anchor_id, substrate_domain=substrate_domain, anchored_ids = [], binding_mode = binding_mode, structure_pars_dict = structure_pars_dict, lat_pars = lat_pars)
         #set attributes to the instance
         instance.set_class_attributes(xyzu_oc_m, r_list_names, delta_list_names, gamma_list_names, anchor_index_list, flat_down_index, T, T_INV)
         instance.create_rgh()

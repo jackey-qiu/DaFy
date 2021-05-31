@@ -266,7 +266,7 @@ class ScriptGeneraterDialog(QDialog):
         self.script_container = {}
         self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','Cu100','Cu100_bulk.str'))
         self.lineEdit_folder_suface.setText(os.path.join(DaFy_path,'util','batchfile','Cu100'))
-        self.lineEdit_template_script.setText(os.path.join(script_path,'standard_scripts','template_script_Cu.py'))
+        self.lineEdit_template_script.setText(os.path.join(script_path,'standard_scripts','template_script.py'))
 
     def load_hematite(self):
         self.lineEdit_bulk.setText(os.path.join(DaFy_path,'util','batchfile','hematite_rcut','bulk.str'))
@@ -2178,6 +2178,8 @@ class MyMainWindow(QMainWindow):
             dataset.mask[i] = (self.tableWidget_data_view.item(i,7).text() == 'True')
         self.model.data = copy.deepcopy(self.model.data_original)
         [each.apply_mask() for each in self.model.data]
+        #updae the data infomation
+        self.model.data.concatenate_all_ctr_datasets()
         self.simulate_model()
 
     def init_mask_info_in_data_upon_loading_model(self):

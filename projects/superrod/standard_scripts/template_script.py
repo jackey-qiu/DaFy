@@ -167,7 +167,7 @@ domains = {}
 for i in range(num_surface_slabs):
     domains['domain{}'.format(i+1)] = {}
     domains['domain{}'.format(i+1)]['slab'] = globals()['surface_{}'.format(i+1)]
-    domains['domain{}'.format(i+1)]['sorbate'] = [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)]
+    domains['domain{}'.format(i+1)]['sorbate'] = globals()['surface_{}'.format(i+1)].bound_domains 
     domains['domain{}'.format(i+1)]['wt'] = getattr(globals()['rgh_wt'],'wt_domain{}'.format(i+1))
     domains['domain{}'.format(i+1)]['sorbate_sym'] = globals()['sorbate_syms_{}'.format(i+1)]
     domains['domain{}'.format(i+1)]['layered_water'] = rgh_lw
@@ -216,7 +216,8 @@ def Sim(data,VARS=vars(),kwargs = {}):
         dummy_data_ctr = np.array([l_ctr,h_ctr,k_ctr,y_ctr,F_ctr,Ferr_ctr,dL_ctr,LB_ctr]).T
         if 'raxs' in kwargs:
             h_rs, k_rs, l_rs, E_rs = kwargs['raxs'][:,0], kwargs['raxs'][:,1], kwargs['raxs'][:,2],kwargs['raxs'][:,3]
-            f_rs = sample.calc_f_all_RAXS(h_rs, k_rs, l_rs, E_rs)
+            tag = range(len(list(set(zip(h_rs,k_rs,l_rs)))))
+            f_rs = sample.calc_f_all_RAXS(h_rs, k_rs, l_rs, E_rs, tag)
             F_rs = abs(f_rs*f_rs)
             LB_rs = [2]*len(F_rs)
             dL_rs = [2]*len(F_rs)

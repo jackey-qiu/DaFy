@@ -149,6 +149,7 @@ import pandas as pd
 from scipy.spatial import distance
 from numpy.linalg import inv
 from numba import jit,float64,float32, int32, complex128
+import periodictable as ptab
 import numba
 try:
     from scipy import weave
@@ -2348,7 +2349,8 @@ class Sample:
             oc = np.concatenate((oc,oc_))
             el = np.concatenate((el,el_))
             z=(z+1.)*self.unit_cell.c#z is offseted by 1 unit since such offset is explicitly considered in the calculatino of structure factor
-            f=np.array([el_lib[each] for each in el])
+            f = np.array([getattr(ptab,each).number for each in el])
+            #f=np.array([el_lib[each] for each in el])
             Auc=self.unit_cell.a*self.unit_cell.b*np.sin(self.unit_cell.gamma)
             z_min,z_max=z_min,z_max
             eden=[]
@@ -2394,7 +2396,8 @@ class Sample:
                     eden_layer_water.append(0)
                 if 'layered_sorbate' in slabs[key].keys():
                     if slabs[key]['layered_sorbate']!=[]:
-                        eden_raxs.append(np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2)))
+                        # eden_raxs.append(np.sum(el_lib[slabs[key]['layered_sorbate'][0]]*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2)))
+                        eden_raxs.append(np.sum(getattr(ptab,slabs[key]['layered_sorbate'][0]).number*sorbate_density*(2*np.pi*np.array(sigma_layered_sorbate)**2)**-0.5*np.exp(-0.5/np.array(sigma_layered_sorbate)**2*(z_each-np.array(z_layered_sorbate))**2)))
                         eden[-1]=eden[-1] + eden_raxs[-1]
                 else:
                     eden_raxs.append(0)
@@ -3515,6 +3518,8 @@ class Slab:
         self.id = np.array([], dtype = np.str)
         self.el = np.array([], dtype = np.str)
         self.T_factor=T_factor
+        #reserve for substrate domain, where you can specify the sorbate domains associating with it
+        self.bound_domains = []
 
         # TODO: Type checking and defaults!
         #self.inst = inst
