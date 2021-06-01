@@ -173,7 +173,10 @@ class DummydataGeneraterDialog(QDialog):
         from functools import partial
         data_ctr = self._extract_hkl_all()
         data_raxs = self._extract_hkl_all_raxs()
-        kwargs = {'ctr':data_ctr,'raxs':data_raxs,'func':partial(self._generate_dummy_data, file_path = self.lineEdit_data_path.text())}
+        if len(data_raxs)!=0:
+            kwargs = {'ctr':data_ctr,'raxs':data_raxs,'func':partial(self._generate_dummy_data, file_path = self.lineEdit_data_path.text())}
+        else:
+            kwargs = {'ctr':data_ctr,'func':partial(self._generate_dummy_data, file_path = self.lineEdit_data_path.text())}
         self.parent.model.script_module.Sim(self.parent.model.script_module.data, kwargs = kwargs)
 
     def _extract_hkl_one_rod(self, h, k, l_min, l_max, Bragg_ls, delta_l):
@@ -412,7 +415,11 @@ class ScriptGeneraterDialog(QDialog):
         self.script_container['sorbateproperties'] = scripts+'\n'
         self.script_container['sorbatesym'] = syms
         self.script_container['update_sorbate'] = '\n'.join(list(set(self.script_lines_update_sorbate['update_sorbate'])))+'\n'
-        self.script_container['slabnumber'] = {'num_sorbate_slabs':str(len(keys))}
+        if 'slabnumber' not in self.script_container:
+            self.script_container['slabnumber'] = {'num_sorbate_slabs':str(len(keys))}
+        else:
+            self.script_container['slabnumber'].update({'num_sorbate_slabs':str(len(keys))})
+
         self.plainTextEdit_script.setPlainText(scripts+syms)
 
     def extract_surface_slabs(self):
@@ -442,7 +449,11 @@ class ScriptGeneraterDialog(QDialog):
             scripts.append("tool_box.add_atom_in_slab(surface_{}, '{}')".format(i+1, files[i]))
         # scripts.append('\n')
         self.script_container['surfaceslab'] = '\n'.join(scripts) + '\n'
-        self.script_container['slabnumber'] = {'num_surface_slabs':str(len(files))}
+        #self.script_container['slabnumber'] = {'num_surface_slabs':str(len(files))}
+        if 'slabnumber' not in self.script_container:
+            self.script_container['slabnumber'] = {'num_surface_slabs':str(len(files))}
+        else:
+            self.script_container['slabnumber'].update({'num_surface_slabs':str(len(files))})
         return self.script_container['surfaceslab']
 
     def generate_script_surface_atm_group(self):

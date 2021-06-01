@@ -180,11 +180,12 @@ setattr(sample, 'mode', RAXS_FIT_MODE)
 #/sample/end#
 
 #setup bond valence attributes
-locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini')))
-for i in range(num_surface_slabs):
-    vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_bv(r0_container = R0_BV,\
-                                                                   domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)],\
-                                                                   TM = unitcell.lattice.RealTM)
+if USE_BV:
+    locals().update(config_file_parser_bv(os.path.join(batch_path_head,'bv_data_base','config_bond_valence_db.ini')))
+    for i in range(num_surface_slabs):
+        vars()['bv_constraint_domain{}'.format(i+1)] = bond_valence_constraint.factory_function_bv(r0_container = R0_BV,\
+                                                                    domain_list= [domains['domain{}'.format(i+1)]['slab']] + [globals()['domain_sorbate_{}'.format(j+1)] for j in range(num_sorbate_slabs)],\
+                                                                    TM = unitcell.lattice.RealTM)
 
 #a long list storing the info whether each dataset is used (flatten to the full length of each dataset)
 data_use_array = np.array(sum([[each_set.use]*len(each_set.x) for each_set in data],[]))
