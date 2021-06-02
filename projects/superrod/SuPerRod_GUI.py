@@ -695,6 +695,7 @@ class MyMainWindow(QMainWindow):
         pg.mkQApp()
         #load GUI ui file made by qt designer
         uic.loadUi(os.path.join(DaFy_path,'projects','SuperRod','superrod_gui.ui'),self)
+        self.widget_terminal.update_name_space("win",self)
         self.setWindowTitle('Data analysis factory: CTR data modeling')
         icon = QIcon(os.path.join(script_path,"icons","DAFY.png"))
         self.setWindowIcon(icon)
@@ -864,6 +865,13 @@ class MyMainWindow(QMainWindow):
         self.azimuth_angle = 0
         self.setup_plot()
         self._load_par()
+
+        #widgets for plotting figures
+        self.widget_fig.parent = self
+        self.pushButton_extract_data.clicked.connect(lambda:self.widget_fig.extract_data_all())
+        self.pushButton_reset_plot.clicked.connect(lambda:self.widget_fig.reset())
+        self.pushButton_init_pars.clicked.connect(lambda:self.widget_fig.init_pandas_model())
+        self.pushButton_plot_figures.clicked.connect(lambda:self.widget_fig.create_plots())
 
         #help tree widget
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
@@ -1458,6 +1466,8 @@ class MyMainWindow(QMainWindow):
         options |= QFileDialog.DontUseNativeDialog
         fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","rod file (*.rod);;zip Files (*.rar)", options=options)
         self.open_model_with_path(fileName)
+        self.lineEdit_folder_of_rod_files.setText(os.path.dirname(fileName))
+        self.listWidget_rod_files.addItem(os.path.basename(fileName))
 
     def open_model_selected_in_listWidget(self):
         """
