@@ -872,6 +872,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_reset_plot.clicked.connect(lambda:self.widget_fig.reset())
         self.pushButton_init_pars.clicked.connect(lambda:self.widget_fig.init_pandas_model())
         self.pushButton_plot_figures.clicked.connect(lambda:self.widget_fig.create_plots())
+        self.pushButton_clear_plot.clicked.connect(lambda:self.widget_fig.clear_plot())
 
         #help tree widget
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)

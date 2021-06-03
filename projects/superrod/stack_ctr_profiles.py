@@ -41,9 +41,10 @@ class PandasModel(QtCore.QAbstractTableModel):
     """
     Class to populate a table view with a pandas dataframe
     """
-    def __init__(self, data, tableviewer, main_gui, parent=None):
+    def __init__(self, data, tableviewer, main_gui, link = False, parent=None):
         QtCore.QAbstractTableModel.__init__(self, parent)
         self._data = data
+        self.link = link
         self.tableviewer = tableviewer
         self.main_gui = main_gui
 
@@ -65,28 +66,35 @@ class PandasModel(QtCore.QAbstractTableModel):
                 # return QtGui.QColor('lightGreen')
             if role == QtCore.Qt.ForegroundRole and index.row()%2 == 1:
                 return QtGui.QColor('black')
-            '''
             if role == QtCore.Qt.CheckStateRole and index.column()==0:
                 if self._data.iloc[index.row(),index.column()]:
                     return QtCore.Qt.Checked
                 else:
                     return QtCore.Qt.Unchecked
-            '''
         return None
+
+    def _find_link_row(self,row, link_tags = {'axis_type':['pars_x_axis','pars_y_axis']}, id_tag = 'rods'):
+        current_link_tag = self._data.loc[row][list(link_tags.keys())[0]]
+        to_link_tag = [each for each in link_tags[list(link_tags.keys())[0]] if each!=current_link_tag][0]
+        id_tag_value = self._data.loc[row][id_tag]
+        # print(current_link_tag, to_link_tag, id_tag_value)
+        return ((self._data[id_tag]==id_tag_value) & (self._data[list(link_tags.keys())[0]]==to_link_tag)).to_list().index(True)
 
     def setData(self, index, value, role):
         if not index.isValid():
             return False
-        '''
         if role == QtCore.Qt.CheckStateRole and index.column() == 0:
             if value == QtCore.Qt.Checked:
                 self._data.iloc[index.row(),index.column()] = True
+                if self.link:
+                    self._data.iloc[self._find_link_row(index.row()),index.column()] = True
             else:
                 self._data.iloc[index.row(),index.column()] = False
+                if self.link:
+                    self._data.iloc[self._find_link_row(index.row()),index.column()] = False
         else:
-        '''
-        if str(value)!='':
-            self._data.iloc[index.row(),index.column()] = str(value)
+            if str(value)!='':
+                self._data.iloc[index.row(),index.column()] = str(value)
         #if self._data.columns.tolist()[index.column()] in ['select','archive_data','user_label','read_level']:
         #    self.main_gui.update_meta_info_paper(paper_id = self._data['paper_id'][index.row()])
         self.dataChanged.emit(index, index)
@@ -112,7 +120,10 @@ class PandasModel(QtCore.QAbstractTableModel):
         if not index.isValid():
            return QtCore.Qt.NoItemFlags
         else:
-            return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable)
+            if index.column()==0:
+                return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable)
+            else:
+                return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable)
 
     def sort(self, Ncol, order):
         """Sort table by given column number."""
@@ -139,8 +150,8 @@ class MplWidget2(QWidget):
         #self.canvas.axes = self.canvas.figure.add_subplot(111)
         self.setLayout(vertical_layout)
 
-    def update_canvas(self):
-        self.canvas = FigureCanvas(Figure()) 
+    def update_canvas(self, fig_size):
+        self.canvas = FigureCanvas(Figure(fig_size)) 
         self.navi_toolbar = NavigationToolbar(self.canvas, self)
         vertical_layout = QVBoxLayout()
         vertical_layout.addWidget(self.canvas)
@@ -158,15 +169,32 @@ class MplWidget2(QWidget):
         self.ax_handle_ed = None
         self.ax_handles_ctr = None
 
-    def create_plots(self):
+    def clear_plot(self):
         self.canvas.figure.clear()
+        self.canvas.draw()
+
+    def create_plots(self):
+        # self.update_canvas(eval(self.parent.lineEdit_fig_size.text()))
+        self.canvas.figure.clear()
+        self.canvas.draw()
+        self.canvas.figure.set_size_inches(*eval(self.parent.lineEdit_fig_size.text()))
+        #self.canvas.draw()
         #self.reset()
         self.generate_axis_handle(hspaces = eval(self.parent.lineEdit_hspaces.text()))
         #self.extract_data_all(self, z_min = -20, z_max = 100)
         self.extract_plot_pars()
         self.extract_format_pars()
-        keys = list(self.data.keys())
-        keys_rods = list(self.data[keys[0]].keys())
+        #keys = list(self.data.keys())
+        keys = self.pandas_model_plot_pars._data[self.pandas_model_plot_pars._data['use']]['rod_files'].to_list()
+        #keys_rods = list(self.data[keys[0]].keys())
+        keys_rods = list(set(self.pandas_model_format_pars._data[self.pandas_model_format_pars._data['use']]['rods'].to_list()))
+        if 'ed_profile' in keys_rods:
+            if keys_rods[-1]=='ed_profile':
+                pass
+            else:
+                del(keys_rods[keys_rods.index('ed_profile')])
+                keys_rods = keys_rods + ['ed_profile']
+        #keys_rods = list(self.data[keys[0]].keys())
         offset = self.get_uniform_offset()
 
         def _calc_offset(min_value, offset, index):
@@ -183,20 +211,21 @@ class MplWidget2(QWidget):
                 l, I, Ierr, y_sim, I_ideal = self.data[key][keys_rods[i]]#ctr data [l, I, Ierr, y_sim, I_ideal]
                 #if keys_rods[i]!='ed_profile':#indicate a ctr or RAXS data
                 applied_offset = _calc_offset(min(y_sim),offset,keys.index(key))
-                ax.plot(l, y_sim*applied_offset, color = self.plot_pars[key]['color'],linestyle =self.plot_pars[key]['ls'], label = self.plot_pars[key]['label'])
+                ax.plot(l, y_sim*applied_offset, color = self.plot_pars[key]['color'],linewidth = int(str(self.plot_pars[key]['lw'])),linestyle = self.plot_pars[key]['ls'], label = self.plot_pars[key]['label'])
                 ax.plot(l, I_ideal*applied_offset, color = '0.5')
-                ax.scatter(l,I*applied_offset,s = self.plot_pars[key]['symbol_size'], marker = self.plot_pars[key]['symbol'],c = self.plot_pars[key]['symbol_color'])
+                ax.scatter(l,I*applied_offset,s = int(str(self.plot_pars[key]['symbol_size'])), marker = self.plot_pars[key]['symbol'],c = self.plot_pars[key]['symbol_color'])
             self._format_ax_tick_labels(ax, self.ax_format_pars_x[i])
             self._format_ax_tick_labels(ax, self.ax_format_pars_y[i])
         #now plot ed profile
-        self.ax_handle_ed.set_xlabel('Height (Å)')
-        self.ax_handle_ed.set_ylabel('Electron density (per water)')
-        for i, key in enumerate(keys):
-            x, y = self.data[key]['ed_profile']['Total electron density']
-            # self.ax_handle_ed.plot(x, y+offset*i, color = 'white')
-            self.ax_handle_ed.fill_between(x,y+offset*i,y*0+offset*i,color = self.plot_pars[key]['color'], alpha = 0.2)
-        self._format_ax_tick_labels(self.ax_handle_ed, self.ax_format_pars_x[len(self.ax_handles_ctr)])
-        self._format_ax_tick_labels(self.ax_handle_ed, self.ax_format_pars_y[len(self.ax_handles_ctr)])
+        if self.ax_handle_ed!=None:
+            self.ax_handle_ed.set_xlabel('Height (Å)')
+            self.ax_handle_ed.set_ylabel('Electron density (per water)')
+            for i, key in enumerate(keys):
+                x, y = self.data[key]['ed_profile']['Total electron density']
+                # self.ax_handle_ed.plot(x, y+offset*i, color = 'white')
+                self.ax_handle_ed.fill_between(x,y+offset*i,y*0+offset*i,color = self.plot_pars[key]['color'], alpha = 0.2)
+            self._format_ax_tick_labels(self.ax_handle_ed, self.ax_format_pars_x[len(self.ax_handles_ctr)])
+            self._format_ax_tick_labels(self.ax_handle_ed, self.ax_format_pars_y[len(self.ax_handles_ctr)])
         self.canvas.draw()
 
     def get_uniform_offset(self):
@@ -216,34 +245,43 @@ class MplWidget2(QWidget):
         #pnadas_model_format_pars_x
         data_ = {}
         num_axes = len(self.data[list(self.data.keys())[0]].keys())
+        data_['use'] = [True]*num_axes
+        data_['rods'] = list(self.data[list(self.data.keys())[0]].keys())
+        data_['axis_type'] = ['pars_x_axis']*num_axes
         data_['bounds'] = _get_bounds_x(self.data)
         data_['bound_padding'] = [0.1]*num_axes
         data_['major_tick_location'] = [[]]*num_axes####to edit
         data_['show_major_tick_label'] = [True]*num_axes
         data_['num_of_minor_tick_marks'] = [4]*num_axes
         data_['fmt_str'] = ['{:4.2f}']*num_axes
+        '''
         self.pandas_model_format_pars_x = PandasModel(data = pd.DataFrame(data_), tableviewer = self.parent.tableView_ax_format_x, main_gui = self.parent)
         self.parent.tableView_ax_format_x.setModel(self.pandas_model_format_pars_x)
         self.parent.tableView_ax_format_x.resizeColumnsToContents()
         self.parent.tableView_ax_format_x.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
-
+        '''
         #pnadas_model_format_pars_y
-        data_ = {}
+        #data_ = {}
         num_axes = len(self.data[list(self.data.keys())[0]].keys())
-        data_['bounds'] = [[]]*num_axes####to edit
-        data_['bound_padding'] = [0.]*num_axes
-        data_['major_tick_location'] = [[]]*num_axes####to edit
-        data_['show_major_tick_label'] = [True]+[False]*(num_axes-2)+[True]
-        data_['num_of_minor_tick_marks'] = [4]*num_axes
-        data_['fmt_str'] = ['{:.0e}']*(num_axes-1)+['{:4.0f}']
-        self.pandas_model_format_pars_y = PandasModel(data = pd.DataFrame(data_), tableviewer = self.parent.tableView_ax_format_y, main_gui = self.parent)
-        self.parent.tableView_ax_format_y.setModel(self.pandas_model_format_pars_y)
-        self.parent.tableView_ax_format_y.resizeColumnsToContents()
-        self.parent.tableView_ax_format_y.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+        data_['use'] = data_['use']+[True]*num_axes
+        data_['rods'] = data_['rods']+list(self.data[list(self.data.keys())[0]].keys())
+        data_['axis_type'] = data_['axis_type']+['pars_y_axis']*num_axes
+        data_['bounds'] = data_['bounds']+[[]]*num_axes####to edit
+        data_['bound_padding'] = data_['bound_padding']+[0.]*num_axes
+        data_['major_tick_location'] = data_['major_tick_location']+[[]]*num_axes####to edit
+        data_['show_major_tick_label'] = data_['show_major_tick_label']+[True]+[False]*(num_axes-2)+[True]
+        data_['num_of_minor_tick_marks'] = data_['num_of_minor_tick_marks']+[4]*num_axes
+        data_['fmt_str'] = data_['fmt_str']+['{:.0e}']*(num_axes-1)+['{:4.0f}']
+        self.pandas_model_format_pars = PandasModel(data = pd.DataFrame(data_), tableviewer = self.parent.tableView_ax_format, main_gui = self.parent, link = True)
+        self.parent.tableView_ax_format.setModel(self.pandas_model_format_pars)
+        self.parent.tableView_ax_format.resizeColumnsToContents()
+        self.parent.tableView_ax_format.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
 
         #pnadas_model_format_plot_pars
         data_ = {}
         num_axes = len(list(self.data.keys()))
+        data_['use'] = [True]*num_axes
+        data_['rod_files'] = list(self.data.keys())
         data_['ls'] = ['-']*num_axes
         data_['lw'] = [1]*num_axes####to edit
         data_['color'] = ['r']*num_axes
@@ -260,47 +298,73 @@ class MplWidget2(QWidget):
         #extract point/line styles for each dataset
         self.plot_pars = {}
         for i in range(len(self.pandas_model_plot_pars._data.index)):
-            data_key = list(self.data.keys())[i]
-            self.plot_pars[data_key] = {'ls':self.pandas_model_plot_pars._data.loc[i]['ls'],
-                                        'lw':self.pandas_model_plot_pars._data.loc[i]['lw'],
-                                        'color':self.pandas_model_plot_pars._data.loc[i]['color'],
-                                        'symbol':self.pandas_model_plot_pars._data.loc[i]['symbol'],
-                                        'symbol_size':self.pandas_model_plot_pars._data.loc[i]['symbol_size'],
-                                        'symbol_color':self.pandas_model_plot_pars._data.loc[i]['symbol_color'],
-                                        'label':self.pandas_model_plot_pars._data.loc[i]['label']}
+            if self.pandas_model_plot_pars._data.loc[i]['use']:
+                data_key = list(self.data.keys())[i]
+                self.plot_pars[data_key] = {'ls':self.pandas_model_plot_pars._data.loc[i]['ls'],
+                                            'lw':self.pandas_model_plot_pars._data.loc[i]['lw'],
+                                            'color':self.pandas_model_plot_pars._data.loc[i]['color'],
+                                            'symbol':self.pandas_model_plot_pars._data.loc[i]['symbol'],
+                                            'symbol_size':self.pandas_model_plot_pars._data.loc[i]['symbol_size'],
+                                            'symbol_color':self.pandas_model_plot_pars._data.loc[i]['symbol_color'],
+                                            'label':self.pandas_model_plot_pars._data.loc[i]['label']}
 
     def extract_format_pars(self):
         #extract axis format pars for each axis
         self.ax_format_pars_x = {}
         self.ax_format_pars_y = {}
-        for i in range(len(self.ax_handles_ctr)+1):#1 for the ed profile ax
+        total = len(self.ax_handles_ctr) 
+        if self.use_edp:
+            total=total+1
+        for i in range(total):#1 for the ed profile ax
             # ax_key = self.pandas_model_format_pars_x._data.loc[i]['ax_key']
+            condition_x = (self.pandas_model_format_pars._data['axis_type'] == 'pars_x_axis') & (self.pandas_model_format_pars._data['use'])
             self.ax_format_pars_x[i] = {'fun_set_bounds':'set_xlim',
-                                             'bounds':eval(str(self.pandas_model_format_pars_x._data.loc[i]['bounds'])),
-                                             'bound_padding':eval(str(self.pandas_model_format_pars_x._data.loc[i]['bound_padding'])),
-                                             'major_tick_location':eval(str(self.pandas_model_format_pars_x._data.loc[i]['major_tick_location'])),
-                                             'show_major_tick_label':eval(str(self.pandas_model_format_pars_x._data.loc[i]['show_major_tick_label'])),
-                                             'num_of_minor_tick_marks':int(self.pandas_model_format_pars_x._data.loc[i]['num_of_minor_tick_marks']),
-                                             'fmt_str':self.pandas_model_format_pars_x._data.loc[i]['fmt_str']}
+                                             'bounds':eval(str(self.pandas_model_format_pars._data[condition_x].iloc[i]['bounds'])),
+                                             'bound_padding':eval(str(self.pandas_model_format_pars._data[condition_x].iloc[i]['bound_padding'])),
+                                             'major_tick_location':eval(str(self.pandas_model_format_pars._data[condition_x].iloc[i]['major_tick_location'])),
+                                             'show_major_tick_label':eval(str(self.pandas_model_format_pars._data[condition_x].iloc[i]['show_major_tick_label'])),
+                                             'num_of_minor_tick_marks':int(self.pandas_model_format_pars._data[condition_x].iloc[i]['num_of_minor_tick_marks']),
+                                             'fmt_str':self.pandas_model_format_pars._data[condition_x].iloc[i]['fmt_str']}
             # ax_key = self.pandas_model_format_pars_y._data.loc[i]['ax_key']
+            condition_y = (self.pandas_model_format_pars._data['axis_type'] == 'pars_y_axis') & (self.pandas_model_format_pars._data['use'])
             self.ax_format_pars_y[i] = {'fun_set_bounds':'set_ylim',
-                                             'bounds':eval(str(self.pandas_model_format_pars_y._data.loc[i]['bounds'])),
-                                             'bound_padding':eval(str(self.pandas_model_format_pars_y._data.loc[i]['bound_padding'])),
-                                             'major_tick_location':eval(str(self.pandas_model_format_pars_y._data.loc[i]['major_tick_location'])),
-                                             'show_major_tick_label':eval(str(self.pandas_model_format_pars_y._data.loc[i]['show_major_tick_label'])),
-                                             'num_of_minor_tick_marks':int(self.pandas_model_format_pars_y._data.loc[i]['num_of_minor_tick_marks']),
-                                             'fmt_str':self.pandas_model_format_pars_y._data.loc[i]['fmt_str']}
+                                             'bounds':eval(str(self.pandas_model_format_pars._data[condition_y].iloc[i]['bounds'])),
+                                             'bound_padding':eval(str(self.pandas_model_format_pars._data[condition_y].iloc[i]['bound_padding'])),
+                                             'major_tick_location':eval(str(self.pandas_model_format_pars._data[condition_y].iloc[i]['major_tick_location'])),
+                                             'show_major_tick_label':eval(str(self.pandas_model_format_pars._data[condition_y].iloc[i]['show_major_tick_label'])),
+                                             'num_of_minor_tick_marks':int(self.pandas_model_format_pars._data[condition_y].iloc[i]['num_of_minor_tick_marks']),
+                                             'fmt_str':self.pandas_model_format_pars._data[condition_y].iloc[i]['fmt_str']}
+
+    def _get_num_of_used_rods(self):
+        condition_x = self.pandas_model_format_pars._data['axis_type'] == 'pars_x_axis'
+        condition_y = self.pandas_model_format_pars._data['axis_type'] == 'pars_y_axis'
+        #whichever is not used, the rod will not be used
+        x = self.pandas_model_format_pars._data[condition_x]['use'].apply(int).to_numpy()
+        y = self.pandas_model_format_pars._data[condition_y]['use'].apply(int).to_numpy()
+        ed = self.pandas_model_format_pars._data['rods']=='ed_profile'
+        use_edp = sum(self.pandas_model_format_pars._data[ed]['use'].apply(int))==2
+        return sum(x*y), use_edp
 
     def generate_axis_handle(self, hspaces):
-        col_num = len(self.data[list(self.data.keys())[0]].keys())
+        col_num, use_edp = self._get_num_of_used_rods()
+        self.use_edp = use_edp
+        #col_num = len(self.data[list(self.data.keys())[0]].keys())
+        if col_num==0:
+            self.ax_handles_ctr = []
+            self.ax_handle_ed = None
+            return
         gs_left = plt.GridSpec(1,col_num,hspace=hspaces[0],wspace = hspaces[0])
         gs_right = plt.GridSpec(1,col_num, hspace=hspaces[1],wspace = hspaces[1])
-        ax_handles_ctr = [self.canvas.figure.add_subplot(gs_left[0, i]) for i in range(col_num-1)]
-        ax_handle_ed = self.canvas.figure.add_subplot(gs_right[0, col_num-1])
+        if use_edp:
+            ax_handle_ed = self.canvas.figure.add_subplot(gs_right[0, col_num-1])
+            self.ax_handle_ed = ax_handle_ed
+            self._format_axis(self.ax_handle_ed)
+            ax_handles_ctr = [self.canvas.figure.add_subplot(gs_left[0, i]) for i in range(col_num-1)]
+        else:
+            self.ax_handle_ed = None
+            ax_handles_ctr = [self.canvas.figure.add_subplot(gs_left[0, i]) for i in range(col_num)]
         self.ax_handles_ctr = ax_handles_ctr
-        self.ax_handle_ed = ax_handle_ed
         self._format_axis(self.ax_handles_ctr)
-        self._format_axis(self.ax_handle_ed)
 
     #format the axis tick so that the tick facing inside, showing both major and minor tick marks
     #The tick marks on both sides (y tick marks on left and right side and x tick marks on top and bottom side)

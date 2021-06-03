@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1086</height>
+    <height>1027</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -980,13 +980,6 @@ p, li { white-space: pre-wrap; }
                     </widget>
                    </item>
                    <item>
-                    <widget class="QPushButton" name="pushButton_reset_plot">
-                     <property name="text">
-                      <string>Reset</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
                     <widget class="QPushButton" name="pushButton_plot_figures">
                      <property name="text">
                       <string>Make Plots</string>
@@ -1004,7 +997,7 @@ p, li { white-space: pre-wrap; }
                     <widget class="QLineEdit" name="lineEdit_vert_offset">
                      <property name="maximumSize">
                       <size>
-                       <width>50</width>
+                       <width>5000</width>
                        <height>16777215</height>
                       </size>
                      </property>
@@ -1022,7 +1015,7 @@ p, li { white-space: pre-wrap; }
                       </sizepolicy>
                      </property>
                      <property name="text">
-                      <string>hspaces</string>
+                      <string>wspaces</string>
                      </property>
                     </widget>
                    </item>
@@ -1030,7 +1023,7 @@ p, li { white-space: pre-wrap; }
                     <widget class="QLineEdit" name="lineEdit_hspaces">
                      <property name="maximumSize">
                       <size>
-                       <width>60</width>
+                       <width>5000</width>
                        <height>16777215</height>
                       </size>
                      </property>
@@ -1056,7 +1049,7 @@ p, li { white-space: pre-wrap; }
                     <widget class="QLineEdit" name="lineEdit_ed_min">
                      <property name="maximumSize">
                       <size>
-                       <width>50</width>
+                       <width>500</width>
                        <height>16777215</height>
                       </size>
                      </property>
@@ -1082,12 +1075,40 @@ p, li { white-space: pre-wrap; }
                     <widget class="QLineEdit" name="lineEdit_ed_max">
                      <property name="maximumSize">
                       <size>
-                       <width>50</width>
+                       <width>5000</width>
                        <height>16777215</height>
                       </size>
                      </property>
                      <property name="text">
                       <string>50</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLabel" name="label_12">
+                     <property name="text">
+                      <string>Fig_size</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QLineEdit" name="lineEdit_fig_size">
+                     <property name="text">
+                      <string>(8,5)</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pushButton_clear_plot">
+                     <property name="text">
+                      <string>ClearFig</string>
+                     </property>
+                    </widget>
+                   </item>
+                   <item>
+                    <widget class="QPushButton" name="pushButton_reset_plot">
+                     <property name="text">
+                      <string>Reset</string>
                      </property>
                     </widget>
                    </item>
@@ -1111,26 +1132,12 @@ p, li { white-space: pre-wrap; }
                    <item>
                     <widget class="QLabel" name="label_13">
                      <property name="text">
-                      <string>ax_format_pars_y</string>
+                      <string>ax_format_pars</string>
                      </property>
                     </widget>
                    </item>
                    <item>
-                    <widget class="QTableView" name="tableView_ax_format_y"/>
-                   </item>
-                  </layout>
-                 </item>
-                 <item>
-                  <layout class="QVBoxLayout" name="verticalLayout_13">
-                   <item>
-                    <widget class="QLabel" name="label_12">
-                     <property name="text">
-                      <string>ax_format_pars_x</string>
-                     </property>
-                    </widget>
-                   </item>
-                   <item>
-                    <widget class="QTableView" name="tableView_ax_format_x"/>
+                    <widget class="QTableView" name="tableView_ax_format"/>
                    </item>
                   </layout>
                  </item>
