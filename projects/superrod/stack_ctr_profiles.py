@@ -204,7 +204,7 @@ class MplWidget2(QWidget):
         for i, ax in enumerate(self.ax_handles_ctr):
             ax.set_yscale('log')
             if i==0:
-                ax.set_ylabel('Structure factor',fontsize = 10)
+                ax.set_ylabel('Intensity (a.u.)',fontsize = 10)
             ax.set_xlabel('L(r.l.u)', fontsize = 10)
             ax.set_title(keys_rods[i], fontsize = 10)
             for key in keys:
@@ -253,7 +253,7 @@ class MplWidget2(QWidget):
         data_['major_tick_location'] = [[]]*num_axes####to edit
         data_['show_major_tick_label'] = [True]*num_axes
         data_['num_of_minor_tick_marks'] = [4]*num_axes
-        data_['fmt_str'] = ['{:4.2f}']*num_axes
+        data_['fmt_str'] = ['{:4.1f}']*num_axes
         '''
         self.pandas_model_format_pars_x = PandasModel(data = pd.DataFrame(data_), tableviewer = self.parent.tableView_ax_format_x, main_gui = self.parent)
         self.parent.tableView_ax_format_x.setModel(self.pandas_model_format_pars_x)
@@ -465,12 +465,24 @@ class MplWidget2(QWidget):
 
     def calc_f_ideal(self, model):
         f_ideal = []
+        def _get_scaling_factor(model, dataset):
+            specular_condition = int(round(dataset.extra_data['h'][0],0))==0 and int(round(dataset.extra_data['k'][0],0))==0
+            scale_factor = [model.script_module.rgh.scale_nonspecular_rods,model.script_module.rgh.scale_specular_rod][int(specular_condition)]
+            h_, k_ = int(round(dataset.extra_data['h'][0],0)),int(round(dataset.extra_data['k'][0],0))
+            extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
+            if hasattr(model.script_module.rgh,extra_scale_factor):
+                rod_factor = getattr(model.script_module.rgh, extra_scale_factor)
+            else:
+                rod_factor = 1
+            return scale_factor*rod_factor
+
         for i in range(len(model.data)):
             each = model.data[i]
+            scale_factor = _get_scaling_factor(model, each)
             if each.x[0]>1000:#indicate energy column
-                f_ideal.append(model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.extra_data['Y'])**2)
+                f_ideal.append(model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.extra_data['Y'])**2*scale_factor)
             else:
-                f_ideal.append(model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2)
+                f_ideal.append(model.script_module.sample.calc_f_ideal(each.extra_data['h'], each.extra_data['k'], each.x)**2*scale_factor)
         return f_ideal
 
     def extract_data_for_one_file(self, file_path, z_min = -20, z_max = 100):

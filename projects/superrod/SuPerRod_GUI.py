@@ -1295,9 +1295,14 @@ class MyMainWindow(QMainWindow):
                 line_symbol = list(fmt.rstrip().rsplit(';')[1].rsplit(':')[1])
                 self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
                 if self.tableWidget_data.cellWidget(_get_index(i+offset),3).isChecked():
-                    #create error bar data, graphiclayout widget doesn't have a handy api to plot lines along with error bars
+                    #create error bar data, graphiclayout widget doesn't have a handy api to plot lines along with error bars in a log scale
                     #disable this while the model is running
                     if not self.run_fit.solver.optimizer.running:
+                        '''#this solution does not work in a log scale
+                        x, y, error = self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y, self.model.data[_get_index(i+offset)].error/2
+                        err = pg.ErrorBarItem(x=x, y=y, top=error, bottom=error)
+                        self.data_profiles[i].addItem(err)
+                        '''
                         x = np.append(self.model.data[_get_index(i+offset)].x[:,np.newaxis],self.model.data[_get_index(i+offset)].x[:,np.newaxis],axis=1)
                         y_d = self.model.data[_get_index(i+offset)].y[:,np.newaxis] - self.model.data[_get_index(i+offset)].error[:,np.newaxis]/2
                         y_u = self.model.data[_get_index(i+offset)].y[:,np.newaxis] + self.model.data[_get_index(i+offset)].error[:,np.newaxis]/2

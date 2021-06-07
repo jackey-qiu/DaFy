@@ -2324,6 +2324,7 @@ class Sample:
         keys_sorted=list(slabs.keys())
         keys_sorted.sort()
         for key in keys_sorted:
+            domain_wt = slabs[key]['wt']
             slab=[slabs[key]['slab']]
             if type(slabs[key]['sorbate'])==list:
                 sorbate = slabs[key]['sorbate']
@@ -2408,7 +2409,7 @@ class Sample:
                 eden_layer_water[-1] = eden_layer_water[-1] * 3.03 
             labels.append(key)
             e_data.append(np.array([z_plot,eden, eden_raxs, eden_layer_water]))
-            e_total=e_total+np.array(eden)
+            e_total=e_total+np.array(eden)*domain_wt
         labels.append('Total electron density')
         e_data.append(np.array([list(e_data[0])[0],e_total]))
         #pickle.dump([e_data,labels],open(os.path.join(file_path,"temp_plot_eden"),"wb"))
