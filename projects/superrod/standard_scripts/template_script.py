@@ -33,7 +33,7 @@ batch_path_head=batch_path.module_path_locator()
 output_file_path=output_path.module_path_locator()
 #/path/end#
 #/bv/begin#
-USE_BV = True
+USE_BV = False
 #/bv/end#
 #/wavelength/begin#
 wal=0.551

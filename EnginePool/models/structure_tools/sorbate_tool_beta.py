@@ -1093,6 +1093,9 @@ class CarbonOxygenMotif(StructureMotif):
         rgh.new_var('gamma',0)
         rgh.new_var('rot_ang_x',0)
         rgh.new_var('rot_ang_y',0)
+        rgh.new_var('anchor_offset_x',0)
+        rgh.new_var('anchor_offset_y',0)
+        rgh.new_var('anchor_offset_z',0)
         for r in self.r_list_names:
             rgh.new_var(r, self.structure_pars_dict['r'])
         for i in range(len(self.delta_list_names)):
@@ -1114,7 +1117,8 @@ class CarbonOxygenMotif(StructureMotif):
             print('Current binding mode is Not implemented yet!')
 
     def make_atm_group(self, instance_name = 'instance_name'):
-        atm_gp = model_2.AtomGroup(instance_name = instance_name)
+        #we only group u and oc
+        atm_gp = model_2.AtomGroup(instance_name = instance_name, fit_pars = ['u_par','u_ver','oc'])
         for id in self.domain.id:
             atm_gp.add_atom(self.domain, id)
         return atm_gp
@@ -1123,6 +1127,7 @@ class CarbonOxygenMotif(StructureMotif):
         r_list = [getattr(self.rgh, each) for each in self.r_list_names]
         delta_list = [getattr(self.rgh, each) for each in self.delta_list_names]
         gamma_list = [self.rgh.gamma+180*each for each in self.gamma_handedness]
+        offset_xyz = [self.rgh.anchor_offset_x, self.rgh.anchor_offset_y, self.rgh.anchor_offset_z]
         if hasattr(self.rgh, 'rot_ang_x'):
             rot_ang_x_list = [self.rgh.rot_ang_x]*len(self.r_list_names)
         else:
@@ -1131,9 +1136,9 @@ class CarbonOxygenMotif(StructureMotif):
             rot_ang_y_list = [self.rgh.rot_ang_y]*len(self.r_list_names)
         else:
             rot_ang_y_list = [0]*len(self.r_list_names)
-        self.set_coordinate_all(r_list, delta_list, gamma_list, rot_ang_x_list, rot_ang_y_list, self.new_anchor_list)
+        self.set_coordinate_all(r_list, delta_list, gamma_list, rot_ang_x_list, rot_ang_y_list, self.new_anchor_list, offset_xyz)
 
-    def set_coordinate_all(self, r_list = None, delta_list = None, gamma_list = None, rot_ang_x_list = None, rot_ang_y_list = None, new_anchor_list = None):
+    def set_coordinate_all(self, r_list = None, delta_list = None, gamma_list = None, rot_ang_x_list = None, rot_ang_y_list = None, new_anchor_list = None, anchor_offset = [0,0,0]):
         if r_list!=None:
             assert len(r_list) == len(self.r_list), 'Dimensions of r_list must match!'
             self.r_list = r_list
@@ -1164,10 +1169,12 @@ class CarbonOxygenMotif(StructureMotif):
             else:
                 self.bond_index.append((domain_id.index(current_id),domain_id.index(each)))
         self.domain.bond_index = self.bond_index
-        
+        #apply the anchor offset to the anchor atom first
+        self.set_coordinate_offset_anchor(self.anchor_id, np.array(anchor_offset))
         for id in self.ids:
-            index = list(self.ids).index(id)
-            self.set_coordinate(id, self.cal_coordinate(id, self.r_list[index], self.delta_list[index], self.gamma_list[index], self.rot_ang_x_list[index],self.rot_ang_y_list[index], new_anchor_list[index]))
+            if id!=self.anchor_id:
+                index = list(self.ids).index(id)
+                self.set_coordinate(id, self.cal_coordinate(id, self.r_list[index], self.delta_list[index], self.gamma_list[index], self.rot_ang_x_list[index],self.rot_ang_y_list[index], new_anchor_list[index]))
     
     def set_coordinate(self, id, coords):
         index = np.where(self.domain.id == id)[0][0]
@@ -1176,11 +1183,18 @@ class CarbonOxygenMotif(StructureMotif):
         for each in items:
            getattr(self.domain,each)[index] = 0
 
+    def set_coordinate_offset_anchor(self, id, coords_offset):
+        index = np.where(self.domain.id == id)[0][0]
+        items = ['dx1','dx2','dx3','dx4','dy1','dy2','dy3','dy4','dz1','dz2','dz3','dz4']
+        for each in items:
+           getattr(self.domain,each)[index] = 0
+        self.domain.dx1[index], self.domain.dy1[index], self.domain.dz1[index] = coords_offset
+
     def cal_coordinate(self, id, r, delta, gamma, rot_ang_x = 0, rot_ang_y =0, new_anchor_id = None):
         if id in self.ids_flat_down:
             delta = 0
-        if id==self.anchor_id:
-            return self.extract_coord(self.anchor_id)
+        #if id==self.anchor_id:
+        #    return self.extract_coord(self.anchor_id)
 
         anchor_atom_coords = np.dot(self.T, self.extract_coord(self.anchor_id))
         z_temp_cart = r*np.sin(np.deg2rad(delta))

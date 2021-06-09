@@ -877,6 +877,46 @@ class MyMainWindow(QMainWindow):
         #help tree widget
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
 
+    def generate_covarience_matrix(self, fom_level = 0.05):
+        if len(self.run_fit.solver.optimizer.par_evals)==0:
+            return
+        condition = self.run_fit.solver.optimizer.fom_evals<self.run_fit.solver.model.fom*(1+fom_level)
+        target_matrix = self.run_fit.solver.optimizer.par_evals[condition].T
+        cov_matrix = np.cov(target_matrix,bias = True)
+        return cov_matrix
+
+    #calculate the sensitivity of each fit parameter
+    #sensitivity: how much percentage increase of a parameter has to be applied to achived ~10% increase in fom?
+    # the increase rate of fom divided by that for par give rise to the numerical representative of sensitivity
+    #In the end, all sensitivity values are normalized to have the max value equal to 1 for better comparison.
+    def screen_parameters(self):
+        index_fit_pars = [i for i in range(len(self.model.parameters.data)) if self.model.parameters.data[i][2]]
+        epoch_list = [0]*len(index_fit_pars)
+        fom_diff_list = [0]*len(index_fit_pars)
+        #each epoch, increase value by 2%
+        epoch_step = 0.005
+        max_epoch = 100
+        for i in index_fit_pars:
+            par = self.model.parameters.get_value(i, 0)
+            print('Screen par {} now!'.format(par))
+            current_value = self.model.parameters.get_value(i, 1)
+            current_fom = self.model.fom
+            epoch = 0
+            while epoch<max_epoch:
+                epoch = epoch + 1
+                self.model.parameters.set_value(i, 1, current_value*(1+epoch_step*epoch))
+                self.model.simulate()
+                print('@Epoch {} of par {}'.format(epoch, par))
+                #offset off 1 is used just in case the best fom is very close to 0
+                if (self.model.fom+1)>(current_fom+1)*(1+0.1):
+                    epoch_list[index_fit_pars.index(i)] = epoch*epoch_step
+                    fom_diff_list[index_fit_pars.index(i)] = (self.model.fom - current_fom)/current_fom
+                    #set the original value back
+                    self.model.parameters.set_value(i, 1, current_value)
+                    break
+        sensitivity = np.array(fom_diff_list)/np.array(epoch_list)
+        return sensitivity/max(sensitivity)
+
     def open_help_doc(self):
         print('Double clicked signal received!')
         # return self.treeWidget.currentItem()
