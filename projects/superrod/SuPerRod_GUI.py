@@ -874,16 +874,25 @@ class MyMainWindow(QMainWindow):
         self.pushButton_plot_figures.clicked.connect(lambda:self.widget_fig.create_plots())
         self.pushButton_clear_plot.clicked.connect(lambda:self.widget_fig.clear_plot())
 
+        #widgets for model result evaluation
+        self.pushButton_cov.clicked.connect(self.generate_covarience_matrix)
+        self.pushButton_sensitivity.clicked.connect(self.screen_parameters)
+
         #help tree widget
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
 
-    def generate_covarience_matrix(self, fom_level = 0.05):
+    def generate_covarience_matrix(self):
+        fom_level = float(self.lineEdit_error.text())
         if len(self.run_fit.solver.optimizer.par_evals)==0:
             return
-        condition = self.run_fit.solver.optimizer.fom_evals<self.run_fit.solver.model.fom*(1+fom_level)
-        target_matrix = self.run_fit.solver.optimizer.par_evals[condition].T
-        cov_matrix = np.cov(target_matrix,bias = True)
-        return cov_matrix
+        condition = (self.run_fit.solver.optimizer.fom_evals.array()+1)<(self.run_fit.solver.model.fom+1)*(1+fom_level)
+        target_matrix = self.run_fit.solver.optimizer.par_evals[condition]
+        df = pd.DataFrame(target_matrix)
+        corr = df.corr()
+        corr.index += 1
+        corr = corr.rename(columns = lambda x:str(int(x)+1))
+        #cmap: coolwarm, plasma, hsv
+        self.textEdit_cov.setHtml(corr.style.background_gradient(cmap='coolwarm').set_precision(3).render())
 
     #calculate the sensitivity of each fit parameter
     #sensitivity: how much percentage increase of a parameter has to be applied to achived ~10% increase in fom?
@@ -891,31 +900,53 @@ class MyMainWindow(QMainWindow):
     #In the end, all sensitivity values are normalized to have the max value equal to 1 for better comparison.
     def screen_parameters(self):
         index_fit_pars = [i for i in range(len(self.model.parameters.data)) if self.model.parameters.data[i][2]]
+        par_names = ['{}.'.format(i) for i in range(1,len(index_fit_pars)+1)]
+        #print(par_names)
         epoch_list = [0]*len(index_fit_pars)
         fom_diff_list = [0]*len(index_fit_pars)
         #each epoch, increase value by 2%
-        epoch_step = 0.005
-        max_epoch = 100
+        epoch_step = float(self.lineEdit_step.text())
+        max_epoch = int(self.lineEdit_epoch.text())
         for i in index_fit_pars:
             par = self.model.parameters.get_value(i, 0)
             print('Screen par {} now!'.format(par))
             current_value = self.model.parameters.get_value(i, 1)
             current_fom = self.model.fom
+            current_vec = copy.deepcopy(self.run_fit.solver.optimizer.best_vec)
             epoch = 0
             while epoch<max_epoch:
                 epoch = epoch + 1
-                self.model.parameters.set_value(i, 1, current_value*(1+epoch_step*epoch))
-                self.model.simulate()
-                print('@Epoch {} of par {}'.format(epoch, par))
+                #self.model.parameters.set_value(i, 1, current_value*(1+epoch_step*epoch))
+                #self.model.simulate()
+                current_vec[index_fit_pars.index(i)] = current_value+abs(current_value)*epoch_step*epoch
+                fom = self.run_fit.solver.optimizer.calc_fom(current_vec)
                 #offset off 1 is used just in case the best fom is very close to 0
-                if (self.model.fom+1)>(current_fom+1)*(1+0.1):
+                if (fom+1)>(current_fom+1)*(1+0.1):
                     epoch_list[index_fit_pars.index(i)] = epoch*epoch_step
-                    fom_diff_list[index_fit_pars.index(i)] = (self.model.fom - current_fom)/current_fom
+                    fom_diff_list[index_fit_pars.index(i)] = (fom - current_fom)/current_fom
                     #set the original value back
                     self.model.parameters.set_value(i, 1, current_value)
+                    #print(epoch_list)
                     break
+                if epoch == max_epoch:
+                    fom_diff_list[index_fit_pars.index(i)] = (fom - current_fom)/current_fom
+                    epoch_list[index_fit_pars.index(i)] = epoch*epoch_step
+                    self.model.parameters.set_value(i, 1, current_value)
+
         sensitivity = np.array(fom_diff_list)/np.array(epoch_list)
-        return sensitivity/max(sensitivity)
+        self.plot_bar_chart(sensitivity/max(sensitivity), par_names)
+
+    def plot_bar_chart(self, data, par_names):
+        self.widget_sensitivity_bar.clear()
+        bg1 = pg.BarGraphItem(x=list(range(1,len(data)+1)), height=data, width=0.3, brush='g')
+        ax_bar = self.widget_sensitivity_bar.addPlot(clear = True)
+        ax_bar.addItem(bg1)
+        #[list(zip(list(range(1,len(percents)+1)),[str(each) for each in range(1,len(percents)+1)]))]
+        ax_bar.getAxis('bottom').setTicks([list(zip(list(range(1,len(data)+1)),par_names))])
+        ax_bar.getAxis('bottom').setLabel('parameters')
+        ax_bar.getAxis('left').setLabel('Normalized sensitivity')
+        ax_bar.setYRange(0, 1, padding = 0.1)
+        # ax_bar.autoRange()
 
     def open_help_doc(self):
         print('Double clicked signal received!')
