@@ -900,7 +900,7 @@ class MyMainWindow(QMainWindow):
     #In the end, all sensitivity values are normalized to have the max value equal to 1 for better comparison.
     def screen_parameters(self):
         index_fit_pars = [i for i in range(len(self.model.parameters.data)) if self.model.parameters.data[i][2]]
-        par_names = ['{}.'.format(i) for i in range(1,len(index_fit_pars)+1)]
+        #par_names = ['{}.'.format(i) for i in range(1,len(index_fit_pars)+1)]
         #print(par_names)
         epoch_list = [0]*len(index_fit_pars)
         fom_diff_list = [0]*len(index_fit_pars)
@@ -934,9 +934,10 @@ class MyMainWindow(QMainWindow):
                     self.model.parameters.set_value(i, 1, current_value)
 
         sensitivity = np.array(fom_diff_list)/np.array(epoch_list)
-        self.plot_bar_chart(sensitivity/max(sensitivity), par_names)
+        self.plot_bar_chart(sensitivity/max(sensitivity))
 
-    def plot_bar_chart(self, data, par_names):
+    def plot_bar_chart(self, data):
+        par_names = [str(i+1) for i in range(len(data))]
         self.widget_sensitivity_bar.clear()
         bg1 = pg.BarGraphItem(x=list(range(1,len(data)+1)), height=data, width=0.3, brush='g')
         ax_bar = self.widget_sensitivity_bar.addPlot(clear = True)
@@ -946,6 +947,7 @@ class MyMainWindow(QMainWindow):
         ax_bar.getAxis('bottom').setLabel('parameters')
         ax_bar.getAxis('left').setLabel('Normalized sensitivity')
         ax_bar.setYRange(0, 1, padding = 0.1)
+        self.sensitivity_data = list(data)
         # ax_bar.autoRange()
 
     def open_help_doc(self):
@@ -1491,6 +1493,7 @@ class MyMainWindow(QMainWindow):
             try:
                 self.setWindowTitle('Data analysis factory: CTR data modeling-->{}'.format(fileName))
                 self.model.load(fileName)
+                # self.load_addition()
                 try:
                     self.load_addition()
                 except:
@@ -1758,6 +1761,13 @@ class MyMainWindow(QMainWindow):
         if hasattr(self,'textEdit_note'):
             model_info = self.textEdit_note.toPlainText()
         self.model.save_addition('model_info',model_info)
+        # print(str(self.textEdit_cov.toHtml()))
+        self.model.save_addition('covariance_matrix',str(self.textEdit_cov.toHtml()))
+        if hasattr(self, 'sensitivity_data'):
+            self.model.save_addition('sensitivity',str(self.sensitivity_data))
+            # print(str(self.sensitivity_data))
+        else:
+            self.model.save_addition('sensitivity',str([]))
             # print(pars[i],str(values[i]))
     
     def load_addition(self):
@@ -1787,12 +1797,18 @@ class MyMainWindow(QMainWindow):
                     value = type_(self.model.load_addition(pars[i]))
                 funcs[i](value)
             model_info = ''
+            sensitivity_data = []
+            covariant_matrix = ''
             try:
                 model_info = self.model.load_addition('model_info').decode('utf-8')
+                sensitivity_data = eval(self.model.load_addition('sensitivity').decode('utf-8'))
+                covariant_matrix = self.model.load_addition('covariance_matrix').decode('utf-8')
             except:
                 pass
             if hasattr(self,'textEdit_note'):
                 self.textEdit_note.setPlainText(model_info)
+            self.textEdit_cov.setHtml(covariant_matrix)
+            self.plot_bar_chart(sensitivity_data)
 
     def simulate_model(self, compile = True):
         """
