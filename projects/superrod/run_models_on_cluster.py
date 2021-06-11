@@ -31,8 +31,9 @@ ray.init(address=os.environ["ip_head"], _redis_password=redis_password)
 '''
 
 #provide the folder where all model files (*.rod) are stored
-folder_holding_model_files = os.path.join(DaFy_path,"examples/hematite_rcut_AD/old_files/test_batch")
-#folder_holding_model_files = "/User/cqiu/app/DaFy/examples/Cu100_CO2_EC/test_batch"
+folder_holding_model_files = os.path.join(DaFy_path,"examples/hematite_rcut_AD/test_batch")
+#folder_holding_model_files = "/Users/canrong/apps/DaFy/examples/Cu100_CO2_EC/test_batch"
+
 def obtain_rod_files(folder):
     '''
     load all rod files(*.rod) located in a selected folder
@@ -65,9 +66,9 @@ def set_model(model, raxs_index, raxs_index_in_all_datasets):
 #values are the associated value to be set
 solver_settings = {
                    "set_pop_mult":False,
-                   "set_pop_size":50,
-                   "set_max_generations":200,
-                   "set_autosave_interval":50
+                   "set_pop_size":100,
+                   "set_max_generations":1000,
+                   "set_autosave_interval":200
                   }
 
 RAXS_FIT = False
@@ -108,7 +109,13 @@ for each_file in obtain_rod_files(folder_holding_model_files):
         model.simulate()
         print("Start the fit...")
         solver.StartFit()
-
+        model.save(each_file)
+        cov = solver.optimizer.return_covariance_matrix(fom_level = 0.2)
+        model.save_addition('covariance_matrix',cov)
+        sensitivity = solver.optimizer.return_sensitivity(max_epoch = 200, epoch_step = 0.1)
+        model.save_addition('sensitivity',str(list(sensitivity)))
+        model.save_addition_from_optimizer(each_file, solver.optimizer)
+        # print(cov, sensitivity)
     
     
     

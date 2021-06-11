@@ -441,6 +441,53 @@ class DiffEv:
 
         #self.parameter_output(self)
 
+    def return_covariance_matrix(self, fom_level = 0.15):
+        import pandas as pd
+        if len(self.par_evals)==0:
+            return pd.DataFrame(np.identity(2))
+        condition = (self.fom_evals.array()+1)<(self.model.fom+1)*(1+fom_level)
+        target_matrix = self.par_evals[condition]
+        df = pd.DataFrame(target_matrix)
+        corr = df.corr()
+        corr.index += 1
+        corr = corr.rename(columns = lambda x:str(int(x)+1))
+        return corr
+
+    def return_sensitivity(self, max_epoch = 200, epoch_step = 0.1):
+        import copy
+        index_fit_pars = [i for i in range(len(self.model.parameters.data)) if self.model.parameters.data[i][2]]
+        #par_names = ['{}.'.format(i) for i in range(1,len(index_fit_pars)+1)]
+        #print(par_names)
+        epoch_list = [0]*len(index_fit_pars)
+        fom_diff_list = [0]*len(index_fit_pars)
+        for i in index_fit_pars:
+            par = self.model.parameters.get_value(i, 0)
+            print('Screen par {} now!'.format(par))
+            current_value = self.model.parameters.get_value(i, 1)
+            current_fom = self.model.fom
+            current_vec = copy.deepcopy(self.best_vec)
+            epoch = 0
+            while epoch<max_epoch:
+                epoch = epoch + 1
+                #self.model.parameters.set_value(i, 1, current_value*(1+epoch_step*epoch))
+                #self.model.simulate()
+                current_vec[index_fit_pars.index(i)] = current_value+abs(current_value)*epoch_step*epoch
+                fom = self.calc_fom(current_vec)
+                #offset off 1 is used just in case the best fom is very close to 0
+                if (fom+1)>(current_fom+1)*(1+0.1):
+                    epoch_list[index_fit_pars.index(i)] = epoch*epoch_step
+                    fom_diff_list[index_fit_pars.index(i)] = (fom - current_fom)/current_fom
+                    #set the original value back
+                    self.model.parameters.set_value(i, 1, current_value)
+                    #print(epoch_list)
+                    break
+                if epoch == max_epoch:
+                    fom_diff_list[index_fit_pars.index(i)] = (fom - current_fom)/current_fom
+                    epoch_list[index_fit_pars.index(i)] = epoch*epoch_step
+                    self.model.parameters.set_value(i, 1, current_value)
+        sensitivity = np.array(fom_diff_list)/np.array(epoch_list)
+        return sensitivity/max(sensitivity)
+
     def optimize(self, signal = None, signal_fitended = None):
         '''
         Method implementing the main loop of the differential evolution

@@ -198,7 +198,10 @@ class Model:
             raise IOError('It not alllowed to save a subfile with name: %s'%name)
 
         try:
-            savefile.writestr(name, text)
+            if type(text)==str:
+                savefile.writestr(name, text)
+            else:
+                savefile.writestr(name, pickle.dumps(text))
         except Exception as e:
             raise IOError(str(e), self.filename)
         savefile.close()
@@ -236,7 +239,7 @@ class Model:
                 raise IOError(str(e), filename)
         savefile.close()
 
-    def load_addition(self, name):
+    def load_addition(self, name, load_type = 'string'):
         '''load_addition(self, name) --> text
 
         load additional text [string] subfile with name name [string]\
@@ -254,6 +257,8 @@ class Model:
 
         try:
             text = loadfile.read(name)
+            if load_type != 'string':
+                text = pickle.loads(text,fix_imports=True, encoding = 'latin1')
         except Exception as e:
             raise IOError('Could not read the section named: %s'%name,\
                             self.filename)

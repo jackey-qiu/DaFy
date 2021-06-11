@@ -891,6 +891,7 @@ class MyMainWindow(QMainWindow):
         corr = df.corr()
         corr.index += 1
         corr = corr.rename(columns = lambda x:str(int(x)+1))
+        self.covariance_matrix = corr
         #cmap: coolwarm, plasma, hsv
         self.textEdit_cov.setHtml(corr.style.background_gradient(cmap='coolwarm').set_precision(3).render())
 
@@ -1762,7 +1763,11 @@ class MyMainWindow(QMainWindow):
             model_info = self.textEdit_note.toPlainText()
         self.model.save_addition('model_info',model_info)
         # print(str(self.textEdit_cov.toHtml()))
-        self.model.save_addition('covariance_matrix',str(self.textEdit_cov.toHtml()))
+        if hasattr(self, 'covariance_matrix'):
+            # self.model.save_addition('covariance_matrix',str(self.textEdit_cov.toHtml()))
+            self.model.save_addition('covariance_matrix',self.covariance_matrix)
+        else:
+            self.model.save_addition('covariance_matrix',pd.DataFrame(np.identity(10)))
         if hasattr(self, 'sensitivity_data'):
             self.model.save_addition('sensitivity',str(self.sensitivity_data))
             # print(str(self.sensitivity_data))
@@ -1785,29 +1790,50 @@ class MyMainWindow(QMainWindow):
 
             types= [float,float,str,str,int,float,str,bool,int,int]
             pars = ['k_m','k_r','Method','Figure of merit','Auto save, interval','weighting factor','weighting region','start guess','Generation size','Population size']
+            value = None
             for i in range(len(pars)):
                 type_ = types[i]
                 if type_ == float:
-                    value = np.round(float(self.model.load_addition(pars[i])),2)
+                    try:
+                        value = np.round(float(self.model.load_addition(pars[i])),2)
+                    except:
+                        pass
                 elif type_==str:
-                    value = self.model.load_addition(pars[i]).decode("utf-8")
+                    try:
+                        value = self.model.load_addition(pars[i]).decode("utf-8")
+                    except:
+                        pass
                 elif type_==bool:
-                    value = (self.model.load_addition(pars[i]).decode("ASCII")=="True")
+                    try:
+                        value = (self.model.load_addition(pars[i]).decode("ASCII")=="True")
+                    except:
+                        pass
                 else:
-                    value = type_(self.model.load_addition(pars[i]))
-                funcs[i](value)
+                    try:
+                        value = type_(self.model.load_addition(pars[i]))
+                    except:
+                        pass
+                if value!=None:
+                    funcs[i](value)
             model_info = ''
             sensitivity_data = []
-            covariant_matrix = ''
+            covariant_matrix = pd.DataFrame(np.identity(3))
             try:
                 model_info = self.model.load_addition('model_info').decode('utf-8')
+            except:
+                pass
+            try:
                 sensitivity_data = eval(self.model.load_addition('sensitivity').decode('utf-8'))
-                covariant_matrix = self.model.load_addition('covariance_matrix').decode('utf-8')
+            except:
+                pass
+            try:
+                covariant_matrix = self.model.load_addition('covariance_matrix', load_type = 'object')
             except:
                 pass
             if hasattr(self,'textEdit_note'):
                 self.textEdit_note.setPlainText(model_info)
-            self.textEdit_cov.setHtml(covariant_matrix)
+            # self.textEdit_cov.setHtml(covariant_matrix)
+            self.textEdit_cov.setHtml(covariant_matrix.style.background_gradient(cmap='coolwarm').set_precision(3).render())            
             self.plot_bar_chart(sensitivity_data)
 
     def simulate_model(self, compile = True):
