@@ -938,6 +938,7 @@ class MyMainWindow(QMainWindow):
         self.plot_bar_chart(sensitivity/max(sensitivity))
 
     def plot_bar_chart(self, data):
+        self.sensitivity_data = list(data)
         par_names = [str(i+1) for i in range(len(data))]
         self.widget_sensitivity_bar.clear()
         bg1 = pg.BarGraphItem(x=list(range(1,len(data)+1)), height=data, width=0.3, brush='g')
@@ -948,7 +949,6 @@ class MyMainWindow(QMainWindow):
         ax_bar.getAxis('bottom').setLabel('parameters')
         ax_bar.getAxis('left').setLabel('Normalized sensitivity')
         ax_bar.setYRange(0, 1, padding = 0.1)
-        self.sensitivity_data = list(data)
         # ax_bar.autoRange()
 
     def open_help_doc(self):
@@ -1699,7 +1699,10 @@ class MyMainWindow(QMainWindow):
         #the model will be renamed this way
         try:
             path = self.rod_file
-            self.calculate_error_bars()
+            try:
+                self.calculate_error_bars()
+            except:
+                pass
             #self.model.script = (self.plainTextEdit_script.toPlainText())
             self.update_data_check_attr()
             self.update_par_upon_change()
@@ -1725,7 +1728,10 @@ class MyMainWindow(QMainWindow):
         if path:
             #update the rod_file attribute
             self.rod_file = path
-            self.calculate_error_bars()
+            try:
+                self.calculate_error_bars()
+            except:
+                pass
             #self.model.script = (self.plainTextEdit_script.toPlainText())
             self.update_data_check_attr()
             self.update_par_upon_change()
@@ -1817,7 +1823,7 @@ class MyMainWindow(QMainWindow):
                     funcs[i](value)
             model_info = ''
             sensitivity_data = []
-            covariant_matrix = pd.DataFrame(np.identity(3))
+            covariance_matrix = pd.DataFrame(np.identity(3))
             try:
                 model_info = self.model.load_addition('model_info').decode('utf-8')
             except:
@@ -1827,13 +1833,15 @@ class MyMainWindow(QMainWindow):
             except:
                 pass
             try:
-                covariant_matrix = self.model.load_addition('covariance_matrix', load_type = 'object')
+                covariance_matrix = self.model.load_addition('covariance_matrix', load_type = 'object')
             except:
                 pass
             if hasattr(self,'textEdit_note'):
                 self.textEdit_note.setPlainText(model_info)
             # self.textEdit_cov.setHtml(covariant_matrix)
-            self.textEdit_cov.setHtml(covariant_matrix.style.background_gradient(cmap='coolwarm').set_precision(3).render())            
+            self.sensitivity_data = sensitivity_data
+            self.covariance_matrix = covariance_matrix
+            self.textEdit_cov.setHtml(covariance_matrix.style.background_gradient(cmap='coolwarm').set_precision(3).render())            
             self.plot_bar_chart(sensitivity_data)
 
     def simulate_model(self, compile = True):
