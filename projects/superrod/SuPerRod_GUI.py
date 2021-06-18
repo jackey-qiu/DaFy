@@ -21,7 +21,7 @@ sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 from models.structure_tools.sxrd_dafy import lattice
-from UtilityFunctions import locate_tag, replace_block
+from UtilityFunctions import locate_tag, replace_block, q_correction_for_one_Bragg_peak, q_correction_for_one_rod, fit_q_correction
 from UtilityFunctions import apply_modification_of_code_block as script_block_modifier
 from models.structure_tools.sxrd_dafy import AtomGroup
 from models.utils import UserVars
@@ -498,7 +498,7 @@ class ScriptGeneraterDialog(QDialog):
             #lattice parameters
             self.script_container['unitcell']={'lat_pars':eval(self.lineEdit_lattice.text())}
             #energy
-            self.script_container['wavelength']={'wal':round(eval(self.lineEdit_E.text())/12.398,4)}
+            self.script_container['wavelength']={'wal':round(12.398/eval(self.lineEdit_E.text()),4)}
 
             #surface slabs
             self.generate_script_surface_slabs()
@@ -839,11 +839,22 @@ class MyMainWindow(QMainWindow):
 
         #pushButton to operate plots
         self.pushButton_update_plot.clicked.connect(lambda:self.update_structure_view(compile = True))
-        self.pushButton_update_plot.clicked.connect(self.update_plot_data_view_upon_simulation)
+        self.pushButton_update_plot.clicked.connect(lambda:self.update_plot_data_view_upon_simulation(q_correction = False))
         self.pushButton_update_plot.clicked.connect(self.update_par_bar_during_fit)
         self.pushButton_update_plot.clicked.connect(self.update_electron_density_profile)
         self.pushButton_previous_screen.clicked.connect(self.show_plots_on_previous_screen)
         self.pushButton_next_screen.clicked.connect(self.show_plots_on_next_screen)
+        #q correction widgets
+        self.groupBox_q_correction.hide()
+        self.pushButton_show.clicked.connect(lambda:self.update_plot_data_view_upon_simulation(q_correction = True))
+        self.pushButton_append.clicked.connect(self.append_L_scale)
+        self.pushButton_reset.clicked.connect(self.reset_L_scale)
+        self.fit_q_correction = False
+        self.apply_q_correction = False
+        self.pushButton_fit.clicked.connect(self.fit_q)
+        self.pushButton_apply.clicked.connect(self.update_q)
+        self.pushButton_q_correction.clicked.connect(lambda:self.groupBox_q_correction.show())
+        self.pushButton_hide.clicked.connect(lambda:self.groupBox_q_correction.hide())
         #select dataset in the viewer
         self.comboBox_dataset.activated.connect(self.update_data_view)
 
@@ -880,6 +891,50 @@ class MyMainWindow(QMainWindow):
 
         #help tree widget
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
+    def append_L_scale(self):
+        if self.lineEdit_L_container.text()=='':
+            self.lineEdit_L_container.setText(self.lineEdit_L.text())
+            self.lineEdit_scale_container.setText(self.lineEdit_scale.text())
+        else:
+            self.lineEdit_L_container.setText(self.lineEdit_L_container.text()+',{}'.format(self.lineEdit_L.text()))
+            self.lineEdit_scale_container.setText(self.lineEdit_scale_container.text()+',{}'.format(self.lineEdit_scale.text()))
+
+    def reset_L_scale(self):
+        self.lineEdit_L_container.setText('')
+        self.lineEdit_scale_container.setText('')
+
+    def fit_q(self):
+        L_list = eval('[{}]'.format(self.lineEdit_L_container.text()))
+        scale_list = eval('[{}]'.format(self.lineEdit_scale_container.text()))
+        if len(L_list)==0 or len(scale_list)==0 or len(L_list)!=len(scale_list):
+            return
+        lam = self.model.script_module.wal
+        R_tth = float(self.lineEdit_r_tth.text())
+        unitcell = self.model.script_module.unitcell
+        delta,c_off,scale = fit_q_correction(lam,R_tth,L_list,scale_list, unitcell.c*np.sin(unitcell.beta))
+        self.q_correction_factor = {'L_bragg':L_list[0],'delta':delta, 'c_off':c_off, 'scale':scale}
+        self.fit_q_correction = True
+        self.update_plot_data_view_upon_simulation(q_correction = True)
+        self.fit_q_correction = False
+
+    def update_q(self):
+        reply = QtGui.QMessageBox.question(self, 'Message',
+        "Are you sure to update the data with q correction results?", QtGui.QMessageBox.Yes | 
+        QtGui.QMessageBox.No, QtGui.QMessageBox.No)
+        if reply == QtGui.QMessageBox.Yes:
+            #print("YES")
+            self.apply_q_correction = True
+            self.fit_q()
+            self.apply_q_correction = False
+        else:
+            return
+
+    def apply_q_correction_results(self, index, LL):
+        self.model.data_original[index].x = LL
+        self.model.data = copy.deepcopy(self.model.data_original)
+        [each.apply_mask() for each in self.model.data]
+        self.model.data.concatenate_all_ctr_datasets()
+        self.simulate_model()
 
     def generate_covarience_matrix(self):
         fom_level = float(self.lineEdit_error.text())
@@ -1349,7 +1404,7 @@ class MyMainWindow(QMainWindow):
             logging.getLogger().exception('Fatal error encountered during drawing e density profile!')
             self.tabWidget_data.setCurrentIndex(6)
 
-    def update_plot_data_view_upon_simulation(self):
+    def update_plot_data_view_upon_simulation(self, q_correction = False):
         def _get_index(index_in_use):
             index_in_sequence = index_in_use
             total = -1
@@ -1364,10 +1419,53 @@ class MyMainWindow(QMainWindow):
         offset = self.max_num_plots_per_screen*self.current_index_plot_screen
         for i in range(self.num_plots_on_current_screen):
             if 1:
+                #plot ideal structure factor
+                f_ideal = 1
+                scale_factor = 1
+                rod_factor = 1
+                try:
+                    specular_condition = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0))==0 and int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))==0
+                    scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int(specular_condition)]
+                    h_, k_ = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0)),int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))
+                    extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
+                    if hasattr(self.model.script_module.rgh,extra_scale_factor):
+                        rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
+                    else:
+                        rod_factor = 1
+                    if self.checkBox_norm.isChecked():
+                        f_ideal = self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor
+                    else:
+                        self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = False)
+                except:
+                    pass
+
                 fmt = self.tableWidget_data.item(i+offset,4).text()
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
                 line_symbol = list(fmt.rstrip().rsplit(';')[1].rsplit(':')[1])
-                self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
+                if not q_correction:
+                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y/f_ideal,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
+                else:
+                    if self.model.data[_get_index(i+offset)].name == self.comboBox_dataset2.currentText():
+                        L_q_correction = self.model.data_original[_get_index(i+offset)].x
+                        data_q_correction = self.model.data_original[_get_index(i+offset)].y
+                        unitcell = self.model.script_module.unitcell
+                        cell = [unitcell.a, unitcell.b, unitcell.c, unitcell.alpha, unitcell.beta, unitcell.gamma]
+                        lam = self.model.script_module.wal
+                        scale = float(self.lineEdit_scale.text())
+                        current_L = int(self.lineEdit_L.text())
+                        if not self.fit_q_correction:
+                            LL, new_data= q_correction_for_one_Bragg_peak(L = L_q_correction,data = data_q_correction, cell = cell, lam = lam, L_bragg = current_L, scale=scale,delta=0,c_off=0, R_tth = float(self.lineEdit_r_tth.text()))
+                        else:
+                            LL, new_data= q_correction_for_one_rod(L = L_q_correction, data = data_q_correction, cell = cell, lam = lam, correction_factor_dict = self.q_correction_factor, R_tth = float(self.lineEdit_r_tth.text()))
+                            if self.apply_q_correction:
+                                self.apply_q_correction_results(_get_index(i+offset), LL)
+                        # print(data)
+                        # print(scale_factor*rod_factor)
+                        #recalculate f_ideal
+                        #self.model.script_module.unitcell.set_c(new_c)
+                        #self.calc_f_ideal()
+                        #f_ideal = self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor
+                        self.data_profiles[i].plot(LL, new_data, pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
                 if self.tableWidget_data.cellWidget(_get_index(i+offset),3).isChecked():
                     #create error bar data, graphiclayout widget doesn't have a handy api to plot lines along with error bars in a log scale
                     #disable this while the model is running
@@ -1384,24 +1482,13 @@ class MyMainWindow(QMainWindow):
                         for ii in range(len(y)):
                             self.data_profiles[i].plot(x=x[ii],y=y[ii],pen={'color':'w', 'width':1},clear = False)
                 
-                #plot ideal structure factor
-                try:
-                    specular_condition = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0))==0 and int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))==0
-                    scale_factor = [self.model.script_module.rgh.scale_nonspecular_rods,self.model.script_module.rgh.scale_specular_rod][int(specular_condition)]
-                    h_, k_ = int(round(self.model.data[_get_index(i+offset)].extra_data['h'][0],0)),int(round(self.model.data[_get_index(i+offset)].extra_data['k'][0],0))
-                    extra_scale_factor = 'scale_factor_{}{}L'.format(h_,k_)
-                    if hasattr(self.model.script_module.rgh,extra_scale_factor):
-                        rod_factor = getattr(self.model.script_module.rgh, extra_scale_factor)
-                    else:
-                        rod_factor = 1
-                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = False)
-                except:
-                    pass
+
                 #plot simulated results
-                if self.tableWidget_data.cellWidget(_get_index(i+offset),2).isChecked():
-                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y_sim,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
-                else:
-                    pass
+                if not q_correction:
+                    if self.tableWidget_data.cellWidget(_get_index(i+offset),2).isChecked():
+                        self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y_sim/f_ideal,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
+                    else:
+                        pass
         [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(_get_index(self.data_profiles.index(each)+offset),1).isChecked()) for each in self.data_profiles]
         [each.autoRange() for each in self.data_profiles]
         fom_log = np.array(self.run_fit.solver.optimizer.fom_log)
@@ -2289,6 +2376,20 @@ class MyMainWindow(QMainWindow):
         new_items = [each.name for each in self.model.data]
         self.comboBox_dataset.clear()
         self.comboBox_dataset.addItems(new_items)
+        self.comboBox_dataset2.clear()
+        self.comboBox_dataset2.addItems(new_items)
+
+    #used in q correction
+    def return_L_I(self):
+        dataset_name = self.comboBox_dataset2.currentText()
+        dataset = None
+        for each in self.model.data_original:
+            if each.name == dataset_name:
+                dataset = each
+                break
+            else:
+                pass
+        return dataset.x, dataset.y
 
     def update_data_view(self):
         """update the data view widget to show data values as table"""

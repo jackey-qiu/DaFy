@@ -18,6 +18,7 @@ import pandas as pd
 import collections
 import time
 from random import randint
+from scipy.optimize import curve_fit
 from itertools import count
 try:
     import ConfigParser as configparser
@@ -61,6 +62,47 @@ class timer_placer:
             print('Starting at {}'.format(self.place_container[0]))
             for i in range(1,len(self.place_container)):
                 print('It took {} seconds to reach {} from {}'.format(self.time_container[i]-self.time_container[i-1], self.place_container[i],self.place_container[i-1]))
+
+def q_correction_for_one_Bragg_peak(L,data, cell, lam, L_bragg = 1, scale=1,delta=0,c_off=0, R_tth = 1100):
+    #angles are in rad unit not degree unit
+    clat=cell[2]*np.sin(cell[4])
+    tth=2*np.arcsin(L*lam/2./clat)
+    offtth=2/R_tth*np.cos(tth/2)*(delta+c_off)-c_off/R_tth
+    Q=4*np.pi/lam*np.sin((tth-offtth)/2)
+    clat_corrt=clat/scale
+    normcalc = (np.sin(Q*clat_corrt/4+np.pi/2*L_bragg))**2
+    normdata = data*normcalc
+    # y_max,y_min=normdata.max(),normdata.min()
+    LL=Q*clat_corrt/2./np.pi
+    return LL, normdata
+
+def q_correction_for_one_rod(L, data, cell, lam, correction_factor_dict, R_tth = 1100):
+    #angles in cell in rad unit not in degree unit
+    clat=cell[2]*np.sin(cell[4])
+    tth=2*np.arcsin(L*lam/2./clat)
+    #delta,c_off,scale = fit_q_correction(lam,R_tth,L_Bragg_container,scale_container)
+    delta = correction_factor_dict['delta']
+    c_off = correction_factor_dict['c_off']
+    scale = correction_factor_dict['scale']
+    L_bragg = correction_factor_dict['L_bragg']
+    offtth=2/R_tth*np.cos(tth/2)*(delta+c_off)-c_off/R_tth
+    Q=4*np.pi/lam*np.sin((tth-offtth)/2)
+    clat_corrt=clat/scale
+    normcalc = (np.sin(Q*clat_corrt/4+np.pi/2*L_bragg))**2
+    normdata = data*normcalc
+    LL=Q*clat_corrt/2./np.pi
+    return LL, normdata
+
+def fit_q_correction(lam,R_tth,L_container,scale_container,clat=19.9490):
+    tth = 2*np.arcsin(np.array(L_container)*lam/2/clat)
+    data=4*np.pi/lam*np.sin( tth/2 )/np.array(scale_container)
+    def _cal_q(tth,delta,c,s):
+        del_tth = 2/R_tth*np.cos(tth/2)*(delta+c) - c/R_tth
+        return 4*np.pi/lam*np.sin((tth-del_tth)/2)/s
+    popt, pcov = curve_fit(_cal_q, tth, data, bounds=([-0.3,-0.3,0.98], [0.3, 0.3, 1.1]))
+    print ('fit is completed!')
+    print ('delta,c_off,scale=',popt)
+    return popt
 
 def setup_raxr_pars_new(NUMBER_SPECTRA,F1F2_FILE):
     if NUMBER_SPECTRA!=0:
