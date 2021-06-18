@@ -2341,8 +2341,10 @@ class Sample:
             #here we need u
             #we add in an arbitrary sig_eff = 0.203 due to limited resolution
             sig_eff = 0.203
-            u = np.sqrt(np.max([u_ver,u_par],axis=0)/(8*np.pi**2)+sig_eff**2)
-            u_ = np.sqrt(np.max([u_ver_,u_par_],axis=0)/(8*np.pi**2)+sig_eff**2)
+            u = np.sqrt(np.max([u_ver,u_ver],axis=0)/(8*np.pi**2)+sig_eff**2)
+            # u = np.sqrt(u_ver/(8*np.pi**2)+sig_eff**2)
+            u_ = np.sqrt(np.max([u_ver_,u_ver_],axis=0)/(8*np.pi**2)+sig_eff**2)
+            # u_ = np.sqrt(u_ver/(8*np.pi**2)+sig_eff**2)
             x = np.concatenate((x,x_))
             y = np.concatenate((y,y_))
             z = np.concatenate((z,z_))

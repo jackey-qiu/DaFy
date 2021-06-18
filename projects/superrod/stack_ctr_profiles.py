@@ -187,7 +187,9 @@ class MplWidget2(QWidget):
         #keys = list(self.data.keys())
         keys = self.pandas_model_plot_pars._data[self.pandas_model_plot_pars._data['use']]['rod_files'].to_list()
         #keys_rods = list(self.data[keys[0]].keys())
-        keys_rods = list(set(self.pandas_model_format_pars._data[self.pandas_model_format_pars._data['use']]['rods'].to_list()))
+        keys_rods = self.pandas_model_format_pars._data[self.pandas_model_format_pars._data['use']]['rods'].to_list()
+        if len(keys_rods)!=0:
+            keys_rods = keys_rods[0:int(len(keys_rods)/2)]
         if 'ed_profile' in keys_rods:
             if keys_rods[-1]=='ed_profile':
                 pass
