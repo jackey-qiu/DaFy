@@ -2332,6 +2332,7 @@ class Sample:
                 sorbate = [slabs[key]['sorbate']]
             x, y, z, u_par, u_ver, oc, el = self._surf_pars(slab)
             x_, y_, z_, u_par_, u_ver_, oc_, el_ = self._surf_pars(sorbate)
+            # print(list(z_))
             if use_sym:
                 oc_ = oc_*len(slabs[key]['sorbate_sym'])
             #take in to account the symmetry copies
@@ -3187,7 +3188,9 @@ class Sample:
         #x1 = np. r_[xt]
         #y1 = np.r_[yt]
         # scale and shift the slabs with respect to each other
-        cn = np.cumsum(np.r_[0, ct])[:-1]
+        # cn = np.cumsum(np.r_[0, ct])[:-1]
+        #no accumulated height here
+        cn = np.cumsum(np.r_[0, ct])[:-1]*0
         z = np.concatenate([zs*c_s + c_cum
                             for zs, c_cum, c_s in zip(zt, cn, ct)])
         x = np.concatenate([xs + c_cum*self.delta1

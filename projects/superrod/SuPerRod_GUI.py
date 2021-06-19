@@ -3232,5 +3232,6 @@ if __name__ == "__main__":
     today5pm = now.replace(hour=17, minute=0, second=0, microsecond=0)
     if not (today5pm>now>today8am):
         app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())
