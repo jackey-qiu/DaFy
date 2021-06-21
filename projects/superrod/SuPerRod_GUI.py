@@ -983,9 +983,11 @@ class MyMainWindow(QMainWindow):
                     #set the original value back
                     self.model.parameters.set_value(i, 1, current_value)
                     #print(epoch_list)
+                    print('Break')
                     break
                 if epoch == max_epoch:
                     fom_diff_list[index_fit_pars.index(i)] = (fom - current_fom)/current_fom
+                    print(fom, current_fom)
                     epoch_list[index_fit_pars.index(i)] = epoch*epoch_step
                     self.model.parameters.set_value(i, 1, current_value)
 
@@ -1435,7 +1437,7 @@ class MyMainWindow(QMainWindow):
                     if self.checkBox_norm.isChecked():
                         f_ideal = self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor
                     else:
-                        self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = False)
+                        self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.f_ideal[_get_index(i+offset)]*scale_factor*rod_factor,pen = {'color': "w", 'width': 1},clear = True)
                 except:
                     pass
 
@@ -1443,7 +1445,7 @@ class MyMainWindow(QMainWindow):
                 fmt_symbol = list(fmt.rstrip().rsplit(';')[0].rsplit(':')[1])
                 line_symbol = list(fmt.rstrip().rsplit(';')[1].rsplit(':')[1])
                 if not q_correction:
-                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y/f_ideal,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = True)
+                    self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y/f_ideal,pen = None,  symbolBrush=fmt_symbol[1], symbolSize=int(fmt_symbol[0]),symbolPen=fmt_symbol[2],clear = False)
                 else:
                     if self.model.data[_get_index(i+offset)].name == self.comboBox_dataset2.currentText():
                         L_q_correction = self.model.data_original[_get_index(i+offset)].x
