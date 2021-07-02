@@ -858,6 +858,9 @@ class MyMainWindow(QMainWindow):
         #select dataset in the viewer
         self.comboBox_dataset.activated.connect(self.update_data_view)
 
+        #GAF viewer
+        self.pushButton_generate_GAF.clicked.connect(self.generate_gaf_plot)
+
         #syntax highlight for script
         self.plainTextEdit_script.setStyleSheet("""QPlainTextEdit{
                                 font-family:'Consolas';
@@ -891,6 +894,11 @@ class MyMainWindow(QMainWindow):
 
         #help tree widget
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
+
+    def generate_gaf_plot(self):
+        data_series = sum(self.normalized_datasets,[])
+        self.widget_gaf.create_plots(serie_data = data_series, plot_type = self.comboBox_plot_channel.currentText())
+
     def append_L_scale(self):
         if self.lineEdit_L_container.text()=='':
             self.lineEdit_L_container.setText(self.lineEdit_L.text())
@@ -975,6 +983,7 @@ class MyMainWindow(QMainWindow):
                 #self.model.parameters.set_value(i, 1, current_value*(1+epoch_step*epoch))
                 #self.model.simulate()
                 current_vec[index_fit_pars.index(i)] = current_value+abs(current_value)*epoch_step*epoch
+                print(epoch, current_value, abs(current_value)*epoch_step*epoch)
                 fom = self.run_fit.solver.optimizer.calc_fom(current_vec)
                 #offset off 1 is used just in case the best fom is very close to 0
                 if (fom+1)>(current_fom+1)*(1+0.1):
@@ -1407,6 +1416,7 @@ class MyMainWindow(QMainWindow):
             self.tabWidget_data.setCurrentIndex(6)
 
     def update_plot_data_view_upon_simulation(self, q_correction = False):
+        self.normalized_datasets = []
         def _get_index(index_in_use):
             index_in_sequence = index_in_use
             total = -1
@@ -1489,6 +1499,7 @@ class MyMainWindow(QMainWindow):
                 if not q_correction:
                     if self.tableWidget_data.cellWidget(_get_index(i+offset),2).isChecked():
                         self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y_sim/f_ideal,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
+                        self.normalized_datasets.append(list(self.model.data[_get_index(i+offset)].y_sim/f_ideal))
                     else:
                         pass
         [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(_get_index(self.data_profiles.index(each)+offset),1).isChecked()) for each in self.data_profiles]

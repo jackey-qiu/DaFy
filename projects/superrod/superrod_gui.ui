@@ -589,7 +589,7 @@ p, li { white-space: pre-wrap; }
             <enum>QTabWidget::South</enum>
            </property>
            <property name="currentIndex">
-            <number>0</number>
+            <number>6</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -1249,7 +1249,7 @@ p, li { white-space: pre-wrap; }
              <item>
               <widget class="QTabWidget" name="tabWidget">
                <property name="currentIndex">
-                <number>0</number>
+                <number>1</number>
                </property>
                <widget class="QWidget" name="tab_15">
                 <attribute name="title">
@@ -1461,6 +1461,84 @@ p, li { white-space: pre-wrap; }
                 </layout>
                </widget>
               </widget>
+             </item>
+            </layout>
+           </widget>
+           <widget class="QWidget" name="tab_18">
+            <attribute name="title">
+             <string>GAF</string>
+            </attribute>
+            <layout class="QHBoxLayout" name="horizontalLayout_5">
+             <item>
+              <widget class="GAF_Widget" name="widget_gaf" native="true"/>
+             </item>
+             <item>
+              <layout class="QVBoxLayout" name="verticalLayout_20">
+               <item>
+                <widget class="QPushButton" name="pushButton_generate_GAF">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Generate</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <widget class="QComboBox" name="comboBox_plot_channel">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <item>
+                  <property name="text">
+                   <string>GAF diagram</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>polar encoding</string>
+                  </property>
+                 </item>
+                 <item>
+                  <property name="text">
+                   <string>CTR series</string>
+                  </property>
+                 </item>
+                </widget>
+               </item>
+               <item>
+                <widget class="QCheckBox" name="checkBox_GAF_relatively">
+                 <property name="sizePolicy">
+                  <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+                   <horstretch>0</horstretch>
+                   <verstretch>0</verstretch>
+                  </sizepolicy>
+                 </property>
+                 <property name="text">
+                  <string>Relatively</string>
+                 </property>
+                </widget>
+               </item>
+               <item>
+                <spacer name="verticalSpacer">
+                 <property name="orientation">
+                  <enum>Qt::Vertical</enum>
+                 </property>
+                 <property name="sizeHint" stdset="0">
+                  <size>
+                   <width>20</width>
+                   <height>40</height>
+                  </size>
+                 </property>
+                </spacer>
+               </item>
+              </layout>
              </item>
             </layout>
            </widget>
@@ -1916,6 +1994,12 @@ p, li { white-space: pre-wrap; }
    <class>MplWidget2</class>
    <extends>QWidget</extends>
    <header>stack_ctr_profiles.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
+   <class>GAF_Widget</class>
+   <extends>QWidget</extends>
+   <header>generate_GAF.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
