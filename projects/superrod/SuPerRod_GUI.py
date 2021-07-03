@@ -896,8 +896,9 @@ class MyMainWindow(QMainWindow):
         # self.treeWidget.itemDoubleClicked.connect(self.open_help_doc)
 
     def generate_gaf_plot(self):
+        self.simulate_model(compile = True)
         data_series = sum(self.normalized_datasets,[])
-        self.widget_gaf.create_plots(serie_data = data_series, plot_type = self.comboBox_plot_channel.currentText())
+        self.widget_gaf.create_plots(serie_data = data_series, plot_type = self.comboBox_plot_channel.currentText(),relative = self.checkBox_GAF_relatively.isChecked())
 
     def append_L_scale(self):
         if self.lineEdit_L_container.text()=='':
@@ -1499,7 +1500,7 @@ class MyMainWindow(QMainWindow):
                 if not q_correction:
                     if self.tableWidget_data.cellWidget(_get_index(i+offset),2).isChecked():
                         self.data_profiles[i].plot(self.model.data[_get_index(i+offset)].x, self.model.data[_get_index(i+offset)].y_sim/f_ideal,pen={'color': line_symbol[1], 'width': int(line_symbol[0])},  clear = False)
-                        self.normalized_datasets.append(list(self.model.data[_get_index(i+offset)].y_sim/f_ideal))
+                        self.normalized_datasets.append(list(np.log10(self.model.data[_get_index(i+offset)].y_sim/f_ideal)))
                     else:
                         pass
         [each.setLogMode(x=False,y=self.tableWidget_data.cellWidget(_get_index(self.data_profiles.index(each)+offset),1).isChecked()) for each in self.data_profiles]

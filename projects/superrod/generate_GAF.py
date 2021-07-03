@@ -91,6 +91,7 @@ class GAF_Widget(QWidget):
         # self.canvas.ax_pot = self.canvas.figure.add_subplot(326)
         #self.canvas.axes = self.canvas.figure.add_subplot(111)
         self.setLayout(vertical_layout)
+        self.gaf = 0
 
     def update_canvas(self, fig_size):
         self.canvas = FigureCanvas(Figure(fig_size)) 
@@ -118,8 +119,10 @@ class GAF_Widget(QWidget):
     def make_gaf_data(self, serie_data = np.cos(np.arange(0,100))):
         return compute_GAF(serie_data)
 
-    def create_plots(self, serie_data = np.cos(np.arange(0,100)), plot_type = 'GAF diagram'):
+    def create_plots(self, serie_data = np.cos(np.arange(0,100)), plot_type = 'GAF diagram', relative = False):
         gaf, phi, r, scaled_time_serie = self.make_gaf_data(serie_data)
+        if relative:
+            gaf_ = gaf - self.gaf
         self.gaf, self.phi, self.r, self.scaled_time_serie = gaf, phi, r, scaled_time_serie
         # self.update_canvas(eval(self.parent.lineEdit_fig_size.text()))
         self.canvas.figure.clear()
@@ -132,7 +135,10 @@ class GAF_Widget(QWidget):
             self.ax.grid(True)
         elif plot_type == 'GAF diagram':
             self.ax = self.canvas.figure.add_subplot()
-            self.ax.matshow(gaf)
+            if relative:
+                self.ax.matshow(gaf_)
+            else:
+                self.ax.matshow(gaf)
             self.ax.set_title("Gramian Angular Field")
             self.ax.set_yticklabels([])
             self.ax.set_xticklabels([])
