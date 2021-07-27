@@ -89,7 +89,7 @@ class GAF_Widget(QWidget):
         # self.canvas.ax_profile = self.canvas.figure.add_subplot(322)
         # self.canvas.ax_ctr = self.canvas.figure.add_subplot(324)
         # self.canvas.ax_pot = self.canvas.figure.add_subplot(326)
-        #self.canvas.axes = self.canvas.figure.add_subplot(111)
+        self.ax = self.canvas.figure.add_subplot(111)
         self.setLayout(vertical_layout)
         self.gaf = 0
 
@@ -127,14 +127,14 @@ class GAF_Widget(QWidget):
         # self.update_canvas(eval(self.parent.lineEdit_fig_size.text()))
         self.canvas.figure.clear()
         if plot_type == 'polar encoding':
-            self.ax = self.canvas.figure.add_subplot(polar = True)
+            self.ax = self.canvas.figure.add_subplot(111,polar = True)
             self.ax.plot(phi, r)
             self.ax.set_title("Polar Encoding")
             self.ax.set_rticks([0, 1])
             self.ax.set_rlabel_position(-22.5)
             self.ax.grid(True)
         elif plot_type == 'GAF diagram':
-            self.ax = self.canvas.figure.add_subplot()
+            self.ax = self.canvas.figure.add_subplot(111)
             if relative:
                 self.ax.matshow(gaf_)
             else:
@@ -143,7 +143,7 @@ class GAF_Widget(QWidget):
             self.ax.set_yticklabels([])
             self.ax.set_xticklabels([])
         elif plot_type == 'CTR series':
-            self.ax = self.canvas.figure.add_subplot()
+            self.ax = self.canvas.figure.add_subplot(111)
             self.ax.plot(range(len(scaled_time_serie)), scaled_time_serie)
             self.ax.set_title("Scaled CTR Serie")
         self.canvas.draw()

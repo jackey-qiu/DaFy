@@ -95,6 +95,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_panright.clicked.connect(lambda:self.pan_view([0,1,0]))
         self.pushButton_start_spin.clicked.connect(self.start_spin)
         self.pushButton_stop_spin.clicked.connect(self.stop_spin)
+        self.pushButton_bragg_peaks.clicked.connect(self.simulate_image_Bragg_reflections)
         #real space viewer control
         self.pushButton_azimuth0_2.clicked.connect(self.azimuth_0_2)
         self.pushButton_azimuth90_2.clicked.connect(self.azimuth_90_2)
@@ -164,6 +165,39 @@ class MyMainWindow(QMainWindow):
         self.widget_mpl.canvas.draw()
         self.ax_simulation = ax
         
+    def simulate_image_Bragg_reflections(self):
+        self.cal_delta_gamma_angles_for_Bragg_reflections()
+        pilatus_size = [float(self.lineEdit_detector_hor.text()), float(self.lineEdit_detector_ver.text())]
+        pixel_size = [float(self.lineEdit_pixel.text())]*2
+        self.widget_mpl.canvas.figure.clear()
+        ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
+        self.widget_glview.calculate_index_on_pilatus_image_from_angles(
+             pilatus_size = pilatus_size,
+             pixel_size = pixel_size,
+             distance_sample_detector = float(self.lineEdit_sample_detector_distance.text()),
+             angle_info = self.Bragg_peaks_detector_angle_info
+        )
+        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image_Bragg_peaks(pilatus_size = pilatus_size, pixel_size = pixel_size))
+        
+        pos_all = []
+        for each in self.widget_glview.pixel_index_of_Bragg_reflections:
+            for i in range(len(self.widget_glview.pixel_index_of_Bragg_reflections[each])):
+                pos = self.widget_glview.pixel_index_of_Bragg_reflections[each][i]
+                if pos in pos_all:
+                    pass
+                else:
+                    pos_all.append(pos)
+                    hkl = self.Bragg_peaks_info[each][i]
+                    if len(pos)!=0:
+                        ax.text(*(list(pos[::-1]+np.array([20,20]))), '{}{}'.format(each,hkl),color = 'y',rotation = 'vertical',fontsize=8)
+        
+        ax.text(*self.widget_glview.primary_beam_position,'x',color = 'w')
+        ax.text(*(self.widget_glview.primary_beam_position+np.array([50,-50])),'Primary Beam Pos',color = 'r')
+
+        ax.grid(False)
+        self.widget_mpl.fig.tight_layout()
+        self.widget_mpl.canvas.draw()
+        self.ax_simulation = ax
 
     def draw_real_space(self):
         super_cell_size = [self.spinBox_repeat_x.value(), self.spinBox_repeat_y.value(), self.spinBox_repeat_z.value()]
@@ -214,17 +248,24 @@ class MyMainWindow(QMainWindow):
             return
         hkl = [float(self.lineEdit_H.text()),float(self.lineEdit_K.text()),float(self.lineEdit_L.text())]
         name = self.comboBox_working_substrate.currentText()
+        phi, gamma, delta = self._compute_angles(hkl, name, mu = None)
+        self.lineEdit_phi.setText(str(round(phi,3)))
+        self.lineEdit_gamma.setText(str(round(gamma,3)))
+        self.lineEdit_delta.setText(str(round(delta,3)))
+
+    def _compute_angles(self, hkl, name, mu =0):
         structure = [each for each in self.structures if each.name == name][0]
         energy_kev = float(self.lineEdit_energy.text())
         if self.comboBox_unit.currentText() != 'KeV':
             energy_kev = 12.398/energy_kev
         structure.lattice.set_E_keV(energy_kev)
         #negative because of the rotation sense
-        mu = -float(self.lineEdit_mu.text())
+        if mu == None:
+            mu = -float(self.lineEdit_mu.text())
+        else:
+            mu = 0
         phi, gamma, delta = structure.lattice.calculate_diffr_angles(hkl,mu)
-        self.lineEdit_phi.setText(str(round(phi,3)))
-        self.lineEdit_gamma.setText(str(round(gamma,3)))
-        self.lineEdit_delta.setText(str(round(delta,3)))
+        return phi, gamma, delta
 
     def fill_matrix(self):
         name = self.comboBox_working_substrate.currentText()
@@ -489,6 +530,43 @@ class MyMainWindow(QMainWindow):
         HKLs_unique = [str(list(map(int,each[:3]))) for each in peaks_unique]
         self.comboBox_bragg_peak.clear()
         self.comboBox_bragg_peak.addItems(HKLs_unique)
+
+    def _collect_Bragg_reflections(self):
+        names = list(self.peaks_dict.keys())
+        Bragg_peaks_info = {}
+        for name in names:
+            structure = None
+            for each in self.structures:
+                if each.name == name:
+                    structure = each
+                    break
+            peaks = self.peaks_dict[name]
+            peaks_unique = []
+            for i, peak in enumerate(peaks):
+                qxqyqz, _, intensity = peak
+                HKL = [int(round(each_, 0)) for each_ in structure.lattice.HKL(qxqyqz)]
+                peaks_unique.append(HKL+[intensity])
+            peaks_unique = np.array(peaks_unique)
+            peaks_unique = peaks_unique[peaks_unique[:,-1].argsort()[::-1]]
+            HKLs_unique = [str(list(map(int,each[:3]))) for each in peaks_unique]
+            Bragg_peaks_info[name] = [list(map(int,each[:3])) for each in peaks_unique]
+        self.Bragg_peaks_info = Bragg_peaks_info
+
+    def cal_delta_gamma_angles_for_Bragg_reflections(self):
+        self._collect_Bragg_reflections()
+        Bragg_peaks_detector_angle_info = {}
+        Bragg_peaks_info_allowed = {}
+        for name in self.Bragg_peaks_info:
+            Bragg_peaks_detector_angle_info[name] = []
+            Bragg_peaks_info_allowed[name] = []
+            for hkl in self.Bragg_peaks_info[name]:
+                #_compute_angles return gamma and delta in a tuple
+                phi, gamma, delta = self._compute_angles(hkl, name, mu = 0)
+                if not (np.isnan(gamma) or np.isnan(delta)):
+                    Bragg_peaks_detector_angle_info[name].append([gamma,delta])
+                    Bragg_peaks_info_allowed[name].append(hkl)
+        self.Bragg_peaks_detector_angle_info = Bragg_peaks_detector_angle_info
+        self.Bragg_peaks_info = Bragg_peaks_info_allowed 
 
     def select_rod_based_on_Bragg_peak(self):
         name = self.comboBox_names.currentText()
