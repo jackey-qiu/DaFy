@@ -26,7 +26,7 @@ crystal miscut information.
 from diffcalc.ub.calcstate import UBCalcState
 from diffcalc.ub.crystal import CrystalUnderTest
 from diffcalc.ub.reflections import ReflectionList
-from diffcalc.ub.persistence import UBCalculationJSONPersister, UBCalculationPersister
+from diffcalc.ub.persistence import UBCalculationJSONPersister, UBCalculationPersister, UbCalculationNonPersister
 from diffcalc.util import DiffcalcException, cross3, dot3, bold, xyz_rotation,\
     bound, angle_between_vectors, norm3, CoordinateConverter, allnum, TODEG
 from math import acos, cos, sin, pi, atan2
@@ -36,6 +36,7 @@ from diffcalc import settings
 from itertools import product
 from diffcalc.ub.fitting import fit_crystal, fit_u_matrix
 from diffcalc.hkl.you.geometry import create_you_matrices
+import diffcalc.hkl.you.calc as calc
 
 try:
     from numpy import matrix, hstack

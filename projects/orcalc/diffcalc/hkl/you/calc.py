@@ -333,7 +333,7 @@ class YouHklCalculator(HklCalculatorBase):
 
             # to degrees:
             pos.changeToDegrees()
-            for key, val in virtual_angles.items():
+            for key, val in list(virtual_angles.items()):
                 if val is not None:
                     virtual_angles[key] = val * TODEG
 
@@ -372,7 +372,7 @@ class YouHklCalculator(HklCalculatorBase):
 
                     # to degrees:
                     pos.changeToDegrees()
-                    for key, val in virtual_angles.items():
+                    for key, val in list(virtual_angles.items()):
                         if val is not None:
                             virtual_angles[key] = val * TODEG
 
@@ -467,7 +467,7 @@ class YouHklCalculator(HklCalculatorBase):
 
             elif len(samp_constraints) == 2:
                 if det_constraint:
-                    det_constraint_name, det_constraint_val = det_constraint.items()[0]
+                    det_constraint_name, det_constraint_val = list(det_constraint.items())[0]
                     for delta, nu, qaz in self._calc_remaining_detector_angles(det_constraint_name, det_constraint_val, theta):
                         for mu, eta, chi, phi in self._calc_sample_angles_given_two_sample_and_detector(
                             samp_constraints, qaz, theta, h_phi, n_phi):
@@ -539,7 +539,7 @@ class YouHklCalculator(HklCalculatorBase):
                                self.constraints.detector,
                                self.constraints.naz]:
                 try:
-                    constraint_name, constraint_value = constraint.items()[0]
+                    constraint_name, constraint_value = list(constraint.items())[0]
                     if constraint_name == 'a_eq_b':
                         diff = pseudo_angles['alpha'] - pseudo_angles['beta']
                     elif constraint_name == 'bin_eq_bout':
@@ -663,7 +663,7 @@ class YouHklCalculator(HklCalculatorBase):
             return
         if det_constraint:
             # One of the detector angles is given                 (Section 5.1)
-            det_constraint_name, det_constraint = det_constraint.items()[0]
+            det_constraint_name, det_constraint = list(det_constraint.items())[0]
             for delta, nu, qaz in self._calc_remaining_detector_angles(
                                         det_constraint_name, det_constraint, theta):
                 if is_small(naz_qaz_angle):
@@ -673,7 +673,7 @@ class YouHklCalculator(HklCalculatorBase):
                 for naz in naz_angles:
                     yield qaz, naz, delta, nu
         elif naz_constraint: # The 'detector' angle naz is given:
-            det_constraint_name, det_constraint = naz_constraint.items()[0]
+            det_constraint_name, det_constraint = list(naz_constraint.items())[0]
             naz_name, naz = det_constraint_name, det_constraint
             assert naz_name == 'naz'
             if is_small(naz_qaz_angle):
@@ -790,7 +790,7 @@ class YouHklCalculator(HklCalculatorBase):
     def _calc_sample_angles_from_one_sample_constraint(
             self, samp_constraints, h_phi, theta, alpha, qaz, naz, n_phi):
 
-        sample_constraint_name, sample_value = samp_constraints.items()[0]
+        sample_constraint_name, sample_value = list(samp_constraints.items())[0]
         q_lab = matrix([[cos(theta) * sin(qaz)],
                 [-sin(theta)],
                 [cos(theta) * cos(qaz)]]) # (18)
