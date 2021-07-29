@@ -367,6 +367,25 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma))
                 self.pixel_index_of_cross_points[each] = index_container
 
+    def calculate_index_on_pilatus_image_from_angles(self, pilatus_size, pixel_size, distance_sample_detector,angle_info):
+        PILATUS_DIM = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))
+        PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
+        self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
+        if len(self.ewarld_sphere)==0:
+            print("Ewarld sphere is not defined! Check it first!")
+            return
+        else:
+            self.pixel_index_of_Bragg_reflections = {}
+            center = np.array(self.ewarld_sphere[0])
+            ki = -center
+            for each in angle_info:
+                index_container = []
+                for each_item in angle_info[each]:
+                    gamma, delta = each_item
+                    if (not np.isnan(gamma)) and (not np.isnan(delta)):
+                        index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma))
+                self.pixel_index_of_Bragg_reflections[each] = index_container
+
     def cal_simuated_2d_pixel_image(self, pilatus_size, pixel_size):
         image_sum = 0
         for each in self.pixel_index_of_cross_points:
@@ -376,6 +395,13 @@ class GLViewWidget_cum(gl.GLViewWidget):
         return image_sum
         #plt.imshow(image_sum)
         #plt.show()
+    def cal_simuated_2d_pixel_image_Bragg_peaks(self, pilatus_size, pixel_size):
+        image_sum = 0
+        for each in self.pixel_index_of_Bragg_reflections:
+            for each_item in self.pixel_index_of_Bragg_reflections[each]:
+                if len(each_item)!=0:
+                    image_sum += simulate_pixel_image(pilatus_size = pilatus_size,pixel_size = pixel_size,pos = each_item)
+        return image_sum
 
     def apply_xyz_rotation(self):
         self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(self.RM)

@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1920</width>
-    <height>1027</height>
+    <width>1440</width>
+    <height>830</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1088,28 +1088,47 @@
         </attribute>
         <layout class="QVBoxLayout" name="verticalLayout_7">
          <item>
-          <layout class="QHBoxLayout" name="horizontalLayout_15">
-           <item>
-            <widget class="QLabel" name="label_36">
+          <layout class="QGridLayout" name="gridLayout">
+           <item row="1" column="6">
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
+           </item>
+           <item row="1" column="1">
+            <widget class="QLineEdit" name="lineEdit_pixel">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="text">
-              <string>Pixel size (mm)</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLineEdit" name="lineEdit_pixel">
-             <property name="text">
               <string>0.05</string>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="1" column="4">
+            <widget class="QLabel" name="label_38">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Detector size ver. (mm)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="2">
             <widget class="QLabel" name="label_37">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
@@ -1122,42 +1141,72 @@
              </property>
             </widget>
            </item>
-           <item>
-            <widget class="QLineEdit" name="lineEdit_detector_hor">
-             <property name="text">
-              <string>152</string>
-             </property>
-            </widget>
-           </item>
-           <item>
-            <widget class="QLabel" name="label_38">
-             <property name="text">
-              <string>Detector size ver. (mm)</string>
-             </property>
-            </widget>
-           </item>
-           <item>
+           <item row="1" column="5">
             <widget class="QLineEdit" name="lineEdit_detector_ver">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>162</string>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="1" column="0">
+            <widget class="QLabel" name="label_36">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Pixel size (mm)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="1" column="3">
+            <widget class="QLineEdit" name="lineEdit_detector_hor">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>152</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="0">
             <widget class="QLabel" name="label_39">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Sample detector dist. (mm)</string>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="2" column="1">
             <widget class="QLineEdit" name="lineEdit_sample_detector_distance">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>100</string>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="2" column="2">
             <widget class="QLabel" name="label_40">
              <property name="sizePolicy">
               <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
@@ -1170,32 +1219,38 @@
              </property>
             </widget>
            </item>
-           <item>
+           <item row="2" column="3">
             <widget class="QLineEdit" name="lineEdit_rotation">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>0</string>
              </property>
             </widget>
            </item>
-           <item>
+           <item row="2" column="4">
             <widget class="QPushButton" name="pushButton_simulate">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Simulate</string>
              </property>
             </widget>
            </item>
-           <item>
-            <spacer name="horizontalSpacer_2">
-             <property name="orientation">
-              <enum>Qt::Horizontal</enum>
+           <item row="2" column="5">
+            <widget class="QPushButton" name="pushButton_bragg_peaks">
+             <property name="text">
+              <string>Simulate Bragg Peaks</string>
              </property>
-             <property name="sizeHint" stdset="0">
-              <size>
-               <width>40</width>
-               <height>20</height>
-              </size>
-             </property>
-            </spacer>
+            </widget>
            </item>
           </layout>
          </item>
@@ -1371,8 +1426,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1920</width>
-     <height>24</height>
+     <width>1440</width>
+     <height>22</height>
     </rect>
    </property>
   </widget>
