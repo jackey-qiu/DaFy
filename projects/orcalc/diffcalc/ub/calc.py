@@ -293,6 +293,9 @@ class UBCalculation:
         
         return '\n'.join(lines)
 
+    def extract_ub_info(self):
+        return self.U, self._state.crystal.B, self.UB
+
     def str_lines_u(self, umatrix):
         lines = []
         fmt = "% 9.5f % 9.5f % 9.5f"

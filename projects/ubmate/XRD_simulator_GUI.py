@@ -18,6 +18,7 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
+sys.path.append(os.path.join(DaFy_path,'projects','orcalc'))
 import pandas as pd
 import time
 import matplotlib
@@ -29,6 +30,20 @@ except:
     import configparser as ConfigParser
 import sys,os
 import reciprocal_space_v5 as rsp
+
+#diffcalc api funcs setup
+import diffcalc.util
+diffcalc.util.DEBUG = True
+from diffcalc import settings
+from diffcalc.hkl.you.geometry import SixCircle
+from diffcalc.hardware import DummyHardwareAdapter
+settings.hardware = DummyHardwareAdapter(('mu', 'delta', 'gam', 'eta', 'chi', 'phi'))
+settings.geometry = SixCircle()  # @UndefinedVariable
+import diffcalc.dc.dcyou as dc
+from diffcalc.ub import ub
+from diffcalc import hardware
+from diffcalc.hkl.you import hkl as hkl_dc
+
 # import scipy.signal.savgol_filter as savgol_filter
 
 pg.setConfigOption('background', 'w')
@@ -52,8 +67,20 @@ def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warn
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator_debug.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator.ui'),self)
         self.widget_terminal.update_name_space('main_gui',self)
+
+        #UB settings from diffcalc module
+        self.ub = ub
+        # self.ub.newub('current_ub')
+        self.UB_INDEX = 0
+        self.hkl = hkl_dc
+        self.settings = settings
+        self.hardware = hardware
+        self.dc = dc
+        self.cons = []
+
+        #config parser
         self.config = ConfigParser.RawConfigParser()
         self.config.optionxform = str # make entries in config file case sensitive
         self.base_structures = {}
@@ -79,7 +106,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_convert_hkl.clicked.connect(self.cal_qxqyqz)
         self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
         self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
-        self.pushButton_compute.clicked.connect(self.compute_angles)
+        # self.pushButton_compute.clicked.connect(self.compute_angles)
         self.timer_spin = QtCore.QTimer(self)
         self.timer_spin.timeout.connect(self.spin)
         self.timer_spin_sample = QtCore.QTimer(self)
@@ -110,6 +137,14 @@ class MyMainWindow(QMainWindow):
         self.pushButton_spin.clicked.connect(self.spin_)
         self.pushButton_draw_real_space.clicked.connect(self.draw_real_space)
         self.pushButton_simulate.clicked.connect(self.simulate_image)
+        #ub matrix control
+        self.pushButton_show_constraint_editor.clicked.connect(self.show_or_hide_constraints)
+        self.pushButton_apply_constraints.clicked.connect(self.set_cons)
+        self.pushButton_calc_angs.clicked.connect(self.calc_angs)
+        self.pushButton_calc_hkl.clicked.connect(self.calc_hkl_dc)
+        self.comboBox_UB.currentTextChanged.connect(self.display_UB)
+        self.pushButton_update_ub.clicked.connect(self.set_UB_matrix)
+        self.pushButton_cal_ub.clicked.connect(self.add_refs)
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
         ##set style for matplotlib figures
         plt.style.use('ggplot')
@@ -130,6 +165,105 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    def show_or_hide_constraints(self):
+        if self.frame_constraints.isHidden():
+            self.frame_constraints.show()
+        else:
+            self.frame_constraints.hide()
+
+    def display_UB(self):
+        if self.comboBox_UB.currentText()=='U matrix':
+            matrix = self.get_U()
+        elif self.comboBox_UB.currentText()=='B matrix':
+            matrix = self.get_B()
+        elif self.comboBox_UB.currentText()=='UB matrix':
+            matrix = self.get_UB()
+        self._set_matrix_values(matrix)
+
+    def get_U(self):
+        return self.ub.get_ub_info()[0]
+
+    def get_B(self):
+        return self.ub.get_ub_info()[1]
+
+    def get_UB(self):
+        return self.ub.get_ub_info()[2]
+
+    def set_UB_matrix(self):
+        if self.comboBox_UB.currentText()=='U matrix':
+            self.set_U()
+            error_pop_up(msg_text = 'U matrix updated!', window_title = 'Information')
+        elif self.comboBox_UB.currentText()=='UB matrix':
+            self.set_UB()
+            error_pop_up(msg_text = 'UB matrix updated!', window_title = 'Information')
+        else:
+            pass
+
+    def set_U(self):
+        self.dc.setu(self._get_matrix_values())
+
+    def set_UB(self):
+        self.dc.setub(self._get_matrix_values())
+
+    def _get_matrix_values(self):
+        r1=[float(self.lineEdit_U00.text()),float(self.lineEdit_U01.text()),float(self.lineEdit_U02.text())]
+        r2=[float(self.lineEdit_U10.text()),float(self.lineEdit_U11.text()),float(self.lineEdit_U12.text())]
+        r3=[float(self.lineEdit_U20.text()),float(self.lineEdit_U21.text()),float(self.lineEdit_U22.text())]
+        return [r1,r2,r3]
+
+    def _set_matrix_values(self, matrix):
+        self.lineEdit_U00.setText(str(round(matrix[0,0],3)))
+        self.lineEdit_U01.setText(str(round(matrix[0,1],3)))
+        self.lineEdit_U02.setText(str(round(matrix[0,2],3)))
+        self.lineEdit_U10.setText(str(round(matrix[1,0],3)))
+        self.lineEdit_U11.setText(str(round(matrix[1,1],3)))
+        self.lineEdit_U12.setText(str(round(matrix[1,2],3)))
+        self.lineEdit_U20.setText(str(round(matrix[2,0],3)))
+        self.lineEdit_U21.setText(str(round(matrix[2,1],3)))
+        self.lineEdit_U22.setText(str(round(matrix[2,2],3)))
+
+    def add_refs(self):
+        self.ub.addref(eval('[{}]'.format(self.lineEdit_hkl_ref1.text())),eval('[{}]'.format(self.lineEdit_angs_ref1.text())),float(self.lineEdit_eng_ref1.text()))
+        self.ub.addref(eval('[{}]'.format(self.lineEdit_hkl_ref2.text())),eval('[{}]'.format(self.lineEdit_angs_ref2.text())),float(self.lineEdit_eng_ref2.text()))
+        self.ub.calcub()
+        self.display_UB()
+
+    def set_cons(self):
+        for each in self.cons:
+            self.hkl.uncon(each)
+        cons_string = self.lineEdit_cons.text().rsplit('+')
+        self.cons = cons_string
+        # if len(cons_string)!=3:
+            # error_pop_up('You need THREE constraints to calculate angles!','Error')
+        msg = None
+        for each in cons_string:
+            if each in ['a_eq_b', 'bin_eq_bout', 'mu_is_gam','bisect']:
+                getattr(self, 'checkBox_{}'.format(each)).setChecked(True)
+                msg = self.hkl.con(each)
+            else:
+                msg = self.hkl.con(each,float(getattr(self,'lineEdit_cons_{}'.format(each)).text()))
+        error_pop_up('Constraints:\n'+msg,'Information')
+
+    def calc_angs(self):
+        self.energy_keV = float(self.lineEdit_eng.text())
+        self.hardware.settings.hardware.energy = self.energy_keV
+        angles, pars = self.dc.hkl_to_angles(h = float(self.lineEdit_H_calc.text()), k = float(self.lineEdit_K_calc.text()), l = float(self.lineEdit_L_calc.text()), energy=self.energy_keV)
+        angles_string = ['mu', 'delta', 'gam', 'eta', 'chi', 'phi']
+        for ag, val in zip(angles_string, angles):
+            getattr(self, 'lineEdit_{}'.format(ag)).setText(str(round(val,3)))
+
+    def calc_hkl_dc(self):
+        self.energy_keV = float(self.lineEdit_eng.text())
+        self.hardware.settings.hardware.energy = self.energy_keV
+        angles_string = ['mu', 'delta', 'gam', 'eta', 'chi', 'phi']
+        angles = []
+        for ag in angles_string:
+            angles.append(float(getattr(self, 'lineEdit_{}'.format(ag)).text()))
+        hkls, pars = self.dc.angles_to_hkl(angles, energy=self.energy_keV)
+        self.lineEdit_H_calc.setText(str(round(hkls[0],3)))
+        self.lineEdit_K_calc.setText(str(round(hkls[1],3)))
+        self.lineEdit_L_calc.setText(str(round(hkls[2],3)))
 
     def simulate_image(self):
         pilatus_size = [float(self.lineEdit_detector_hor.text()), float(self.lineEdit_detector_ver.text())]
@@ -181,15 +315,18 @@ class MyMainWindow(QMainWindow):
         
         pos_all = []
         for each in self.widget_glview.pixel_index_of_Bragg_reflections:
-            for i in range(len(self.widget_glview.pixel_index_of_Bragg_reflections[each])):
-                pos = self.widget_glview.pixel_index_of_Bragg_reflections[each][i]
-                if pos in pos_all:
-                    pass
-                else:
-                    pos_all.append(pos)
-                    hkl = self.Bragg_peaks_info[each][i]
-                    if len(pos)!=0:
-                        ax.text(*(list(pos[::-1]+np.array([20,20]))), '{}{}'.format(each,hkl),color = 'y',rotation = 'vertical',fontsize=8)
+            if each == self.structures[0].name:
+                for i in range(len(self.widget_glview.pixel_index_of_Bragg_reflections[each])):
+                    pos = self.widget_glview.pixel_index_of_Bragg_reflections[each][i]
+                    if pos in pos_all:
+                        pass
+                    else:
+                        pos_all.append(pos)
+                        hkl = self.Bragg_peaks_info[each][i]
+                        if len(pos)!=0:
+                            ax.text(*(list(pos[::-1]+np.array([20,20]))), '{}{}'.format(each,hkl),color = 'y',rotation = 'vertical',fontsize=8)
+            else:
+                pass
         
         ax.text(*self.widget_glview.primary_beam_position,'x',color = 'w')
         ax.text(*(self.widget_glview.primary_beam_position+np.array([50,-50])),'Primary Beam Pos',color = 'r')
@@ -267,6 +404,17 @@ class MyMainWindow(QMainWindow):
         phi, gamma, delta = structure.lattice.calculate_diffr_angles(hkl,mu)
         return phi, gamma, delta
 
+    def _compute_angles_dc(self, hkl):
+        h, k, l = hkl
+        try:
+            angles, pars = self.dc.hkl_to_angles(h = h, k = k, l = l, energy=self.energy_keV)
+            return angles[-1], angles[2], angles[1]
+        except:
+            print('No solution found for', hkl)
+            return np.nan, np.nan, np.nan
+        #angles_string = ['mu', 'delta', 'gam', 'eta', 'chi', 'phi']
+        
+
     def fill_matrix(self):
         name = self.comboBox_working_substrate.currentText()
         structure = [each for each in self.structures if each.name == name][0]
@@ -287,6 +435,7 @@ class MyMainWindow(QMainWindow):
         self.lineEdit_qx.setText(str(round(qx,4)))
         self.lineEdit_qy.setText(str(round(qy,4)))
         self.lineEdit_qz.setText(str(round(qz,4)))
+        self.lineEdit_q_par.setText(str(round((qx**2+qy**2)**0.5,4)))
         self.cal_q_and_2theta()
 
     def cal_hkl(self):
@@ -339,9 +488,11 @@ class MyMainWindow(QMainWindow):
     def cal_q_and_2theta(self):
         qx_qy_qz = [float(self.lineEdit_qx.text()),float(self.lineEdit_qy.text()),float(self.lineEdit_qz.text())]
         q = self._cal_q(qx_qy_qz)
-        energy_anstrom = float(self.lineEdit_energy.text())
-        if self.comboBox_unit.currentText() == 'KeV':
-            energy_anstrom = 12.398/energy_anstrom
+        #energy_anstrom = float(self.lineEdit_energy.text())
+        #if self.comboBox_unit.currentText() == 'KeV':
+        #    energy_anstrom = 12.398/energy_anstrom
+        assert len(self.structures)!=0, 'No substrate structure available!'
+        energy_anstrom = 12.398/self.structures[0].energy_keV
         _2theta = self._cal_2theta(q,energy_anstrom)
         self.lineEdit_q.setText(str(round(q,4)))
         self.lineEdit_2theta.setText(str(round(_2theta,2)))
@@ -557,14 +708,19 @@ class MyMainWindow(QMainWindow):
         Bragg_peaks_detector_angle_info = {}
         Bragg_peaks_info_allowed = {}
         for name in self.Bragg_peaks_info:
-            Bragg_peaks_detector_angle_info[name] = []
-            Bragg_peaks_info_allowed[name] = []
-            for hkl in self.Bragg_peaks_info[name]:
-                #_compute_angles return gamma and delta in a tuple
-                phi, gamma, delta = self._compute_angles(hkl, name, mu = 0)
-                if not (np.isnan(gamma) or np.isnan(delta)):
-                    Bragg_peaks_detector_angle_info[name].append([gamma,delta])
-                    Bragg_peaks_info_allowed[name].append(hkl)
+            if name == self.structures[0].name:#only reference substrate will be considered here
+                Bragg_peaks_detector_angle_info[name] = []
+                Bragg_peaks_info_allowed[name] = []
+                for hkl in self.Bragg_peaks_info[name]:
+                    #_compute_angles return gamma and delta in a tuple
+                    # phi, gamma, delta = self._compute_angles(hkl, name, mu = 0)
+                    if hkl[0]!=0 and hkl[1]!=0:#not consider specular rod
+                        phi, gamma, delta = self._compute_angles_dc(hkl)
+                        if not (np.isnan(gamma) or np.isnan(delta)):
+                            Bragg_peaks_detector_angle_info[name].append([gamma,delta])
+                            Bragg_peaks_info_allowed[name].append(hkl)
+            else:
+                pass
         self.Bragg_peaks_detector_angle_info = Bragg_peaks_detector_angle_info
         self.Bragg_peaks_info = Bragg_peaks_info_allowed 
 
@@ -604,12 +760,20 @@ class MyMainWindow(QMainWindow):
         self.common_offset_angle = float(self.config.get('Plot', 'common_offset_angle'))
         self.plot_axes = int(self.config.get('Plot', 'plot_axes'))
         self.energy_keV = float(self.config.get('Plot', 'energy_keV'))
-        self.lineEdit_energy.setText(str(self.energy_keV))
+        self.lineEdit_eng.setText(str(self.energy_keV))
+        self.lineEdit_eng_ref1.setText(str(self.energy_keV))
+        self.lineEdit_eng_ref2.setText(str(self.energy_keV))
         self.k0 = rsp.get_k0(self.energy_keV)
         self.load_base_structures_in_config()
         self.load_structures_in_config()
         self.update_draw_limits()
         self.prepare_objects_for_render()
+        self.UB_INDEX += 1
+        self.ub.newub('current_ub_{}'.format(self.UB_INDEX))
+        bs = self.structures[0].base_structure
+        self.ub.setlat('Triclinic',bs.a,bs.b,bs.c,bs.alpha,bs.beta,bs.gamma)
+        self.hardware.settings.hardware.energy = self.energy_keV
+        self.dc.setu([[1,0,0],[0,1,0],[0,0,1]])
 
     def load_base_structures_in_config(self):
         # read from settings file

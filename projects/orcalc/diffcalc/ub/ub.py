@@ -171,6 +171,8 @@ def ub():
     print(ubcalc.__str__())
 
 ### UB lattice ###
+def get_ub_info():
+    return ubcalc.extract_ub_info()
 
 @command
 def setlat(name=None, *args):

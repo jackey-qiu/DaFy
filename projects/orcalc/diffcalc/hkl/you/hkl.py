@@ -88,8 +88,9 @@ def con(*args):
             "is not implemented.\n\nType 'help con' to see implemented combinations")
     if msg:
         print(msg)
-
+    
     diffcalc.ub.ub.ubcalc.save()
+    return msg
 
 
 def _handle_con(args):
