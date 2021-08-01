@@ -1,5 +1,6 @@
 import sys,os,qdarkstyle
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
+from PyQt5.QtGui import QPixmap, QImage
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5 import uic, QtCore
@@ -43,6 +44,7 @@ import diffcalc.dc.dcyou as dc
 from diffcalc.ub import ub
 from diffcalc import hardware
 from diffcalc.hkl.you import hkl as hkl_dc
+import imageio, cv2
 
 # import scipy.signal.savgol_filter as savgol_filter
 
@@ -145,6 +147,18 @@ class MyMainWindow(QMainWindow):
         self.comboBox_UB.currentTextChanged.connect(self.display_UB)
         self.pushButton_update_ub.clicked.connect(self.set_UB_matrix)
         self.pushButton_cal_ub.clicked.connect(self.add_refs)
+        #display diffractometer geometry figure
+        
+        image = imageio.imread(os.path.join(script_path, 'pics', '4s_2d_diffractometer.png'))
+        #image = imageio.imread()
+        image = cv2.cvtColor(image,cv2.COLOR_GRAY2RGB)
+        image = cv2.resize(image, dsize=(int(745/1.2), int(553/1.2)), interpolation=cv2.INTER_CUBIC)
+        self.im = QImage(image,image.shape[1],image.shape[0], image.shape[1] * 3, QImage.Format_RGB888)
+        # self.im = QImage(image,200,200, 200 * 3, QImage.Format_RGB888)
+        # self.im.scaled(200, 200, QtCore.Qt.KeepAspectRatio)
+        self.label_diffractometer.setPixmap(QPixmap(self.im))
+        
+
         # self.pushButton_draw.clicked.connect(self.prepare_peaks_for_render)
         ##set style for matplotlib figures
         plt.style.use('ggplot')
@@ -319,7 +333,8 @@ class MyMainWindow(QMainWindow):
                 for i in range(len(self.widget_glview.pixel_index_of_Bragg_reflections[each])):
                     pos = self.widget_glview.pixel_index_of_Bragg_reflections[each][i]
                     if pos in pos_all:
-                        pass
+                        #pass
+                        print('The position for ',self.Bragg_peaks_info[each][i], 'is already occupied!')
                     else:
                         pos_all.append(pos)
                         hkl = self.Bragg_peaks_info[each][i]
@@ -410,8 +425,11 @@ class MyMainWindow(QMainWindow):
             angles, pars = self.dc.hkl_to_angles(h = h, k = k, l = l, energy=self.energy_keV)
             return angles[-1], angles[2], angles[1]
         except:
-            print('No solution found for', hkl)
-            return np.nan, np.nan, np.nan
+            if (abs(h)<0.000001) and (abs(k)<0.000001):
+                return 0, 0, self.dc.c2th(hkl)
+            else:
+                print('No solution found for', hkl)
+                return np.nan, np.nan, np.nan
         #angles_string = ['mu', 'delta', 'gam', 'eta', 'chi', 'phi']
         
 
@@ -714,11 +732,10 @@ class MyMainWindow(QMainWindow):
                 for hkl in self.Bragg_peaks_info[name]:
                     #_compute_angles return gamma and delta in a tuple
                     # phi, gamma, delta = self._compute_angles(hkl, name, mu = 0)
-                    if hkl[0]!=0 and hkl[1]!=0:#not consider specular rod
-                        phi, gamma, delta = self._compute_angles_dc(hkl)
-                        if not (np.isnan(gamma) or np.isnan(delta)):
-                            Bragg_peaks_detector_angle_info[name].append([gamma,delta])
-                            Bragg_peaks_info_allowed[name].append(hkl)
+                    phi, gamma, delta = self._compute_angles_dc(hkl)
+                    if not (np.isnan(gamma) or np.isnan(delta)):
+                        Bragg_peaks_detector_angle_info[name].append([gamma,delta])
+                        Bragg_peaks_info_allowed[name].append(hkl)
             else:
                 pass
         self.Bragg_peaks_detector_angle_info = Bragg_peaks_detector_angle_info
@@ -774,6 +791,7 @@ class MyMainWindow(QMainWindow):
         self.ub.setlat('Triclinic',bs.a,bs.b,bs.c,bs.alpha,bs.beta,bs.gamma)
         self.hardware.settings.hardware.energy = self.energy_keV
         self.dc.setu([[1,0,0],[0,1,0],[0,0,1]])
+        self.set_cons()
 
     def load_base_structures_in_config(self):
         # read from settings file
