@@ -20,6 +20,7 @@ sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 sys.path.append(os.path.join(DaFy_path,'projects','orcalc'))
+from UtilityFunctions import timer_placer
 import pandas as pd
 import time
 import matplotlib
@@ -289,7 +290,7 @@ class MyMainWindow(QMainWindow):
              pixel_size = pixel_size,
              distance_sample_detector = float(self.lineEdit_sample_detector_distance.text())
         )
-        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image(pilatus_size = pilatus_size, pixel_size = pixel_size))
+        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image(pilatus_size = pilatus_size, pixel_size = pixel_size, gaussian_sim = self.checkBox_gaussian_sim.isChecked()))
         for each in self.widget_glview.pixel_index_of_cross_points:
             for i in range(len(self.widget_glview.pixel_index_of_cross_points[each])):
                 pos = self.widget_glview.pixel_index_of_cross_points[each][i]
@@ -325,7 +326,7 @@ class MyMainWindow(QMainWindow):
              distance_sample_detector = float(self.lineEdit_sample_detector_distance.text()),
              angle_info = self.Bragg_peaks_detector_angle_info
         )
-        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image_Bragg_peaks(pilatus_size = pilatus_size, pixel_size = pixel_size))
+        ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image_Bragg_peaks(pilatus_size = pilatus_size, pixel_size = pixel_size, gaussian_sim = self.checkBox_gaussian_sim.isChecked()))
         
         pos_all = []
         for each in self.widget_glview.pixel_index_of_Bragg_reflections:
@@ -339,6 +340,9 @@ class MyMainWindow(QMainWindow):
                         pos_all.append(pos)
                         hkl = self.Bragg_peaks_info[each][i]
                         if len(pos)!=0:
+                            ax.text(*pos[::-1],'x',
+                                horizontalalignment='center',
+                                verticalalignment='center',color = 'r')
                             ax.text(*(list(pos[::-1]+np.array([20,20]))), '{}{}'.format(each,hkl),color = 'y',rotation = 'vertical',fontsize=8)
             else:
                 pass

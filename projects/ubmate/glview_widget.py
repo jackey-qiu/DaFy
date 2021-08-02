@@ -108,9 +108,12 @@ def simulate_pixel_image_(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE,po
             img[temp_index[0],temp_index[1]]+= gaussian_3d_peak(peak_dim,sigma)[each_index[0],each_index[1]]
     return img
 
-def simulate_pixel_image(pilatus_size = PILATUS_SIZE, pixel_size = PIXEL_SIZE, pos = [0,0], peak_dim = 50):
+def simulate_pixel_image(pilatus_size = PILATUS_SIZE, pixel_size = PIXEL_SIZE, pos = [0,0], peak_dim = 50, gaussian_sim = False):
     pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
-    return makeGaussian(pilatus_dim, fwhm = peak_dim, center = pos)
+    if not gaussian_sim:
+        return np.zeros(pilatus_dim)+1
+    else:
+        return makeGaussian(pilatus_dim, fwhm = peak_dim, center = pos)
 
 def makeGaussian(size=[10,30], fwhm = 3, center=None):
     """ Make a square gaussian kernel.
@@ -119,10 +122,8 @@ def makeGaussian(size=[10,30], fwhm = 3, center=None):
     fwhm is full-width-half-maximum, which
     can be thought of as an effective radius.
     """
-
     x = np.arange(0, size[1], 1, float)
     y = np.arange(0,size[0],1,float)[:,np.newaxis]
-
     #y = x[:,np.newaxis]
 
     if center is None:
@@ -386,21 +387,27 @@ class GLViewWidget_cum(gl.GLViewWidget):
                         index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma))
                 self.pixel_index_of_Bragg_reflections[each] = index_container
 
-    def cal_simuated_2d_pixel_image(self, pilatus_size, pixel_size):
+    def cal_simuated_2d_pixel_image(self, pilatus_size, pixel_size, gaussian_sim = False):
         image_sum = 0
+        if not gaussian_sim:
+            pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
+            return np.zeros(pilatus_dim)+1
         for each in self.pixel_index_of_cross_points:
             for each_item in self.pixel_index_of_cross_points[each]:
                 if len(each_item)!=0:
-                    image_sum += simulate_pixel_image(pilatus_size = pilatus_size,pixel_size = pixel_size,pos = each_item)
+                    image_sum += simulate_pixel_image(pilatus_size = pilatus_size,pixel_size = pixel_size,pos = each_item, gaussian_sim = gaussian_sim)
         return image_sum
         #plt.imshow(image_sum)
         #plt.show()
-    def cal_simuated_2d_pixel_image_Bragg_peaks(self, pilatus_size, pixel_size):
+    def cal_simuated_2d_pixel_image_Bragg_peaks(self, pilatus_size, pixel_size, gaussian_sim = False):
         image_sum = 0
+        if not gaussian_sim:
+            pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
+            return np.zeros(pilatus_dim)+1
         for each in self.pixel_index_of_Bragg_reflections:
             for each_item in self.pixel_index_of_Bragg_reflections[each]:
                 if len(each_item)!=0:
-                    image_sum += simulate_pixel_image(pilatus_size = pilatus_size,pixel_size = pixel_size,pos = each_item)
+                    image_sum += simulate_pixel_image(pilatus_size = pilatus_size,pixel_size = pixel_size,pos = each_item, gaussian_sim = gaussian_sim)
         return image_sum
 
     def apply_xyz_rotation(self):

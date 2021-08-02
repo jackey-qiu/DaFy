@@ -1638,7 +1638,7 @@
         </size>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>1</number>
        </property>
        <widget class="QWidget" name="tab_3">
         <attribute name="title">
@@ -1954,6 +1954,13 @@
             <widget class="QPushButton" name="pushButton_bragg_peaks">
              <property name="text">
               <string>Simulate Bragg Peaks</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="6">
+            <widget class="QCheckBox" name="checkBox_gaussian_sim">
+             <property name="text">
+              <string>Gaussian_simulation</string>
              </property>
             </widget>
            </item>
