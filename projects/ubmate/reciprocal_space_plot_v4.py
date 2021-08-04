@@ -7,8 +7,8 @@ Created on Mon Jan 30 12:15:58 2017
 
 import numpy as np
 from timeit import itertools
-from mayavi import mlab
-from tvtk.tools import visual
+# from mayavi import mlab
+# from tvtk.tools import visual
 import timeit
 
 def Arrow_From_A_to_B(x1, y1, z1, x2, y2, z2, color=(1,1,1)):

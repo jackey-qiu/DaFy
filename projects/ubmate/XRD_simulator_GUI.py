@@ -1,9 +1,12 @@
 import sys,os,qdarkstyle
+from os import walk
 from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from PyQt5.QtGui import QPixmap, QImage
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5 import uic, QtCore
+import PyQt5
+from pyqtgraph.Qt import QtGui
 import pyqtgraph as pg
 import random,copy
 import numpy as np
@@ -67,12 +70,96 @@ def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warn
     msg.setWindowTitle(window_title)
     msg.exec_()
 
+class PandasModel(QtCore.QAbstractTableModel):
+    """
+    Class to populate a table view with a pandas dataframe
+    """
+    def __init__(self, data, tableviewer, main_gui, parent=None):
+        QtCore.QAbstractTableModel.__init__(self, parent)
+        self._data = data
+        self.tableviewer = tableviewer
+        self.main_gui = main_gui
+
+    def rowCount(self, parent=None):
+        return self._data.shape[0]
+
+    def columnCount(self, parent=None):
+        return self._data.shape[1]
+
+    def data(self, index, role):
+        if index.isValid():
+            if role in [QtCore.Qt.DisplayRole, QtCore.Qt.EditRole]:
+                return str(self._data.iloc[index.row(), index.column()])
+            if role == QtCore.Qt.BackgroundRole and index.row()%2 == 0:
+                return QtGui.QColor('DeepSkyBlue')
+                # return QtGui.QColor('green')
+            if role == QtCore.Qt.BackgroundRole and index.row()%2 == 1:
+                return QtGui.QColor('aqua')
+                # return QtGui.QColor('lightGreen')
+            if role == QtCore.Qt.ForegroundRole and index.row()%2 == 1:
+                return QtGui.QColor('black')
+            if role == QtCore.Qt.CheckStateRole and index.column()==0:
+                if self._data.iloc[index.row(),index.column()]:
+                    return QtCore.Qt.Checked
+                else:
+                    return QtCore.Qt.Unchecked
+        return None
+
+    def setData(self, index, value, role):
+        if not index.isValid():
+            return False
+        if role == QtCore.Qt.CheckStateRole and index.column() == 0:
+            if value == QtCore.Qt.Checked:
+                self._data.iloc[index.row(),index.column()] = True
+            else:
+                self._data.iloc[index.row(),index.column()] = False
+        else:
+            if str(value)!='':
+                self._data.iloc[index.row(),index.column()] = str(value)
+        #if self._data.columns.tolist()[index.column()] in ['select','archive_data','user_label','read_level']:
+        #    self.main_gui.update_meta_info_paper(paper_id = self._data['paper_id'][index.row()])
+        self.dataChanged.emit(index, index)
+        self.layoutAboutToBeChanged.emit()
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
+        self.layoutChanged.emit()
+        self.tableviewer.resizeColumnsToContents() 
+        return True
+
+    def update_view(self):
+        self.layoutAboutToBeChanged.emit()
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
+        self.layoutChanged.emit()
+
+    def headerData(self, rowcol, orientation, role):
+        if orientation == QtCore.Qt.Horizontal and role == QtCore.Qt.DisplayRole:
+            return self._data.columns[rowcol]         
+        if orientation == QtCore.Qt.Vertical and role == QtCore.Qt.DisplayRole:
+            return self._data.index[rowcol]         
+        return None
+
+    def flags(self, index):
+        if not index.isValid():
+           return QtCore.Qt.NoItemFlags
+        else:
+            if index.column()==0:
+                return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable | QtCore.Qt.ItemIsUserCheckable)
+            else:
+                return (QtCore.Qt.ItemIsEnabled | QtCore.Qt.ItemIsSelectable | QtCore.Qt.ItemIsEditable)
+
+    def sort(self, Ncol, order):
+        """Sort table by given column number."""
+        self.layoutAboutToBeChanged.emit()
+        self._data = self._data.sort_values(self._data.columns.tolist()[Ncol],
+                                        ascending=order == QtCore.Qt.AscendingOrder, ignore_index = True)
+        self.dataChanged.emit(self.createIndex(0, 0), self.createIndex(self.rowCount(0), self.columnCount(0)))
+        self.layoutChanged.emit()
+
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator_beta.ui'),self)
         self.widget_terminal.update_name_space('main_gui',self)
-
+        self.widget_config.init_pars()
         #UB settings from diffcalc module
         self.ub = ub
         # self.ub.newub('current_ub')
@@ -84,6 +171,9 @@ class MyMainWindow(QMainWindow):
         self.cons = []
 
         #config parser
+        self.structure_container = {}
+        self.load_default_structure_file()
+        self.pushButton_use_selected.clicked.connect(self.init_pandas_model_in_parameter)
         self.config = ConfigParser.RawConfigParser()
         self.config.optionxform = str # make entries in config file case sensitive
         self.base_structures = {}
@@ -769,10 +859,57 @@ class MyMainWindow(QMainWindow):
             with open(fileName,'r') as f:
                 self.plainTextEdit_config.setPlainText(''.join(f.readlines()))
     
+    def load_default_structure_file(self):
+        #load all structure files (*.cif or *.str) in script_path/cif or its subfolder, deeper folder will be ignored
+        temp_dict = {}
+        _, dirs_, filenames =  next(walk(os.path.join(script_path,'cif')), (None, None, []))
+        for file in filenames:
+            if file.endswith('.str') or file.endswith('.cif'):
+                temp_dict[file] = os.path.join(script_path,'cif',file)
+        for dir_ in dirs_:
+            _, _, filenames =  next(walk(os.path.join(script_path,'cif', dir_)), (None, None, []))
+            for file in filenames:
+                if file.endswith('.str') or file.endswith('.cif'):
+                    temp_dict[file] = os.path.join(script_path,'cif',dir_,file)
+        self.structure_container.update(temp_dict)
+        self.update_list_widget()
+
+    def open_structure_files(self):
+        dir_ = QFileDialog.getExistingDirectory(None, 'Select project folder:', 'C:\\', QFileDialog.ShowDirsOnly)
+        filenames = next(walk(mypath), (None, None, []))[2]
+        temp_dict = {}
+        for file in filenames:
+            if file.endswith('.str') or file.endswith('.cif'):
+                temp_dict[file] = os.path.join(dir_,file)
+        self.structure_container.update(temp_dict)
+        self.update_list_widget()
+
+    def update_list_widget(self):
+        self.listWidget_base_structures.addItems(list(self.structure_container.keys()))
+
     def update_config_file(self):
         with open(self.lineEdit_config_path.text(),'w') as f:
             f.write(self.plainTextEdit_config.toPlainText())
             error_pop_up('The config file is overwritten!','Information')
+
+    def init_pandas_model_in_parameter(self):
+        selected_items = [each.text() for each in self.listWidget_base_structures.selectedItems()]
+        total = len(selected_items)
+        data_ = {}
+        data_['ID'] = selected_items
+        data_['SN_vec'] = [[0,0,1]]*total
+        data_['x_vec'] = [[1,0,0]]*total
+        data_['x_offset'] = [0]*total
+        data_['reference'] = [True] + [False]*(total-1)
+        data_['plot_peaks'] = [True]*total
+        data_['plot_rods'] = [True]*total
+        data_['plot_grids'] = [True]*total
+        data_['plot_unitcell'] = [True]*total
+        data_['color'] = [[0.8,0.8,0]]*total
+        self.pandas_model_in_parameter = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_used_structures, main_gui = self)
+        self.tableView_used_structures.setModel(self.pandas_model_in_parameter)
+        self.tableView_used_structures.resizeColumnsToContents()
+        self.tableView_used_structures.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
 
     def launch_config_file(self):
         self.config = ConfigParser.RawConfigParser()
@@ -796,6 +933,35 @@ class MyMainWindow(QMainWindow):
         self.hardware.settings.hardware.energy = self.energy_keV
         self.dc.setu([[1,0,0],[0,1,0],[0,0,1]])
         self.set_cons()
+
+    def launch_config_file_new(self):
+        #self.config = ConfigParser.RawConfigParser()
+        #self.config.optionxform = str # make entries in config file case sensitive
+        #self.config.read(self.lineEdit_config_path.text())
+        self.common_offset_angle = self.widget_config.par.names['Plot'].names['common_offset_angle'].value() 
+        self.plot_axes = int(self.widget_config.par.names['Plot'].names['plot_axes'].value())
+        self.energy_keV = self.widget_config.par.names['Plot'].names['energy_keV'].value() 
+        self.lineEdit_eng.setText(str(self.energy_keV))
+        self.lineEdit_eng_ref1.setText(str(self.energy_keV))
+        self.lineEdit_eng_ref2.setText(str(self.energy_keV))
+        self.k0 = rsp.get_k0(self.energy_keV)
+        self.load_base_structures()
+        self.load_structures()
+        self.update_draw_limits()
+        self.prepare_objects_for_render()
+        self.UB_INDEX += 1
+        self.ub.newub('current_ub_{}'.format(self.UB_INDEX))
+        bs = self.structures[0].base_structure
+        self.ub.setlat('Triclinic',bs.a,bs.b,bs.c,bs.alpha,bs.beta,bs.gamma)
+        self.hardware.settings.hardware.energy = self.energy_keV
+        self.dc.setu([[1,0,0],[0,1,0],[0,0,1]])
+        self.set_cons()
+
+    def load_base_structures(self):
+        pass
+
+    def load_structures(self):
+        pass
 
     def load_base_structures_in_config(self):
         # read from settings file
