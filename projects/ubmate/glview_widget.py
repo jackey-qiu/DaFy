@@ -54,7 +54,7 @@ DISTANCE_SAMPLE_DETECTOR = 500
 PILATUS_DIM = list((np.array(PILATUS_SIZE[::-1])/PIXEL_SIZE[::-1]).astype(int))
 PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
 
-def index_on_pilatus(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE, distance_sample_detector = DISTANCE_SAMPLE_DETECTOR, delta=0, gamma =0, debug = False):
+def index_on_pilatus(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE, distance_sample_detector = DISTANCE_SAMPLE_DETECTOR, delta=0, gamma =0, primary_beam_pos = None, debug = False):
     #default is PILATUS 6M
     #map the index of a reciprocal vector (vertical detector angle delta (in degree), horizontal detector angle gamma (in degree)) 
     # on a pilatus with size of pilatus_size of [width,height], pixel_size of [width, height] (all in unit mm)
@@ -67,18 +67,25 @@ def index_on_pilatus(pilatus_size = PILATUS_SIZE,pixel_size = PIXEL_SIZE, distan
     #++++++++++++
     #+++++o++++++
     pilatus_dim = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))#[rows, columns]
-    primary_beam_pos = [int(pilatus_dim[0]-1), int(pilatus_dim[1]/2)]
+    def _out_of_detector(pos):
+        if pos[0]<0 or pos[1]<0:
+            return True
+        if pos[0]>pilatus_dim[0] or pos[1]>pilatus_dim[1]:
+            return True
+        return False
+    if primary_beam_pos==None:
+        primary_beam_pos = [int(pilatus_dim[0]-1), int(pilatus_dim[1]/2)]
     horizontal_offset_in_pixels = int(np.tan(np.deg2rad(gamma))*distance_sample_detector/pixel_size[0])
     vertical_offset_in_pixels = int(distance_sample_detector/np.cos(np.deg2rad(gamma))*np.tan(np.deg2rad(delta))/pixel_size[1])
     pos = [primary_beam_pos[0]-vertical_offset_in_pixels, primary_beam_pos[1]-horizontal_offset_in_pixels]
-    outside_detector = False
-    if abs(horizontal_offset_in_pixels)>pilatus_dim[1]/2 or vertical_offset_in_pixels>pilatus_dim[0]:
-        outside_detector = True
+    #outside_detector = False
+    #if abs(horizontal_offset_in_pixels)>pilatus_dim[1]/2 or vertical_offset_in_pixels>pilatus_dim[0]:
+    #    outside_detector = True
     if debug:
         print(f'pilatus dim: {pilatus_dim}\nprimary beam position:{primary_beam_pos}\nconditions: delta={delta}, gamma = {gamma}')
         print(f'Is the calcualted spot outside the detector:{outside_detector}\nThe calculated pixel index is {pos}')
     else:
-        if outside_detector:
+        if _out_of_detector(pos):
             return []
         else:
             return pos
@@ -343,10 +350,13 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
 
-    def calculate_index_on_pilatus_image_from_cross_points_info(self, pilatus_size, pixel_size, distance_sample_detector):
+    def calculate_index_on_pilatus_image_from_cross_points_info(self, pilatus_size, pixel_size, distance_sample_detector, primary_beam_pos = None):
         PILATUS_DIM = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))
-        PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
-        self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
+        if primary_beam_pos == None:
+            PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
+            self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
+        else:
+            self.primary_beam_position = primary_beam_pos[::-1]
         if len(self.ewarld_sphere)==0:
             return
         else:
@@ -365,13 +375,16 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     #so here you need to manually differentiate the symmetry positions
                     if item_vector[0]<0:
                         gamma = -gamma
-                    index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma))
+                    index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma, primary_beam_pos = primary_beam_pos))
                 self.pixel_index_of_cross_points[each] = index_container
 
-    def calculate_index_on_pilatus_image_from_angles(self, pilatus_size, pixel_size, distance_sample_detector,angle_info):
+    def calculate_index_on_pilatus_image_from_angles(self, pilatus_size, pixel_size, distance_sample_detector,angle_info, primary_beam_pos = None):
         PILATUS_DIM = list((np.array(pilatus_size[::-1])/pixel_size[::-1]).astype(int))
-        PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
-        self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
+        if primary_beam_pos==None:
+            PRIMARY_BEAM_POS= [int(PILATUS_DIM[0]-1), int(PILATUS_DIM[1]/2)]
+            self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
+        else:
+            self.primary_beam_position = primary_beam_pos[::-1]
         if len(self.ewarld_sphere)==0:
             print("Ewarld sphere is not defined! Check it first!")
             return
@@ -384,7 +397,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 for each_item in angle_info[each]:
                     gamma, delta = each_item
                     if (not np.isnan(gamma)) and (not np.isnan(delta)):
-                        index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma))
+                        index_container.append(index_on_pilatus(pilatus_size = pilatus_size,pixel_size = pixel_size, distance_sample_detector = distance_sample_detector, delta=delta, gamma =gamma, primary_beam_pos= primary_beam_pos))
                 self.pixel_index_of_Bragg_reflections[each] = index_container
 
     def cal_simuated_2d_pixel_image(self, pilatus_size, pixel_size, gaussian_sim = False):

@@ -29,7 +29,7 @@ params = [
     {'name': 'Plot', 'type': 'group', 'children': [
         {'name': 'energy_keV', 'type': 'float', 'value': 25.0},
         {'name': 'common_offset_angle', 'type': 'float', 'value': 0},
-        {'name': 'q_inplane_lim', 'type': 'float', 'value': 10},
+        {'name': 'q_inplane_lim', 'type': 'float', 'value': 6},
         {'name': 'q_mag_lim_low', 'type': 'float', 'value': 0.00001},
         {'name': 'q_mag_lim_high', 'type': 'float', 'value': 100},
         {'name': 'plot_axes', 'type': 'bool', 'value': True},

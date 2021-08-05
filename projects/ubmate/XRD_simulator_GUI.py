@@ -91,13 +91,13 @@ class PandasModel(QtCore.QAbstractTableModel):
             if role in [QtCore.Qt.DisplayRole, QtCore.Qt.EditRole]:
                 return str(self._data.iloc[index.row(), index.column()])
             if role == QtCore.Qt.BackgroundRole and index.row()%2 == 0:
-                return QtGui.QColor('DeepSkyBlue')
-                # return QtGui.QColor('green')
+                # return QtGui.QColor('DeepSkyBlue')
+                return QtGui.QColor('green')
             if role == QtCore.Qt.BackgroundRole and index.row()%2 == 1:
-                return QtGui.QColor('aqua')
+                return QtGui.QColor('dark')
                 # return QtGui.QColor('lightGreen')
             if role == QtCore.Qt.ForegroundRole and index.row()%2 == 1:
-                return QtGui.QColor('black')
+                return QtGui.QColor('white')
             if role == QtCore.Qt.CheckStateRole and index.column()==0:
                 if self._data.iloc[index.row(),index.column()]:
                     return QtCore.Qt.Checked
@@ -174,6 +174,7 @@ class MyMainWindow(QMainWindow):
         self.structure_container = {}
         self.load_default_structure_file()
         self.pushButton_use_selected.clicked.connect(self.init_pandas_model_in_parameter)
+        self.pushButton_load_more.clicked.connect(self.open_structure_files)
         self.config = ConfigParser.RawConfigParser()
         self.config.optionxform = str # make entries in config file case sensitive
         self.base_structures = {}
@@ -183,10 +184,10 @@ class MyMainWindow(QMainWindow):
         self.trajactory_pos = []
         self.ax_simulation =None
         self.pushButton_draw.clicked.connect(lambda:self.show_structure(widget_name = 'widget_glview'))
-        self.pushButton_load.clicked.connect(self.load_config_file)
+        # self.pushButton_load.clicked.connect(self.load_config_file)
         self.pushButton_extract_in_viewer.clicked.connect(self.extract_peaks_in_zoom_viewer)
-        self.pushButton_update.clicked.connect(self.update_config_file)
-        self.pushButton_launch.clicked.connect(self.launch_config_file)
+        # self.pushButton_update.clicked.connect(self.update_config_file)
+        self.pushButton_launch.clicked.connect(self.launch_config_file_new)
         self.comboBox_names.currentIndexChanged.connect(self.update_HKs_list)
         self.comboBox_names.currentIndexChanged.connect(self.update_Bragg_peak_list)
         self.comboBox_bragg_peak.currentIndexChanged.connect(self.select_rod_based_on_Bragg_peak)
@@ -375,11 +376,16 @@ class MyMainWindow(QMainWindow):
         pixel_size = [float(self.lineEdit_pixel.text())]*2
         self.widget_mpl.canvas.figure.clear()
         ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
+        try:
+            prim_beam = eval(self.lineEdit_prim_beam_pos.text())
+        except:
+            print('Evaluation error for :{}'.format(self.lineEdit_prim_beam_pos.text()))
+            prim_beam = None
         self.widget_glview.calculate_index_on_pilatus_image_from_cross_points_info(
              pilatus_size = pilatus_size,
              pixel_size = pixel_size,
-             distance_sample_detector = float(self.lineEdit_sample_detector_distance.text())
-        )
+             distance_sample_detector = float(self.lineEdit_sample_detector_distance.text()),
+             primary_beam_pos = prim_beam)
         ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image(pilatus_size = pilatus_size, pixel_size = pixel_size, gaussian_sim = self.checkBox_gaussian_sim.isChecked()))
         for each in self.widget_glview.pixel_index_of_cross_points:
             for i in range(len(self.widget_glview.pixel_index_of_cross_points[each])):
@@ -408,13 +414,19 @@ class MyMainWindow(QMainWindow):
         self.cal_delta_gamma_angles_for_Bragg_reflections()
         pilatus_size = [float(self.lineEdit_detector_hor.text()), float(self.lineEdit_detector_ver.text())]
         pixel_size = [float(self.lineEdit_pixel.text())]*2
+        try:
+            prim_beam = eval(self.lineEdit_prim_beam_pos.text())
+        except:
+            print('Evaluation error for :{}'.format(self.lineEdit_prim_beam_pos.text()))
+            prim_beam = None
         self.widget_mpl.canvas.figure.clear()
         ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
         self.widget_glview.calculate_index_on_pilatus_image_from_angles(
              pilatus_size = pilatus_size,
              pixel_size = pixel_size,
              distance_sample_detector = float(self.lineEdit_sample_detector_distance.text()),
-             angle_info = self.Bragg_peaks_detector_angle_info
+             angle_info = self.Bragg_peaks_detector_angle_info,
+             primary_beam_pos = prim_beam
         )
         ax.imshow(self.widget_glview.cal_simuated_2d_pixel_image_Bragg_peaks(pilatus_size = pilatus_size, pixel_size = pixel_size, gaussian_sim = self.checkBox_gaussian_sim.isChecked()))
         
@@ -876,7 +888,7 @@ class MyMainWindow(QMainWindow):
 
     def open_structure_files(self):
         dir_ = QFileDialog.getExistingDirectory(None, 'Select project folder:', 'C:\\', QFileDialog.ShowDirsOnly)
-        filenames = next(walk(mypath), (None, None, []))[2]
+        filenames = next(walk(dir_), (None, None, []))[2]
         temp_dict = {}
         for file in filenames:
             if file.endswith('.str') or file.endswith('.cif'):
@@ -896,16 +908,24 @@ class MyMainWindow(QMainWindow):
         selected_items = [each.text() for each in self.listWidget_base_structures.selectedItems()]
         total = len(selected_items)
         data_ = {}
+        data_['use'] = [True]*total
         data_['ID'] = selected_items
-        data_['SN_vec'] = [[0,0,1]]*total
-        data_['x_vec'] = [[1,0,0]]*total
-        data_['x_offset'] = [0]*total
-        data_['reference'] = [True] + [False]*(total-1)
-        data_['plot_peaks'] = [True]*total
-        data_['plot_rods'] = [True]*total
-        data_['plot_grids'] = [True]*total
-        data_['plot_unitcell'] = [True]*total
-        data_['color'] = [[0.8,0.8,0]]*total
+        data_['SN_vec'] = ['[0,0,1]']*total
+        data_['x_vec'] = ['[1,0,0]']*total
+        data_['x_offset'] = ['0']*total
+        data_['reference'] = ['True'] + ['False']*(total-1)
+        data_['plot_peaks'] = ['True']*total
+        data_['plot_rods'] = ['True']*total
+        data_['plot_grids'] = ['True']*total
+        data_['plot_unitcell'] = ['True']*total
+        if total==1:
+            data_['color'] = ['[0.8,0.8,0]']*total
+        elif total == 2:
+            data_['color'] = ['[0.8,0.8,0]','[0.,0.8,0]']
+        elif total == 3:
+             data_['color'] = ['[0.8,0.8,0]','[0.,0.8,0]','[0.,0.8,0.8]']
+        else:
+            data_['color'] = ['[0.8,0.8,0]']*total
         self.pandas_model_in_parameter = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_used_structures, main_gui = self)
         self.tableView_used_structures.setModel(self.pandas_model_in_parameter)
         self.tableView_used_structures.resizeColumnsToContents()
@@ -945,9 +965,9 @@ class MyMainWindow(QMainWindow):
         self.lineEdit_eng_ref1.setText(str(self.energy_keV))
         self.lineEdit_eng_ref2.setText(str(self.energy_keV))
         self.k0 = rsp.get_k0(self.energy_keV)
-        self.load_base_structures()
+        #self.load_base_structures()
         self.load_structures()
-        self.update_draw_limits()
+        self.update_draw_limits_new()
         self.prepare_objects_for_render()
         self.UB_INDEX += 1
         self.ub.newub('current_ub_{}'.format(self.UB_INDEX))
@@ -957,12 +977,67 @@ class MyMainWindow(QMainWindow):
         self.dc.setu([[1,0,0],[0,1,0],[0,0,1]])
         self.set_cons()
 
-    def load_base_structures(self):
-        pass
-
     def load_structures(self):
-        pass
+        self.base_structures = {}
+        self.structures = []
+        ids = self.pandas_model_in_parameter._data[self.pandas_model_in_parameter._data['use']]['ID'].tolist()
+        for id in ids:
+            file_path = self.structure_container[id]
+            if id.endswith('.cif'):
+                self.base_structures[id] = Base_Structure.from_cif(id, file_path)
+                self.structures.append(self._extract_structure(id))
+            elif id.endswith('.str'):
+                with open(file_path) as f:
+                    lines = f.readlines()
+                    for line in lines:
+                        #comment lines heading with # are ignore
+                        if not line.startswith('#'):
+                            toks = line.strip().split(',')
+                            a = float(toks[0])
+                            b = float(toks[1])
+                            c = float(toks[2])
+                            alpha = float(toks[3])
+                            beta = float(toks[4])
+                            gamma = float(toks[5])
+                            basis = []
+                            for i in range(6, len(toks)):
+                                toks2 = toks[i].split(';')
+                                basis.append([toks2[0], float(toks2[1]), float(toks2[2]), float(toks2[3])])
+                            self.base_structures[id] = Base_Structure(id,a,b,c,alpha,beta,gamma,basis)
+                self.structures.append(self._extract_structure(id))
+            else:
+                error_pop_up('File not in right format. It should be either cif or str file.')
+        names = ids
+        self.comboBox_names.clear()
+        self.comboBox_working_substrate.clear()
+        self.comboBox_reference_substrate.clear()
+        self.comboBox_substrate.clear()
+        # self.comboBox_names.addItems(names)
+        self.comboBox_working_substrate.addItems(names)
+        self.comboBox_reference_substrate.addItems(names)
+        self.comboBox_substrate.addItems(names)
+        # put reference structure at first position in list
+        for i in range(len(self.structures)):
+            if(self.structures[i].is_reference_coordinate_system):
+                self.structures[0], self.structures[i] = self.structures[i], self.structures[0]
+                break
 
+    def _extract_structure(self, id):
+        data = self.pandas_model_in_parameter._data
+        data = data[data['ID']==id]
+        HKL_normal = eval(data['SN_vec'].iloc[0])
+        HKL_para_x = eval(data['x_vec'].iloc[0])
+        offset_angle = float(data['x_offset'].iloc[0]) + self.common_offset_angle
+        is_reference_coordinate_system = eval(data['reference'].iloc[0])
+        plot_peaks =  eval(data['plot_peaks'].iloc[0])
+        plot_rods = eval(data['plot_rods'].iloc[0])
+        plot_grid = eval(data['plot_grids'].iloc[0])
+        plot_unitcell = eval(data['plot_unitcell'].iloc[0])
+        #print(type(data['color'].iloc[0]),data['color'].iloc[0])
+        color = eval(data['color'].iloc[0])
+        return Structure(self.base_structures[id], HKL_normal, HKL_para_x, offset_angle, is_reference_coordinate_system, plot_peaks, plot_rods, plot_grid, plot_unitcell, color, id, self.energy_keV)
+
+    #old config loader
     def load_base_structures_in_config(self):
         # read from settings file
         self.base_structures = {}
@@ -986,6 +1061,7 @@ class MyMainWindow(QMainWindow):
                     basis.append([toks2[0], float(toks2[1]), float(toks2[2]), float(toks2[3])])
                 self.base_structures[id] = Base_Structure(id,a,b,c,alpha,beta,gamma,basis)
 
+    #old structure config loader
     def load_structures_in_config(self):
         self.structures = []
         names = []
@@ -1033,6 +1109,45 @@ class MyMainWindow(QMainWindow):
         qz_lim_high = self.config.get('Plot', 'qz_lim_high')
         q_mag_lim_low = self.config.get('Plot', 'q_mag_lim_low')
         q_mag_lim_high = self.config.get('Plot', 'q_mag_lim_high')
+
+        self.q_inplane_lim = None if q_inplane_lim == 'None' else float(q_inplane_lim)
+        qx_lim_low = None if qx_lim_low == 'None' else float(qx_lim_low)
+        qx_lim_high = None if qx_lim_high == 'None' else float(qx_lim_high)
+        qy_lim_low = None if qy_lim_low == 'None' else float(qy_lim_low)
+        qy_lim_high = None if qy_lim_high == 'None' else float(qy_lim_high)
+        qz_lim_low = None if qz_lim_low == 'None' else float(qz_lim_low)
+        qz_lim_high = None if qz_lim_high == 'None' else float(qz_lim_high)
+        q_mag_lim_low = None if q_mag_lim_low == 'None' else float(q_mag_lim_low)
+        q_mag_lim_high = None if q_mag_lim_high == 'None' else float(q_mag_lim_high)
+
+        if qz_lim_high == None:
+            self.qz_lim_high = 5
+        else:
+            self.qz_lim_high = qz_lim_high
+
+        self.qx_lims = [qx_lim_low, qx_lim_high]
+        if(self.qx_lims[0] == None or self.qx_lims[1] == None):
+            self.qx_lims = None
+        self.qy_lims = [qy_lim_low, qy_lim_high]
+        if(self.qy_lims[0] == None or self.qy_lims[1] == None):
+            self.qy_lims = None
+        self.qz_lims = [qz_lim_low, qz_lim_high]
+        if(self.qz_lims[0] == None or self.qz_lims[1] == None):
+            self.qz_lims = None
+        self.mag_q_lims = [q_mag_lim_low, q_mag_lim_high]
+        if(self.mag_q_lims[0] == None or self.mag_q_lims[1] == None):
+            self.mag_q_lims = None
+
+    def update_draw_limits_new(self):
+        q_inplane_lim = self.widget_config.par.names['Plot'].names['q_inplane_lim'].value()
+        qx_lim_low = self.widget_config.par.names['Plot'].names['qx_lim_low'].value()
+        qx_lim_high = self.widget_config.par.names['Plot'].names['qx_lim_high'].value()
+        qy_lim_low = self.widget_config.par.names['Plot'].names['qy_lim_low'].value()
+        qy_lim_high = self.widget_config.par.names['Plot'].names['qy_lim_high'].value()
+        qz_lim_low = self.widget_config.par.names['Plot'].names['qz_lim_low'].value()
+        qz_lim_high = self.widget_config.par.names['Plot'].names['qz_lim_high'].value()
+        q_mag_lim_low = self.widget_config.par.names['Plot'].names['q_mag_lim_low'].value()
+        q_mag_lim_high = self.widget_config.par.names['Plot'].names['q_mag_lim_high'].value()
 
         self.q_inplane_lim = None if q_inplane_lim == 'None' else float(q_inplane_lim)
         qx_lim_low = None if qx_lim_low == 'None' else float(qx_lim_low)
