@@ -247,7 +247,10 @@ class lattice():
         # positions will give the full unit cell.
 
         basis = []
-        sym_pos_arr = data.GetLoop('_symmetry_equiv_pos_as_xyz')
+        try:
+            sym_pos_arr = data.GetLoop('_symmetry_equiv_pos_as_xyz')
+        except:
+            sym_pos_arr = data.GetLoop('_space_group_symop_operation_xyz')
         for sym_pos in sym_pos_arr:
             # Some CIF files use the format
             # x,y,z
