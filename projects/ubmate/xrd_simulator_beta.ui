@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>960</height>
+    <height>1050</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -33,8 +33,13 @@
          <height>16777215</height>
         </size>
        </property>
+       <property name="font">
+        <font>
+         <pointsize>13</pointsize>
+        </font>
+       </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -1598,6 +1603,160 @@
          </item>
         </layout>
        </widget>
+       <widget class="QWidget" name="tab_10">
+        <attribute name="title">
+         <string>surfUnitCell</string>
+        </attribute>
+        <layout class="QVBoxLayout" name="verticalLayout_12">
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_16">
+           <item>
+            <widget class="QLabel" name="label_2">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Substrate</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QComboBox" name="comboBox_substrate_surfuc"/>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_21">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>HKL plane</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_hkl">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>[1,1,1]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_79">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Surface slab number</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSpinBox" name="spinBox_slab_num">
+             <property name="minimum">
+              <number>1</number>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_22">
+           <property name="text">
+            <string>Transformation Matrix to primitive cell</string>
+           </property>
+          </widget>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_19">
+           <item>
+            <widget class="QLineEdit" name="lineEdit_TM">
+             <property name="text">
+              <string>[[1,0,0],[0,1,0],[0,0,1]]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton_generate">
+             <property name="text">
+              <string>Generate</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <widget class="QTextEdit" name="textEdit_info"/>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_18">
+           <item>
+            <widget class="QLabel" name="label_82">
+             <property name="text">
+              <string>Save folder</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_save_folder"/>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_17">
+           <item>
+            <widget class="QLabel" name="label_80">
+             <property name="text">
+              <string>Bulk file name</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_bulk">
+             <property name="text">
+              <string>bulk.str</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_81">
+             <property name="text">
+              <string>Surface file name</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit_surface">
+             <property name="text">
+              <string>surface.str</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QPushButton" name="pushButton">
+             <property name="text">
+              <string>SaveFiles</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+        </layout>
+       </widget>
        <widget class="QWidget" name="tab_9">
         <attribute name="title">
          <string>Diffractometer</string>
@@ -1629,17 +1788,20 @@
           </widget>
          </item>
          <item>
-          <spacer name="verticalSpacer_2">
-           <property name="orientation">
-            <enum>Qt::Vertical</enum>
+          <widget class="QPlainTextEdit" name="plainTextEdit">
+           <property name="font">
+            <font>
+             <pointsize>15</pointsize>
+            </font>
            </property>
-           <property name="sizeHint" stdset="0">
-            <size>
-             <width>20</width>
-             <height>40</height>
-            </size>
+           <property name="plainText">
+            <string>The laboratory frame is shown above (H.You, 1999). With all motor angles set to zero as shown the crystal Cartesian frame aligns with the laboratory frame. Therefore a cubic crystal mounted squarely in a way that the U matrix (defined below) is unitary will have h||a||x, k||b||y &amp; l||c||z, crystal and reciprocal-lattice coordinate frames are defined with respect to the beam and to gravity to be (for a cubic crystal).
+
+Before moving in hkl space you must calculate a UB matrix by specifying the crystal’s lattice parameters (which define the B matrix) and finding two reflections (from which the U matrix defining any mismount can be inferred); and, optionally for surface-diffraction experiments, determine how the surface of the crystal is oriented with respect to the phi axis.
+
+Once a UB matrix has been calculated, the diffractometer may be driven in hkl coordinates. A valid diffractometer setting maps easily into a single hkl value. However for a diffractometer with more than three circles there are excess degrees of freedom when calculating a diffractometer setting from an hkl value. Diffcalc provides modes for using up the excess degrees of freedom.</string>
            </property>
-          </spacer>
+          </widget>
          </item>
         </layout>
        </widget>
@@ -2225,7 +2387,7 @@
      <x>0</x>
      <y>0</y>
      <width>1920</width>
-     <height>21</height>
+     <height>24</height>
     </rect>
    </property>
   </widget>

@@ -23,6 +23,7 @@ sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 sys.path.append(os.path.join(DaFy_path,'projects','orcalc'))
+sys.path.append(os.path.join(script_path,'xtal'))
 from UtilityFunctions import timer_placer
 import pandas as pd
 import time
@@ -35,7 +36,9 @@ except:
     import configparser as ConfigParser
 import sys,os
 import reciprocal_space_v5 as rsp
-
+#api for surface unit cell generator
+from xtal.unitcell import read_cif, write_cif
+from xtal.surface import SurfaceCell
 #diffcalc api funcs setup
 import diffcalc.util
 diffcalc.util.DEBUG = True
@@ -239,6 +242,8 @@ class MyMainWindow(QMainWindow):
         self.comboBox_UB.currentTextChanged.connect(self.display_UB)
         self.pushButton_update_ub.clicked.connect(self.set_UB_matrix)
         self.pushButton_cal_ub.clicked.connect(self.add_refs)
+        #surface unit cell generator
+        self.pushButton_generate.clicked.connect(self.generate_surface_unitcell_info)
         #display diffractometer geometry figure
         
         image = imageio.imread(os.path.join(script_path, 'pics', '4s_2d_diffractometer.png'))
@@ -271,6 +276,21 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    def generate_surface_unitcell_info(self):
+        uc = read_cif(self.structure_container[self.comboBox_substrate_surfuc.currentText()])
+        ### this computes the surface cell.  note we pass the TM
+        ### matrix so that the bulk hexagonal cell is transformed to a
+        ### rhombahedral primitive cell before trying to find the surface
+        ### indexing (ie, we want to find the mimimum surface unit cell) 
+        #hexagonal to rhombahedral TM [[2/3, 1/3, 1/3], [-1/3, 1/3, 1/3], [-1/3, -2/3, 1/3]]
+        #fcc to rhombahedral TM [[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]
+        TM_ = eval(self.lineEdit_TM.text())
+        self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=+1,bulk_trns=np.array(TM_))
+        self.textEdit_info.setText(self.surf._write())
+
+    def save_structure_files(self):
+        pass
 
     def show_or_hide_constraints(self):
         if self.frame_constraints.isHidden():
@@ -1012,10 +1032,12 @@ class MyMainWindow(QMainWindow):
         self.comboBox_working_substrate.clear()
         self.comboBox_reference_substrate.clear()
         self.comboBox_substrate.clear()
+        self.comboBox_substrate_surfuc.clear()
         # self.comboBox_names.addItems(names)
         self.comboBox_working_substrate.addItems(names)
         self.comboBox_reference_substrate.addItems(names)
         self.comboBox_substrate.addItems(names)
+        self.comboBox_substrate_surfuc.addItems(names)
         # put reference structure at first position in list
         for i in range(len(self.structures)):
             if(self.structures[i].is_reference_coordinate_system):
@@ -1089,10 +1111,12 @@ class MyMainWindow(QMainWindow):
         self.comboBox_working_substrate.clear()
         self.comboBox_reference_substrate.clear()
         self.comboBox_substrate.clear()
+        self.comboBox_working_substrate.clear()
         # self.comboBox_names.addItems(names)
         self.comboBox_working_substrate.addItems(names)
         self.comboBox_reference_substrate.addItems(names)
         self.comboBox_substrate.addItems(names)
+        self.comboBox_working_substrate.addItems(names)
         # put reference structure at first position in list
         for i in range(len(self.structures)):
             if(self.structures[i].is_reference_coordinate_system):
