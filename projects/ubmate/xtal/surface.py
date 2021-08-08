@@ -130,6 +130,8 @@ References:
 """
 ##########################################################################
 import numpy as num
+import numpy as np
+import pandas as pd
 import copy
 from xtal import lattice
 from xtal import unitcell
@@ -221,6 +223,33 @@ class SurfaceCell:
             lout = lout + "\n"
         return lout
 
+    def _write_pandas_df(self):
+        lout = '<p>{}</p>'.format("Bulk unit cell\n")
+        lout = lout + '<p>{}</p>'.format(repr(self.bulk_uc.lattice))
+        #lout = lout + repr(self.bulk_uc)
+        lout = lout + '<p>{}</p>'.format("\nSurface plane = %s, nd=%i\n" % (repr(self.hkl), self.nd))
+        lout = lout + '<p>{}</p>'.format("  Va = %s\n" % repr(self.Va))
+        lout = lout + '<p>{}</p>'.format("  Vb = %s\n" % repr(self.Vb))
+        lout = lout + '<p>{}</p>'.format("  Vc = %s\n" % repr(self.Vc))
+        lout = lout + '<p>{}</p>'.format("  Vr = %s\n" % repr(self.Vr))
+        lout = lout + '<p>{}</p>'.format("  Vr_s = %s\n" % repr(self.Vr_s))
+        lout = lout + '<p>{}</p>'.format("\nSurface unit cell\n")
+        lout = lout + '<p>{}</p>'.format(repr(self.lattice))
+        lout = lout + '<p>{}</p>'.format("\nP1 surface cell (surface fractional coords)\n")+'<hr />'
+
+        labels = ['atm_id', 'atm_el','x_frg','y_frg','z_frg','Biso','occ','mult','type']
+        results_slab = {'atm_id':list(self.p1term.labels[::-1]) + list(self.p1bulk.labels[::-1]),
+                        'atm_el':list(self.p1term.atsym[::-1]) + list(self.p1bulk.atsym[::-1]),
+                        'x_frg':list(self.p1term.coords[:,0][::-1]) + list(self.p1bulk.coords[:,0][::-1]),
+                        'y_frg':list(self.p1term.coords[:,1][::-1]) + list(self.p1bulk.coords[:,1][::-1]),
+                        'z_frg':list(self.p1term.coords[:,2][::-1]) + list(self.p1bulk.coords[:,2][::-1]),
+                        'Biso':list(self.p1term.Uiso[::-1]) + list(self.p1bulk.Uiso[::-1]),
+                        'occ':list(self.p1term.occ[::-1])+list(self.p1bulk.occ[::-1]),
+                        'mult':[1]*(self.p1term.natoms+self.p1bulk.natoms),
+                        'type':['surface']*self.p1term.natoms + ['bulk']*self.p1bulk.natoms}
+        result_df = pd.DataFrame(results_slab, columns = labels)
+        return lout, result_df
+        
     def show(self,long_fmt=True):
         """
         write summary to std out

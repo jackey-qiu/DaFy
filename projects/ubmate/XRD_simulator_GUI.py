@@ -287,7 +287,8 @@ class MyMainWindow(QMainWindow):
         #fcc to rhombahedral TM [[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]
         TM_ = eval(self.lineEdit_TM.text())
         self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=+1,bulk_trns=np.array(TM_))
-        self.textEdit_info.setText(self.surf._write())
+        info, data = self.surf._write_pandas_df()
+        self.textEdit_info.setHtml(info + data.to_html(index = False))
 
     def save_structure_files(self):
         pass
@@ -918,6 +919,8 @@ class MyMainWindow(QMainWindow):
 
     def update_list_widget(self):
         self.listWidget_base_structures.addItems(list(self.structure_container.keys()))
+        self.comboBox_substrate_surfuc.clear()
+        self.comboBox_substrate_surfuc.addItems(list(self.structure_container.keys()))
 
     def update_config_file(self):
         with open(self.lineEdit_config_path.text(),'w') as f:
@@ -1032,12 +1035,12 @@ class MyMainWindow(QMainWindow):
         self.comboBox_working_substrate.clear()
         self.comboBox_reference_substrate.clear()
         self.comboBox_substrate.clear()
-        self.comboBox_substrate_surfuc.clear()
+        # self.comboBox_substrate_surfuc.clear()
         # self.comboBox_names.addItems(names)
         self.comboBox_working_substrate.addItems(names)
         self.comboBox_reference_substrate.addItems(names)
         self.comboBox_substrate.addItems(names)
-        self.comboBox_substrate_surfuc.addItems(names)
+        # self.comboBox_substrate_surfuc.addItems(names)
         # put reference structure at first position in list
         for i in range(len(self.structures)):
             if(self.structures[i].is_reference_coordinate_system):
