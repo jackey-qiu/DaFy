@@ -142,7 +142,7 @@ class SurfaceCell:
     """
     Surface unit cell class
     """
-    def __init__(self,bulk_uc,hkl=None,nd=1,term=0,bulk_trns=None):
+    def __init__(self,bulk_uc,hkl=None,nd=1,term=0,bulk_trns=None, use_tradition = False):
         """
         * bulk_cell: UnitCell object defining the bulk unit cell
         * hkl: surface indicies (in the bulk unit cell indexing)
@@ -153,6 +153,8 @@ class SurfaceCell:
                     primitive.  Use this so the surface lattice search 
                     finds the smallest set of lattice vectors to define 
                     the surface unit cell (for non-primitive bulk lattice)
+        *use_tradition: if true Vc will end at one lattice point
+                        if False Vc is determined by d vector, which not necessarliy ends at a lattice point
         """
         self._description = "Surface"
         self.verbose = True
@@ -172,6 +174,7 @@ class SurfaceCell:
         self.lattice   = None      # lattice object defined for surface coordinated system
         self.p1bulk    = None      # AtomList with the P1 bulk unit cell atoms (in surface coords)
         self.p1term    = None      # AtomList with the P1 termination unit cell atoms (in surface coords)
+        self.use_tradition = use_tradition
 
         if bulk_trns is not None:
             self.bulk_trns = num.array(bulk_trns)
@@ -334,8 +337,11 @@ class SurfaceCell:
         self.nd  = int(abs(nd))
         # compute possible vectors
         self._surface_vectors()
-        # Vc is surface normal direction
-        Vc = self.nd*blat.dvec(self.hkl)
+        if not self.use_tradition:
+            # Vc is surface normal direction
+            Vc = self.nd*blat.dvec(self.hkl)
+        else:
+            Vc = num.array(self.Vc_lst[0,:3])
         # make sure Va and Vb are in-plane and right handed
         check = blat.cross(Va,Vb)
         if blat.angle(Vc,check) > 0.001:
@@ -366,22 +372,27 @@ class SurfaceCell:
         self.nd  = int(abs(nd))
         # compute possible vectors
         self._surface_vectors()
-        # Vc is surface normal direction
-        Vc = self.nd*blat.dvec(self.hkl)
-        Vc = num.around(Vc,decimals=5)
+        if not self.use_tradition:
+            # Vc is surface normal direction
+            Vc = self.nd*blat.dvec(self.hkl)
+            Vc = num.around(Vc,decimals=5)
+        else:
+            Vc = num.array(self.Vc_lst[0,:3])
         # Va is smallest in-plane
         Va = self.Vs_lst[0,:3]
+
         # Vb is next smallest in-plane (non-colinear with Va)
         # that makes a right handed system
         for j in range(1,len(self.Vs_lst)):
             ang = blat.angle(self.Vs_lst[j,:3], Va)
+                
             if  (ang > 0.) and (ang < 180.):
                 Vb = self.Vs_lst[j,:3]
                 # if right handed system
                 # the angle btwn (Va x Vb) and Vc
                 # should be zero
                 check = blat.cross(Va,Vb)
-                if blat.angle(Vc,check) < 0.001:
+                if blat.angle(num.around(self.nd*blat.dvec(self.hkl),decimals = 5),check) < 0.001:
                     break
         # Vr is repeat with smallest angle
         Vr = self.Vr_lst[0,:3]
@@ -425,7 +436,7 @@ class SurfaceCell:
         d  = lat.dvec(hkl)
         # find in-plane vectors and repeat vectors
         # note the search range is controlled by vrange below 
-        Vs_tmp=[]; Vr_tmp=[]
+        Vs_tmp=[]; Vr_tmp=[]; Vc_t=[]
         #vrange = list(range(-4,5))
         vrange = list(range(-3*nd,3*nd+1))
         for n1 in vrange:
@@ -444,6 +455,10 @@ class SurfaceCell:
                         v_mag = lat.mag([n1, n2, n3])
                         v_ang = lat.angle([n1, n2, n3],-nd*d)
                         Vr_tmp.append([n1, n2, n3, v_mag, temp, v_ang])
+                    elif temp == 1*nd:
+                        v_mag = lat.mag([n1, n2, n3])
+                        v_ang = lat.angle([n1, n2, n3],nd*d)
+                        Vc_t.append([n1, n2, n3, v_mag, temp, v_ang])
         # sort Vs_tmp according to magnitude
         Vs_tmp = num.array(Vs_tmp,dtype=float)
         idx = num.argsort(Vs_tmp[:,3])
@@ -460,15 +475,26 @@ class SurfaceCell:
             x = Vr_tmp[idx[j],:]
             Vr.append(x)
         Vr = num.array(Vr)
+
+        Vc_t = num.array(Vc_t,dtype=float)
+        idx = num.argsort(Vc_t[:,5])
+        Vc = []
+        for j in range(0,len(idx)):
+            x = Vr_tmp[idx[j],:]
+            Vc.append(x)
+        Vc = num.array(Vc)
         # if there was a transform, go back to the original system
         if self.bulk_trns is not None:
             for j in range(len(Vs)):
                 Vs[j,:3] = trns.v(Vs[j,:3])
             for j in range(len(Vr)):
                 Vr[j,:3] = trns.v(Vr[j,:3])
+            for j in range(len(Vc)):
+                Vc[j,:3] = trns.v(Vc[j,:3])
         # done
         self.Vs_lst = Vs
         self.Vr_lst = Vr
+        self.Vc_lst = Vc
 
     def _calc_transform(self):
         """

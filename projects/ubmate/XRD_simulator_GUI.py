@@ -286,7 +286,7 @@ class MyMainWindow(QMainWindow):
         #hexagonal to rhombahedral TM [[2/3, 1/3, 1/3], [-1/3, 1/3, 1/3], [-1/3, -2/3, 1/3]]
         #fcc to rhombahedral TM [[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]
         TM_ = eval(self.lineEdit_TM.text())
-        self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=+1,bulk_trns=np.array(TM_))
+        self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=self.spinBox_term.value(),bulk_trns=np.array(TM_),use_tradition = self.checkBox_use_tradition.isChecked())
         info, data = self.surf._write_pandas_df()
         self.textEdit_info.setHtml(info + data.to_html(index = False))
 

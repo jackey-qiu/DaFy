@@ -1624,7 +1624,14 @@
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="comboBox_substrate_surfuc"/>
+            <widget class="QComboBox" name="comboBox_substrate_surfuc">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
            </item>
            <item>
             <widget class="QLabel" name="label_21">
@@ -1642,13 +1649,50 @@
            <item>
             <widget class="QLineEdit" name="lineEdit_hkl">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="text">
               <string>[1,1,1]</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_use_tradition">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>use_tradition</string>
+             </property>
+            </widget>
+           </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_20">
+           <item>
+            <widget class="QLabel" name="label_83">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+             <property name="text">
+              <string>Termination number</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QSpinBox" name="spinBox_term">
+             <property name="minimum">
+              <number>0</number>
              </property>
             </widget>
            </item>
@@ -1791,7 +1835,7 @@
           <widget class="QPlainTextEdit" name="plainTextEdit">
            <property name="font">
             <font>
-             <pointsize>15</pointsize>
+             <pointsize>13</pointsize>
             </font>
            </property>
            <property name="plainText">
