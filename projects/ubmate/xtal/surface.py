@@ -341,7 +341,7 @@ class SurfaceCell:
             # Vc is surface normal direction
             Vc = self.nd*blat.dvec(self.hkl)
         else:
-            Vc = num.array(self.Vc_lst[0,:3])
+            Vc = num.array(self.Vr_lst[0,:3])
         # make sure Va and Vb are in-plane and right handed
         check = blat.cross(Va,Vb)
         if blat.angle(Vc,check) > 0.001:
@@ -377,7 +377,7 @@ class SurfaceCell:
             Vc = self.nd*blat.dvec(self.hkl)
             Vc = num.around(Vc,decimals=5)
         else:
-            Vc = num.array(self.Vc_lst[0,:3])
+            Vc = num.array(self.Vr_lst[0,:3])
         # Va is smallest in-plane
         Va = self.Vs_lst[0,:3]
 
@@ -396,8 +396,12 @@ class SurfaceCell:
                     break
         # Vr is repeat with smallest angle
         Vr = self.Vr_lst[0,:3]
-        self.Va = Va
-        self.Vb = Vb
+        if self.use_tradition:
+            self.Va = Vb
+            self.Vb = Va
+        else:
+            self.Va = Va
+            self.Vb = Vb
         self.Vc = Vc
         self.Vr = Vr
         self._calc_transform()
