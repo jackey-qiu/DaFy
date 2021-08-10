@@ -1013,8 +1013,8 @@ class MyMainWindow(QMainWindow):
         self.prepare_objects_for_render()
         self.UB_INDEX += 1
         self.ub.newub('current_ub_{}'.format(self.UB_INDEX))
-        bs = self.structures[0].base_structure
-        self.ub.setlat('Triclinic',bs.a,bs.b,bs.c,bs.alpha,bs.beta,bs.gamma)
+        lat_temp = self.structures[0].lattice
+        self.ub.setlat('Triclinic',lat_temp.a,lat_temp.b,lat_temp.c,np.rad2deg(lat_temp.alpha),np.rad2deg(lat_temp.beta),np.rad2deg(lat_temp.gamma))
         self.hardware.settings.hardware.energy = self.energy_keV
         self.dc.setu([[1,0,0],[0,1,0],[0,0,1]])
         self.set_cons()

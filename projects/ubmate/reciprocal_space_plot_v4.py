@@ -116,7 +116,7 @@ class space_plot():
         F = self.lattice.F_many(HKLs, qs)
         I = (F*F.conjugate()).real/I0
 
-        indx = np.where(I > 1e-10)
+        indx = np.where(I > 1e-18)
         Is = I[indx]
         qs = qs[indx]
         HKLs = HKLs[indx]

@@ -204,7 +204,6 @@ class lattice():
         alpha = override_alpha if override_alpha else float(strip_brackets(data['_cell_angle_alpha']))
         beta = override_beta if override_beta else float(strip_brackets(data['_cell_angle_beta']))
         gamma = override_gamma if override_gamma else float(strip_brackets(data['_cell_angle_gamma']))
-
         #a = float(strip_brackets(data['_cell_length_a']))
         #b = float(strip_brackets(data['_cell_length_b']))
         #c = float(strip_brackets(data['_cell_length_c']))
