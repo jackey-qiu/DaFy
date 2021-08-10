@@ -176,6 +176,8 @@ class MyMainWindow(QMainWindow):
         #config parser
         self.structure_container = {}
         self.load_default_structure_file()
+        self.lineEdit_save_folder.setText(os.path.join(script_path,'cif'))
+        self.comboBox_substrate_surfuc.currentIndexChanged.connect(self.update_file_names)
         self.pushButton_use_selected.clicked.connect(self.init_pandas_model_in_parameter)
         self.pushButton_load_more.clicked.connect(self.open_structure_files)
         self.config = ConfigParser.RawConfigParser()
@@ -244,6 +246,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_cal_ub.clicked.connect(self.add_refs)
         #surface unit cell generator
         self.pushButton_generate.clicked.connect(self.generate_surface_unitcell_info)
+        self.pushButton_save_files.clicked.connect(self.save_structure_files)
         #display diffractometer geometry figure
         
         image = imageio.imread(os.path.join(script_path, 'pics', '4s_2d_diffractometer.png'))
@@ -277,6 +280,10 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
 
+    def update_file_names(self):
+        self.lineEdit_bulk.setText('{}_bulk.str'.format(self.comboBox_substrate_surfuc.currentText()))
+        self.lineEdit_surface.setText('{}_surface.str'.format(self.comboBox_substrate_surfuc.currentText()))
+
     def generate_surface_unitcell_info(self):
         uc = read_cif(self.structure_container[self.comboBox_substrate_surfuc.currentText()])
         ### this computes the surface cell.  note we pass the TM
@@ -286,12 +293,16 @@ class MyMainWindow(QMainWindow):
         #hexagonal to rhombahedral TM [[2/3, 1/3, 1/3], [-1/3, 1/3, 1/3], [-1/3, -2/3, 1/3]]
         #fcc to rhombahedral TM [[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]
         TM_ = eval(self.lineEdit_TM.text())
-        self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=self.spinBox_term.value(),bulk_trns=np.array(TM_),use_tradition = self.checkBox_use_tradition.isChecked())
+        self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=self.spinBox_term.value(),bulk_trns=np.array(TM_),use_tradition = self.checkBox_use_tradition.isChecked(), z_start_from_0 = self.checkBox_from_zero.isChecked())
         info, data = self.surf._write_pandas_df()
         self.textEdit_info.setHtml(info + data.to_html(index = False))
 
     def save_structure_files(self):
-        pass
+        try:
+            self.surf._generate_structure_files(os.path.join(self.lineEdit_save_folder.text(),self.lineEdit_bulk.text()),os.path.join(self.lineEdit_save_folder.text(),self.lineEdit_surface.text()))
+            error_pop_up('Success in saving structure files in {}'.format(self.lineEdit_save_folder.text()),'Information')
+        except:
+            error_pop_up('Failure to save structure files')
 
     def show_or_hide_constraints(self):
         if self.frame_constraints.isHidden():

@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>4</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -1716,6 +1716,13 @@
              </property>
             </widget>
            </item>
+           <item>
+            <widget class="QCheckBox" name="checkBox_from_zero">
+             <property name="text">
+              <string>Surface_z_from_zero</string>
+             </property>
+            </widget>
+           </item>
           </layout>
          </item>
          <item>
@@ -1791,7 +1798,7 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="pushButton">
+            <widget class="QPushButton" name="pushButton_save_files">
              <property name="text">
               <string>SaveFiles</string>
              </property>

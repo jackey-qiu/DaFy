@@ -142,7 +142,7 @@ class SurfaceCell:
     """
     Surface unit cell class
     """
-    def __init__(self,bulk_uc,hkl=None,nd=1,term=0,bulk_trns=None, use_tradition = False):
+    def __init__(self,bulk_uc,hkl=None,nd=1,term=0,bulk_trns=None, use_tradition = False, z_start_from_0 = False):
         """
         * bulk_cell: UnitCell object defining the bulk unit cell
         * hkl: surface indicies (in the bulk unit cell indexing)
@@ -175,6 +175,7 @@ class SurfaceCell:
         self.p1bulk    = None      # AtomList with the P1 bulk unit cell atoms (in surface coords)
         self.p1term    = None      # AtomList with the P1 termination unit cell atoms (in surface coords)
         self.use_tradition = use_tradition
+        self.z_start_from_0 = z_start_from_0
 
         if bulk_trns is not None:
             self.bulk_trns = num.array(bulk_trns)
@@ -253,6 +254,23 @@ class SurfaceCell:
         result_df = pd.DataFrame(results_slab, columns = labels)
         return lout, result_df
         
+    def _generate_structure_files(self,bulk_file_name, surface_file_name):
+        labels = ['atm_id', 'atm_el','x_frg','y_frg','z_frg','Biso','occ','mult','type']
+        results_slab = {'atm_id':list(map(lambda x:x.replace(':','_'),list(self.p1term.labels[::-1]) + list(self.p1bulk.labels[::-1]))),
+                        'atm_el':list(self.p1term.atsym[::-1]) + list(self.p1bulk.atsym[::-1]),
+                        'x_frg':list(self.p1term.coords[:,0][::-1]) + list(self.p1bulk.coords[:,0][::-1]),
+                        'y_frg':list(self.p1term.coords[:,1][::-1]) + list(self.p1bulk.coords[:,1][::-1]),
+                        'z_frg':list(self.p1term.coords[:,2][::-1]) + list(self.p1bulk.coords[:,2][::-1]),
+                        'Biso':list(self.p1term.Uiso[::-1]) + list(self.p1bulk.Uiso[::-1]),
+                        'occ':list(self.p1term.occ[::-1])+list(self.p1bulk.occ[::-1]),
+                        'mult':[1]*(self.p1term.natoms+self.p1bulk.natoms),
+                        'type':['surface']*self.p1term.natoms + ['bulk']*self.p1bulk.natoms}
+        result_df = pd.DataFrame(results_slab, columns = labels)
+        df_bulk = result_df.loc[self.p1term.natoms:]
+        df_surface = result_df.loc[0:self.p1term.natoms]
+        df_bulk.to_csv(bulk_file_name, columns = labels[:-1],header = '#'+','.join(labels[:-1]), index = False)
+        df_surface.to_csv(surface_file_name, columns = labels[:-1], header = '#'+','.join(labels[:-1]), index = False)
+
     def show(self,long_fmt=True):
         """
         write summary to std out
@@ -586,6 +604,7 @@ class SurfaceCell:
         """
         get termination P1 cell (in surface coordinates)
         """
+        z_start_from_0 = self.z_start_from_0
         term = int(term)
         self.term = term
         # make sure bulk coords are in ascending order (should be already).  
@@ -623,7 +642,7 @@ class SurfaceCell:
             Vr = self.Vr_s
         else:
             Vr = -1.*self.Vr_s
-        idx1=0; idx2=0; n=1.
+        idx1=0; idx2=0; n=1.*int(not z_start_from_0)
         for j in range(nlayer):
             if idx1 == len(layer_idx): idx1=0
             for i in layer_idx[idx1]:
@@ -635,7 +654,7 @@ class SurfaceCell:
                 Uiso[idx2]     = self.p1bulk.Uiso[i]
                 Uaniso[idx2,:] = self.p1bulk.Uaniso[i,:]
                 idx2 += 1
-                n = ( idx2 // self.p1bulk.natoms ) + 1 
+                n = ( idx2 // self.p1bulk.natoms ) + 1*int(not z_start_from_0)
             idx1 += 1
         # check x,y in cell bounds
         for j in range(len(coords[:,0])):
