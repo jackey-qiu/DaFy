@@ -224,9 +224,9 @@ class lattice():
         fractzs = atom_sites['_atom_site_fract_z']
 
         for i in range(len(elnames)):
-            # In some files, the atoms have names like 'Co1', 'O1', 'O2',
-            # and we need to strip the numbers to get the element name.
-            elname = str.strip(str(elnames[i]), '123456789')
+            # In some files, the atoms have names like 'Co1', 'O1', 'O2','Fe_1'
+            # and we need to strip the numbers and underscore to get the element name.
+            elname = str.strip(str(elnames[i]), '_123456789')
             el = elements.symbol(elname)
             max_E = 30
             f1, f2 = el.xray.scattering_factors(energy=min(max_E, E_keV))

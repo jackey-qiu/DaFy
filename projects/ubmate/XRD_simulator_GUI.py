@@ -460,9 +460,11 @@ class MyMainWindow(QMainWindow):
                         #pass
                         print('The position for ',self.Bragg_peaks_info[each][i], 'is already occupied!')
                     else:
+                        print('Pin the position of ..{}'.format(pos))
                         pos_all.append(pos)
                         hkl = self.Bragg_peaks_info[each][i]
                         if len(pos)!=0:
+                            print('Pin the position of {}'.format(hkl))
                             ax.text(*pos[::-1],'x',
                                 horizontalalignment='center',
                                 verticalalignment='center',color = 'r')
@@ -534,9 +536,9 @@ class MyMainWindow(QMainWindow):
 
     def _compute_angles(self, hkl, name, mu =0):
         structure = [each for each in self.structures if each.name == name][0]
-        energy_kev = float(self.lineEdit_energy.text())
-        if self.comboBox_unit.currentText() != 'KeV':
-            energy_kev = 12.398/energy_kev
+        energy_kev = float(self.lineEdit_eng.text())
+        #if self.comboBox_unit.currentText() != 'KeV':
+        #    energy_kev = 12.398/energy_kev
         structure.lattice.set_E_keV(energy_kev)
         #negative because of the rotation sense
         if mu == None:
@@ -553,7 +555,10 @@ class MyMainWindow(QMainWindow):
             return angles[-1], angles[2], angles[1]
         except:
             if (abs(h)<0.000001) and (abs(k)<0.000001):
-                return 0, 0, self.dc.c2th(hkl)
+                delta = self.dc.c2th(hkl)
+                if delta>90:
+                    delta = delta - 90
+                return 0, 0, delta
             else:
                 print('No solution found for', hkl)
                 return np.nan, np.nan, np.nan
@@ -859,10 +864,13 @@ class MyMainWindow(QMainWindow):
                 for hkl in self.Bragg_peaks_info[name]:
                     #_compute_angles return gamma and delta in a tuple
                     # phi, gamma, delta = self._compute_angles(hkl, name, mu = 0)
-                    phi, gamma, delta = self._compute_angles_dc(hkl)
-                    if not (np.isnan(gamma) or np.isnan(delta)):
-                        Bragg_peaks_detector_angle_info[name].append([gamma,delta])
-                        Bragg_peaks_info_allowed[name].append(hkl)
+                    try:
+                        phi, gamma, delta = self._compute_angles_dc(hkl)
+                        if not (np.isnan(gamma) or np.isnan(delta)):
+                            Bragg_peaks_detector_angle_info[name].append([gamma,delta])
+                            Bragg_peaks_info_allowed[name].append(hkl)
+                    except:
+                        print('Unreachable Bragg reflection:{}'.format(hkl))
             else:
                 pass
         self.Bragg_peaks_detector_angle_info = Bragg_peaks_detector_angle_info

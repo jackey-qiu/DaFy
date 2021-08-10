@@ -35,11 +35,11 @@
        </property>
        <property name="font">
         <font>
-         <pointsize>13</pointsize>
+         <pointsize>10</pointsize>
         </font>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -1886,6 +1886,11 @@ Once a UB matrix has been calculated, the diffractometer may be driven in hkl co
          <height>16777215</height>
         </size>
        </property>
+       <property name="font">
+        <font>
+         <pointsize>10</pointsize>
+        </font>
+       </property>
        <property name="currentIndex">
         <number>1</number>
        </property>
@@ -2431,7 +2436,7 @@ Once a UB matrix has been calculated, the diffractometer may be driven in hkl co
      <x>0</x>
      <y>0</y>
      <width>1920</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

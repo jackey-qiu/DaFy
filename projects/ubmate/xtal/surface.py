@@ -241,7 +241,7 @@ class SurfaceCell:
         lout = lout + '<p>{}</p>'.format("\nP1 surface cell (surface fractional coords)\n")+'<hr />'
 
         labels = ['atm_id', 'atm_el','x_frg','y_frg','z_frg','Biso','occ','mult','type']
-        results_slab = {'atm_id':list(self.p1term.labels[::-1]) + list(self.p1bulk.labels[::-1]),
+        results_slab = {'atm_id':list(map(lambda x:x.replace(':','_'),list(self.p1term.labels[::-1]) + list(self.p1bulk.labels[::-1]))),
                         'atm_el':list(self.p1term.atsym[::-1]) + list(self.p1bulk.atsym[::-1]),
                         'x_frg':list(self.p1term.coords[:,0][::-1]) + list(self.p1bulk.coords[:,0][::-1]),
                         'y_frg':list(self.p1term.coords[:,1][::-1]) + list(self.p1bulk.coords[:,1][::-1]),
@@ -383,6 +383,9 @@ class SurfaceCell:
 
         # Vb is next smallest in-plane (non-colinear with Va)
         # that makes a right handed system
+        Vb_s = []
+        angs = []
+        lens = []
         for j in range(1,len(self.Vs_lst)):
             ang = blat.angle(self.Vs_lst[j,:3], Va)
                 
@@ -393,7 +396,19 @@ class SurfaceCell:
                 # should be zero
                 check = blat.cross(Va,Vb)
                 if blat.angle(num.around(self.nd*blat.dvec(self.hkl),decimals = 5),check) < 0.001:
+                    Vb_s.append(Vb)
+                    angs.append(ang)
+                    lens.append((self.Vs_lst[j,3]))
+                    #break
+        #if the lattice parameter gamma == 60 degree, you need to search for case where gamma =120 degree for a traditional hexagonal unit cell
+        if abs(angs[0] - 60)<0.01:
+            for i in range(len(angs)):
+                if abs(angs[i]-120)<0.001 and abs(lens[i]-lens[0])<0.001:
+                    Vb = Vb_s[i]
                     break
+        else:
+            Vb = Vb_s[0]
+
         # Vr is repeat with smallest angle
         Vr = self.Vr_lst[0,:3]
         if self.use_tradition:
@@ -604,7 +619,10 @@ class SurfaceCell:
         Uiso    = num.zeros(nsite)
         Uaniso  = num.zeros((nsite,6))
         #
-        Vr = -1.*self.Vr_s
+        if self.use_tradition:
+            Vr = self.Vr_s
+        else:
+            Vr = -1.*self.Vr_s
         idx1=0; idx2=0; n=1.
         for j in range(nlayer):
             if idx1 == len(layer_idx): idx1=0
