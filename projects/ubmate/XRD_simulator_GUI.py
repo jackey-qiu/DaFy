@@ -247,6 +247,7 @@ class MyMainWindow(QMainWindow):
         #surface unit cell generator
         self.pushButton_generate.clicked.connect(self.generate_surface_unitcell_info)
         self.pushButton_save_files.clicked.connect(self.save_structure_files)
+        self.comboBox_TM_type.currentIndexChanged.connect(self.update_TM)
         #display diffractometer geometry figure
         
         image = imageio.imread(os.path.join(script_path, 'pics', '4s_2d_diffractometer.png'))
@@ -279,6 +280,15 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    def update_TM(self):
+        map_ = {'unity':'[[1,0,0],[0,1,0],[0,0,1]]',
+                'fcc':'[[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]',
+                'hex':'[[2/3, 1/3, 1/3], [-1/3, 1/3, 1/3], [-1/3, -2/3, 1/3]]'}
+        if self.comboBox_TM_type.currentText() in map_:
+            self.lineEdit_TM.setText(map_[self.comboBox_TM_type.currentText()])
+        else:
+            print('The matrix transformation for type {} is not specified!'.format(self.comboBox_TM_type.currentText()))
 
     def update_file_names(self):
         self.lineEdit_bulk.setText('{}_bulk.str'.format(self.comboBox_substrate_surfuc.currentText()))
