@@ -1797,7 +1797,7 @@
            <item>
             <widget class="QLabel" name="label_80">
              <property name="text">
-              <string>Bulk file name</string>
+              <string>Bulk file</string>
              </property>
             </widget>
            </item>
@@ -1811,7 +1811,7 @@
            <item>
             <widget class="QLabel" name="label_81">
              <property name="text">
-              <string>Surface file name</string>
+              <string>Surface file</string>
              </property>
             </widget>
            </item>
@@ -2468,7 +2468,7 @@ Once a UB matrix has been calculated, the diffractometer may be driven in hkl co
      <x>0</x>
      <y>0</y>
      <width>1920</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>

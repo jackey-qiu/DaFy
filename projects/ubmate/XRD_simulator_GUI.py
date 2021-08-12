@@ -291,8 +291,9 @@ class MyMainWindow(QMainWindow):
             print('The matrix transformation for type {} is not specified!'.format(self.comboBox_TM_type.currentText()))
 
     def update_file_names(self):
-        self.lineEdit_bulk.setText('{}_bulk.str'.format(self.comboBox_substrate_surfuc.currentText()))
-        self.lineEdit_surface.setText('{}_surface.str'.format(self.comboBox_substrate_surfuc.currentText()))
+        termination_text = '{}{}{}'.format(*eval(self.lineEdit_hkl.text()))
+        self.lineEdit_bulk.setText('{}_{}_bulk.str'.format(self.comboBox_substrate_surfuc.currentText().rsplit('.')[0],termination_text))
+        self.lineEdit_surface.setText('{}_{}_surface.str'.format(self.comboBox_substrate_surfuc.currentText().rsplit('.')[0],termination_text))
 
     def generate_surface_unitcell_info(self):
         uc = read_cif(self.structure_container[self.comboBox_substrate_surfuc.currentText()])
@@ -308,6 +309,7 @@ class MyMainWindow(QMainWindow):
         self.textEdit_info.setHtml(info + data.to_html(index = False))
 
     def save_structure_files(self):
+        # self.surf._generate_structure_files(os.path.join(self.lineEdit_save_folder.text(),self.lineEdit_bulk.text()),os.path.join(self.lineEdit_save_folder.text(),self.lineEdit_surface.text()))
         try:
             self.surf._generate_structure_files(os.path.join(self.lineEdit_save_folder.text(),self.lineEdit_bulk.text()),os.path.join(self.lineEdit_save_folder.text(),self.lineEdit_surface.text()))
             error_pop_up('Success in saving structure files in {}'.format(self.lineEdit_save_folder.text()),'Information')

@@ -253,7 +253,28 @@ class SurfaceCell:
                         'type':['surface']*self.p1term.natoms + ['bulk']*self.p1bulk.natoms}
         result_df = pd.DataFrame(results_slab, columns = labels)
         return lout, result_df
-        
+
+    def _make_cif_file(self,surface_file="/Users/cqiu/app/SuPerRod/batchfile/full_layer2.str"):
+        with open(surface_file,"r") as f1:
+            with open(surface_file.replace(".str",".cif"),"w") as f2:
+                f2.write('data_global\n')
+                #f2.write("_chemical_name_mineral 'Hematite'\n")
+                #f2.write("_chemical_formula_sum 'Fe2 O3'\n")
+                f2.write("_cell_length_a {0}\n".format(self.lattice.a))
+                f2.write("_cell_length_b {0}\n".format(self.lattice.b))
+                f2.write("_cell_length_c {0}\n".format(self.lattice.c))
+                f2.write("_cell_angle_alpha {0}\n".format(self.lattice.alpha))
+                f2.write("_cell_angle_beta {0}\n".format(self.lattice.beta))
+                f2.write("_cell_angle_gamma {0}\n".format(self.lattice.gamma))
+                f2.write("_cell_volume {}\n".format(self.lattice.vol()))
+                f2.write("_symmetry_space_group_name_H-M 'P 1'\nloop_\n_space_group_symop_operation_xyz\n  'x,y,z'\nloop_\n")
+                f2.write("_atom_site_label\n_atom_site_fract_x\n_atom_site_fract_y\n_atom_site_fract_z\n")
+                for line in f1.readlines()[1:]:#first line is label row, so skip it
+                    if line[0]!="#":
+                        items=line.rsplit(",")
+                        s = '%-5s   %7.5e   %7.5e   %7.5e\n' % (items[1],float(items[2]),float(items[3]),float(items[4]))
+                        f2.write(s)       
+
     def _generate_structure_files(self,bulk_file_name, surface_file_name):
         labels = ['atm_id', 'atm_el','x_frg','y_frg','z_frg','Biso','occ','mult','type']
         results_slab = {'atm_id':list(map(lambda x:x.replace(':','_'),list(self.p1term.labels[::-1]) + list(self.p1bulk.labels[::-1]))),
@@ -270,6 +291,7 @@ class SurfaceCell:
         df_surface = result_df.loc[0:self.p1term.natoms]
         df_bulk.to_csv(bulk_file_name, columns = labels[:-1],header = '#'+','.join(labels[:-1]), index = False)
         df_surface.to_csv(surface_file_name, columns = labels[:-1], header = '#'+','.join(labels[:-1]), index = False)
+        self._make_cif_file(bulk_file_name)
 
     def show(self,long_fmt=True):
         """
