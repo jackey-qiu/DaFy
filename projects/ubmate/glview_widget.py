@@ -28,6 +28,15 @@ def RotationMatrix(theta_x, theta_y, theta_z):
                    [np.sin(theta_z), np.cos(theta_z), 0], [0, 0, 1]])
     return Rx.dot(Ry).dot(Rz)
 
+def RotationMatrix_along_arbitrary_vector(vec, ang):
+    #The calculation is based on  Rodrigues rotation formula
+    vec = np.array(vec)
+    vec = vec/np.linalg.norm(vec)
+    ux, uy, uz = vec
+    W = np.array([[0,-uz,uy],[uz,0,-ux],[-uy,ux,0]])
+    RRMT = np.eye(3) + np.sin(np.deg2rad(ang))*W + 2*(np.sin(np.deg2rad(ang/2))**2)*W**2
+    return RRMT
+
 #cal the angle between two vectors
 def unit_vector(vector):
     """ Returns the unit vector of the vector.  """
@@ -316,7 +325,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.theta_x = 0
         self.theta_y = 0
         self.theta_z = 0
+        self.tehta_SN = 0
         self.RM = np.eye(3)
+        self.RRM = np.eye(3)
+        self.SN_vec = np.array([0,0,1])
         #set a near ortho projection (i.e. non-projective view)
         #if need a parallel view, set dis=2000, fov=1
         # self.opts['distance'] = 25
@@ -424,7 +436,13 @@ class GLViewWidget_cum(gl.GLViewWidget):
         return image_sum
 
     def apply_xyz_rotation(self):
-        self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(self.RM)
+        # self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(self.RM)
+        self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z))
+
+    def apply_SN_rotation(self, ang = 1):
+        vec = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(np.eye(3)).dot(np.array([0,0,1]))
+        self.SN_vec = vec
+        self.RRM = RotationMatrix_along_arbitrary_vector(vec, ang)
 
     #calculate the cross point(s) (if any) between a line segment and a sphere
     #The line segment is defined by two end points: line_p1 and line_p2
@@ -517,7 +535,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         m1.scale(*([scale_factor]*2+[scale_factor]))
         return m1
 
-    def recal_cross_points(self):
+    def recal_cross_points(self, xyz_dir = True):
         # self.apply_xyz_rotation()
         for each_item in self.items_subject_to_recreation:
             self.removeItem(each_item)
@@ -525,7 +543,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.cross_points_info = {}
         for each_line in self.lines:
             v1, v2, color = each_line
-            v1, v2 = list(self.RM.dot(np.array(v1))), list(self.RM.dot(np.array(v2)))
+            if xyz_dir:
+                v1, v2 = list(self.RM.dot(np.array(v1))), list(self.RM.dot(np.array(v2)))
+            else:
+                v1, v2 = list(self.RRM.dot(np.array(v1))), list(self.RRM.dot(np.array(v2)))
             name = None
             for each_name in self.lines_dict:
                 if each_line in self.lines_dict[each_name]:
@@ -652,12 +673,19 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.update()
 
 
-    def update_structure(self):
-        self.apply_xyz_rotation()
-        for each in self.items_subject_to_transformation:
-            # each.resetTransform()
-            each.rotate(self.theta_x, 1,0,0, local = False)
-            each.rotate(self.theta_y, 0,1,0, local = False)
-            each.rotate(self.theta_z, 0,0,1, local = False)
-        self.recal_cross_points()
+    def update_structure(self, xyz_dir = True):
+        if xyz_dir:
+            self.apply_xyz_rotation()
+            # print('I am here!')
+            for each in self.items_subject_to_transformation:
+                # each.resetTransform()
+                each.rotate(self.theta_x, 1,0,0, local = False)
+                each.rotate(self.theta_y, 0,1,0, local = False)
+                each.rotate(self.theta_z, 0,0,1, local = False)
+        else:
+            self.apply_SN_rotation(self.theta_SN)
+            for each in self.items_subject_to_transformation:
+                # each.resetTransform()
+                each.rotate(self.theta_SN, *self.SN_vec, local = False)
+        self.recal_cross_points(xyz_dir = xyz_dir)
         self.update()

@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="currentIndex">
-        <number>4</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -737,7 +737,20 @@
          <item>
           <layout class="QHBoxLayout" name="horizontalLayout_5">
            <item>
+            <widget class="QPushButton" name="pushButton_rotate">
+             <property name="text">
+              <string>Rotate sample </string>
+             </property>
+            </widget>
+           </item>
+           <item>
             <widget class="QLabel" name="label_28">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Rot_x</string>
              </property>
@@ -758,6 +771,12 @@
            </item>
            <item>
             <widget class="QLabel" name="label_29">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Rot_y</string>
              </property>
@@ -778,6 +797,12 @@
            </item>
            <item>
             <widget class="QLabel" name="label_30">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Preferred">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Rot_z</string>
              </property>
@@ -797,37 +822,75 @@
             </widget>
            </item>
            <item>
-            <widget class="QPushButton" name="pushButton_rotate">
-             <property name="text">
-              <string>Rotate</string>
+            <spacer name="horizontalSpacer_2">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
              </property>
-            </widget>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
            </item>
+          </layout>
+         </item>
+         <item>
+          <layout class="QHBoxLayout" name="horizontalLayout_21">
            <item>
             <widget class="QPushButton" name="pushButton_spin">
              <property name="text">
-              <string>Spin or stop </string>
+              <string>Spin or stop along SN</string>
              </property>
             </widget>
            </item>
            <item>
-            <widget class="QComboBox" name="comboBox_rotation_axis">
-             <item>
-              <property name="text">
-               <string>z</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>x</string>
-              </property>
-             </item>
-             <item>
-              <property name="text">
-               <string>y</string>
-              </property>
-             </item>
+            <widget class="QRadioButton" name="radioButton_2">
+             <property name="text">
+              <string>continually</string>
+             </property>
             </widget>
+           </item>
+           <item>
+            <widget class="QRadioButton" name="radioButton">
+             <property name="text">
+              <string>once by</string>
+             </property>
+             <property name="checked">
+              <bool>true</bool>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLineEdit" name="lineEdit">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <widget class="QLabel" name="label_84">
+             <property name="text">
+              <string>degree</string>
+             </property>
+            </widget>
+           </item>
+           <item>
+            <spacer name="horizontalSpacer_9">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </item>
