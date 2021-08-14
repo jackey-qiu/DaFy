@@ -209,8 +209,8 @@ class MyMainWindow(QMainWindow):
         self.timer_spin = QtCore.QTimer(self)
         self.timer_spin.timeout.connect(self.spin)
         self.timer_spin_sample = QtCore.QTimer(self)
-        self.timer_spin_sample.timeout.connect(self.rotate_sample)
-        self.timer_spin_sample.timeout.connect(self.simulate_image)
+        self.timer_spin_sample.timeout.connect(self.rotate_sample_SN)
+        # self.timer_spin_sample.timeout.connect(self.simulate_image)
         self.azimuth_angle = 0
         self.pushButton_azimuth0.clicked.connect(self.azimuth_0)
         self.pushButton_azimuth90.clicked.connect(self.azimuth_90)
@@ -231,7 +231,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_pandown_4.clicked.connect(lambda:self.pan_view([0,0,1],'widget_real_space'))
 
         self.pushButton_rotate.clicked.connect(self.rotate_sample)
-        self.pushButton_rotate.clicked.connect(self.simulate_image)
+        # self.pushButton_rotate.clicked.connect(self.simulate_image)
 
         self.pushButton_spin.clicked.connect(self.spin_)
         self.pushButton_draw_real_space.clicked.connect(self.draw_real_space)
@@ -453,7 +453,55 @@ class MyMainWindow(QMainWindow):
         self.widget_mpl.fig.tight_layout()
         self.widget_mpl.canvas.draw()
         self.ax_simulation = ax
-        
+
+    def _cal_trajactory_pos(self, ax):
+        self.trajactory_pos = []
+        pilatus_size = [float(self.lineEdit_detector_hor.text()), float(self.lineEdit_detector_ver.text())]
+        pixel_size = [float(self.lineEdit_pixel.text())]*2
+        try:
+            prim_beam = eval(self.lineEdit_prim_beam_pos.text())
+        except:
+            print('Evaluation error for :{}'.format(self.lineEdit_prim_beam_pos.text()))
+            prim_beam = None
+        #first rotate along x axis to tilt the sample
+        theta_x = float(self.lineEdit_rot_x.text())
+        self.widget_glview.theta_x_r = theta_x - self.widget_glview.theta_x
+        self.widget_glview.theta_x = theta_x
+        self.widget_glview.apply_xyz_rotation()
+        #do a 360 degree rotation along SN
+        original_text = self.lineEdit_SN_degree.text()
+        theta_SN_r_original = self.widget_glview.theta_SN_r
+        theta_SN_original = self.widget_glview.theta_SN
+
+        for theta in np.arange(0,360,3):
+            self.lineEdit_SN_degree.setText(str(theta))
+            #then rotate the same alone surface normal direction
+            self.widget_glview.theta_SN_r = float(self.lineEdit_SN_degree.text()) - self.widget_glview.theta_SN
+            self.widget_glview.theta_SN = float(self.lineEdit_SN_degree.text())
+            self.widget_glview.apply_SN_rotation()
+            self.widget_glview.recal_cross_points()
+            # self.extract_cross_point_info()    
+            self.widget_glview.calculate_index_on_pilatus_image_from_cross_points_info(
+                pilatus_size = pilatus_size,
+                pixel_size = pixel_size,
+                distance_sample_detector = float(self.lineEdit_sample_detector_distance.text()),
+                primary_beam_pos = prim_beam)
+            for each in self.widget_glview.pixel_index_of_cross_points:
+                for i in range(len(self.widget_glview.pixel_index_of_cross_points[each])):
+                    pos = self.widget_glview.pixel_index_of_cross_points[each][i]
+                    # hkl = self.widget_glview.cross_points_info_HKL[each][i]
+                    if len(pos)!=0:
+                        if pos not in self.trajactory_pos:
+                            self.trajactory_pos.append(pos) 
+        #send values back to original ones
+        self.lineEdit_SN_degree.setText(original_text)
+        self.widget_glview.theta_SN_r = theta_SN_r_original
+        self.widget_glview.theta_SN = theta_SN_original
+        for each in self.trajactory_pos:
+            ax.text(*each[::-1],'.',
+            horizontalalignment='center',
+            verticalalignment='center',color = 'w',fontsize = 15) 
+
     def simulate_image_Bragg_reflections(self):
         self.cal_delta_gamma_angles_for_Bragg_reflections()
         pilatus_size = [float(self.lineEdit_detector_hor.text()), float(self.lineEdit_detector_ver.text())]
@@ -495,9 +543,10 @@ class MyMainWindow(QMainWindow):
             else:
                 pass
         
-        ax.text(*self.widget_glview.primary_beam_position,'x',color = 'w')
+        ax.text(*self.widget_glview.primary_beam_position,'+',color = 'r')
         ax.text(*(self.widget_glview.primary_beam_position+np.array([50,-50])),'Primary Beam Pos',color = 'r')
-
+        if self.checkBox_trajactory.isChecked():
+            self._cal_trajactory_pos(ax)
         ax.grid(False)
         self.widget_mpl.fig.tight_layout()
         self.widget_mpl.canvas.draw()
@@ -511,22 +560,49 @@ class MyMainWindow(QMainWindow):
         self.widget_real_space.show_structure(structure.lattice.basis, super_cell_size)
 
     def spin_(self):
-        if self.timer_spin_sample.isActive():
-            self.timer_spin_sample.stop()
+        if self.radioButton_continually.isChecked():
+            if self.timer_spin_sample.isActive():
+                self.timer_spin_sample.stop()
+            else:
+                self.trajactory_pos = []
+                self.timer_spin_sample.start(1000)
         else:
-            self.trajactory_pos = []
-            self.timer_spin_sample.start(1000)
+            try:
+                self.timer_spin_sample.stop()
+            except:
+                pass
+            self.rotate_sample_SN()
 
     def rotate_sample(self):
+        self.rotate_()
+        #update the constrain as well
+        self.lineEdit_cons_eta.setText(self.lineEdit_rot_x.text())
+        self.set_cons()
+
+    def rotate_sample_SN(self):
+        if self.timer_spin_sample.isActive():
+            new_theta = self.widget_glview.theta_SN + float(self.lineEdit_speed.text())
+            if new_theta > 360:
+                self.timer_spin_sample.stop()
+            else:
+                self.lineEdit_SN_degree.setText(str(new_theta))
+                self.rotate_()
+        else:
+            self.rotate_()
+
+    def rotate_(self):
+        #first rotate along x axis to tilt the sample
         theta_x = float(self.lineEdit_rot_x.text())
-        theta_y = float(self.lineEdit_rot_y.text())
-        theta_z = float(self.lineEdit_rot_z.text())
+        self.widget_glview.theta_x_r = theta_x - self.widget_glview.theta_x
         self.widget_glview.theta_x = theta_x
-        self.widget_glview.theta_y = theta_y
-        self.widget_glview.theta_z = theta_z
-        self.lineEdit_rotation.setText(str(round(float(self.lineEdit_rotation.text())+theta_z,1)))
+        #then rotate the same alone surface normal direction
+        self.widget_glview.theta_SN_r = float(self.lineEdit_SN_degree.text()) - self.widget_glview.theta_SN
+        self.widget_glview.theta_SN = float(self.lineEdit_SN_degree.text())
+        #update structue in the glviewer
         self.widget_glview.update_structure()
         self.extract_cross_point_info()
+        #update detector viewer
+        self.simulate_image()
 
     #extract cross points between the rods and the Ewarld sphere
     def extract_cross_point_info(self):
@@ -537,8 +613,9 @@ class MyMainWindow(QMainWindow):
             text.append('')
             text.append(each)
             structure = [self.structures[i] for i in range(len(self.structures)) if self.structures[i].name == each][0]
-            #apply the rotation matrix due to sample rotation
-            RecTMInv = inv(self.widget_glview.RM.dot(structure.lattice.RecTM))
+            #apply the rotation matrix due to sample tilting (RM) + sample rotation(RRM)
+            RM = self.widget_glview.RRM.dot(self.widget_glview.RM)
+            RecTMInv = inv(RM.dot(structure.lattice.RecTM))
             for each_q in self.widget_glview.cross_points_info[each]:
                 #H, K, L = structure.lattice.HKL(each_q)
                 H, K, L = RecTMInv.dot(each_q)

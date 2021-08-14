@@ -26,16 +26,33 @@ def RotationMatrix(theta_x, theta_y, theta_z):
                    [-np.sin(theta_y), 0, np.cos(theta_y)]])
     Rz = np.array([[np.cos(theta_z), -np.sin(theta_z), 0],
                    [np.sin(theta_z), np.cos(theta_z), 0], [0, 0, 1]])
+    # return Rx*Ry*Rz
     return Rx.dot(Ry).dot(Rz)
 
-def RotationMatrix_along_arbitrary_vector(vec, ang):
-    #The calculation is based on  Rodrigues rotation formula
+def RotationMatrix_along_arbitrary_vector_(vec, ang):
     vec = np.array(vec)
     vec = vec/np.linalg.norm(vec)
     ux, uy, uz = vec
     W = np.array([[0,-uz,uy],[uz,0,-ux],[-uy,ux,0]])
     RRMT = np.eye(3) + np.sin(np.deg2rad(ang))*W + 2*(np.sin(np.deg2rad(ang/2))**2)*W**2
     return RRMT
+
+def RotationMatrix_along_arbitrary_vector(axis, theta):
+    """
+    Return the rotation matrix associated with counterclockwise rotation about
+    the given axis by theta radians.
+    The calculation is based on  Rodrigues rotation formula
+    """
+    theta = np.deg2rad(theta)
+    axis = np.asarray(axis)
+    axis = axis / np.sqrt(np.dot(axis, axis))
+    a = np.cos(theta / 2.0)
+    b, c, d = -axis * np.sin(theta / 2.0)
+    aa, bb, cc, dd = a * a, b * b, c * c, d * d
+    bc, ad, ac, ab, bd, cd = b * c, a * d, a * c, a * b, b * d, c * d
+    return np.array([[aa + bb - cc - dd, 2 * (bc + ad), 2 * (bd - ac)],
+                     [2 * (bc - ad), aa + cc - bb - dd, 2 * (cd + ab)],
+                     [2 * (bd + ac), 2 * (cd - ab), aa + dd - bb - cc]])
 
 #cal the angle between two vectors
 def unit_vector(vector):
@@ -322,10 +339,16 @@ class CustomTextItem(gl.GLGraphicsItem.GLGraphicsItem):
 class GLViewWidget_cum(gl.GLViewWidget):
     def __init__(self, parent=None):
         super().__init__(parent)
+        #absolute values
         self.theta_x = 0
         self.theta_y = 0
         self.theta_z = 0
-        self.tehta_SN = 0
+        #relative to previous values
+        self.theta_x_r = 0
+        self.theta_y_r = 0
+        self.theta_z_r = 0
+        self.theta_SN = 0
+        self.theta_SN_r = 0
         self.RM = np.eye(3)
         self.RRM = np.eye(3)
         self.SN_vec = np.array([0,0,1])
@@ -439,16 +462,17 @@ class GLViewWidget_cum(gl.GLViewWidget):
         # self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(self.RM)
         self.RM = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z))
 
-    def apply_SN_rotation(self, ang = 1):
-        vec = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(np.eye(3)).dot(np.array([0,0,1]))
+    def apply_SN_rotation(self):
+        vec = RotationMatrix(np.deg2rad(self.theta_x), np.deg2rad(self.theta_y), np.deg2rad(self.theta_z)).dot(np.array([0,0,1]))
         self.SN_vec = vec
-        self.RRM = RotationMatrix_along_arbitrary_vector(vec, ang)
+        self.RRM = RotationMatrix_along_arbitrary_vector(vec, self.theta_SN)
+        #print(RotationMatrix_along_arbitrary_vector(vec, self.tehta_SN))
 
     #calculate the cross point(s) (if any) between a line segment and a sphere
     #The line segment is defined by two end points: line_p1 and line_p2
     #The sphere is defined by its center coordinate and its radius
     @staticmethod
-    def compute_line_intersection_with_sphere(line_p1, line_p2, sphere_center, radius):
+    def compute_line_intersection_with_sphere_old(line_p1, line_p2, sphere_center, radius):
         x1, y1, z1 = line_p1
         x2, y2, z2 = line_p2
         xc, yc, zc = sphere_center
@@ -469,6 +493,33 @@ class GLViewWidget_cum(gl.GLViewWidget):
             # if (_x-x1)*(_x-x2)<=0 and (_y-y1)*(_y-y2)<=0 and (_z-z1)*(_z-z2)<=0:
             if (_z-z1)*(_z-z2)<=0:
                 pts.append(_pt)
+        return pts
+
+    @staticmethod
+    def compute_line_intersection_with_sphere(line_p1, line_p2, sphere_center, radius):
+        x1, y1, z1 = line_p1
+        x2, y2, z2 = line_p2
+        x3, y3, z3 = sphere_center
+        r = radius
+        a = (x2-x1)**2 + (y2 - y1)**2 + (z2-z1)**2
+        b = 2*((x2 - x1) * (x1 - x3) + (y2 - y1) * (y1 - y3) + (z2 - z1) * (z1 - z3))
+        c = x3**2 + y3**2 + z3**2 + x1**2 + y1**2 + z1**2 - 2*(x3 * x1 + y3 * y1 + z3 * z1) - r**2
+        value_in_rms = b**2 - 4*a*c
+        if value_in_rms>0:
+            ts = np.array([(-b + value_in_rms**0.5)/(2*a),(-b - value_in_rms**0.5)/(2*a)])
+        elif value_in_rms == 0:
+            ts = np.array([-b/(2*a)])
+        else:
+            ts = np.array([])
+        pts = []
+        for each  in ts:
+            _pt = np.array(line_p1) + (np.array(line_p2) - np.array(line_p1))*each
+            _x, _y, _z = _pt
+            # if (_x-x1)*(_x-x2)<=0 and (_y-y1)*(_y-y2)<=0 and (_z-z1)*(_z-z2)<=0:
+            if (_z-z1)*(_z-z2)<=0:
+                #remove cross points at origins
+                if np.abs(_pt).sum()>0.001:
+                    pts.append(_pt)
         return pts
 
     #v1 and v2 are orthogonal unit vector
@@ -543,10 +594,14 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.cross_points_info = {}
         for each_line in self.lines:
             v1, v2, color = each_line
+            v1, v2 = list(self.RRM.dot(self.RM.dot(np.array(v1)))), list(self.RRM.dot(self.RM.dot(np.array(v2))))
+            '''
             if xyz_dir:
                 v1, v2 = list(self.RM.dot(np.array(v1))), list(self.RM.dot(np.array(v2)))
             else:
-                v1, v2 = list(self.RRM.dot(np.array(v1))), list(self.RRM.dot(np.array(v2)))
+                v1, v2 = list(self.RRM.dot(self.RM.dot(np.array(v1)))), list(self.RRM.dot(self.RM.dot(np.array(v2))))
+                # v1, v2 = list(self.RRM.dot(np.array(v1))), list(self.RRM.dot((np.array(v2))))
+            '''
             name = None
             for each_name in self.lines_dict:
                 if each_line in self.lines_dict[each_name]:
@@ -558,6 +613,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 #print('yes')
                 v1_, _, scale_factor = self.ewarld_sphere
                 cross_points = list(self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor))
+                # print(cross_points)
                 if name in self.cross_points_info:
                     self.cross_points_info[name] += cross_points
                 else:
@@ -587,6 +643,17 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
         self.RM = np.eye(3)
+        self.RRM = np.eye(3)
+        self.theta_x = 0
+        self.theta_y = 0
+        self.theta_z = 0
+        self.theta_x_r = 0
+        self.theta_y_r = 0
+        self.theta_z_r = 0
+        self.theta_SN = 0
+        self.theta_SN_r = 0
+        self.SN_vec = np.array([0,0,1])
+
         for each_line in self.lines:
             v1, v2, color = each_line
             name = None
@@ -648,10 +715,14 @@ class GLViewWidget_cum(gl.GLViewWidget):
             items = self.draw_arrow(v1, v2, tip_width, tip_length_scale, color)
             for each in items:
                 self.addItem(each)
+                if labels_axis[i] in ['H','K','L']:
+                    self.items_subject_to_transformation.append(self.items[-1])
             #add axis label
             text = CustomTextItem(*list(np.array(v2)+[0.05,0.05,0.05]),labels_axis[i],color = QtCore.Qt.black, font_size = 13)
             text.setGLViewWidget(self)
             self.addItem(text)
+            if labels_axis[i] in ['H','K','L']:
+                self.items_subject_to_transformation.append(self.items[-1])
         for each_text in self.texts:
             text = CustomTextItem(*each_text)
             text.setGLViewWidget(self)
@@ -674,18 +745,16 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
 
     def update_structure(self, xyz_dir = True):
-        if xyz_dir:
-            self.apply_xyz_rotation()
-            # print('I am here!')
-            for each in self.items_subject_to_transformation:
-                # each.resetTransform()
-                each.rotate(self.theta_x, 1,0,0, local = False)
-                each.rotate(self.theta_y, 0,1,0, local = False)
-                each.rotate(self.theta_z, 0,0,1, local = False)
-        else:
-            self.apply_SN_rotation(self.theta_SN)
-            for each in self.items_subject_to_transformation:
-                # each.resetTransform()
-                each.rotate(self.theta_SN, *self.SN_vec, local = False)
+        self.apply_xyz_rotation()
+        # print('I am here!')
+        for each in self.items_subject_to_transformation:
+            # each.resetTransform()
+            each.rotate(self.theta_x_r, 1,0,0, local = False)
+            each.rotate(self.theta_y_r, 0,1,0, local = False)
+            each.rotate(self.theta_z_r, 0,0,1, local = False)
+        self.apply_SN_rotation()
+        for each in self.items_subject_to_transformation:
+            # each.resetTransform()
+            each.rotate(self.theta_SN_r, *self.SN_vec, local = False)
         self.recal_cross_points(xyz_dir = xyz_dir)
         self.update()
