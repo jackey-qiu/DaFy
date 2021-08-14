@@ -200,11 +200,13 @@ class MyMainWindow(QMainWindow):
         self.pushButton_pandown.clicked.connect(lambda:self.widget_glview_zoomin.pan(0,0,0.5))
         self.pushButton_plot_XRD_profiles.clicked.connect(self.draw_ctrs)
         # self.comboBox_working_substrate.currentIndexChanged.connect(self.fill_matrix)
-        self.pushButton_convert_abc.clicked.connect(self.cal_xyz)
-        self.pushButton_convert_xyz.clicked.connect(self.cal_abc)
+        # self.pushButton_convert_abc.clicked.connect(self.cal_xyz)
+        # self.pushButton_convert_xyz.clicked.connect(self.cal_abc)
         self.pushButton_convert_hkl.clicked.connect(self.cal_qxqyqz)
         self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
         self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
+        self.pushButton_lscan.clicked.connect(lambda:self.calc_angs_in_scan(scan_type = 'l'))
+        self.pushButton_escan.clicked.connect(lambda:self.calc_angs_in_scan(scan_type = 'energy'))
         # self.pushButton_compute.clicked.connect(self.compute_angles)
         self.timer_spin = QtCore.QTimer(self)
         self.timer_spin.timeout.connect(self.spin)
@@ -403,6 +405,35 @@ class MyMainWindow(QMainWindow):
         for ag, val in zip(angles_string, angles):
             getattr(self, 'lineEdit_{}'.format(ag)).setText(str(round(val,3)))
 
+    def _calc_angs_e_scan(self, H, K, L, E_list):
+        results = ['energy scan for HKL = {}'.format([H,K,L])]
+        results.append('\t'.join(['E(keV)','mu', 'delta', 'gam', 'eta', 'chi', 'phi']))
+        for E in E_list:
+            self.hardware.settings.hardware.energy = E
+            angles, pars = self.dc.hkl_to_angles(h = H, k = K, l = L, energy = E)
+            results.append('\t'.join([str(round(E,4))]+[str(round(each,2)) for each in angles]))
+        self.hardware.settings.hardware.energy = self.energy_keV
+        return results
+
+    def _calc_angs_l_scan(self, H, K, L_list, E):
+        results = ['L scan for HK = {} at energy of {} (keV)'.format([H,K], E)]
+        results.append('\t'.join(['l','mu', 'delta', 'gam', 'eta', 'chi', 'phi']))
+        self.hardware.settings.hardware.energy = E
+        for l in L_list:
+            angles, pars = self.dc.hkl_to_angles(h = H, k = K, l = l, energy = E)
+            results.append('\t'.join([str(round(l,2))]+[str(round(each,2)) for each in angles]))
+        return results
+
+    def calc_angs_in_scan(self, scan_type = 'l'):
+        if scan_type == 'l':
+            H, K = eval(self.lineEdit_HK.text())
+            ls = np.arange(float(self.lineEdit_L_begin.text()),float(self.lineEdit_L_end.text()), float(self.lineEdit_L_step.text()))
+            self.plainTextEdit_cross_points_info.setPlainText('\n'.join(self._calc_angs_l_scan(H = H, K = K, L_list = ls, E = self.energy_keV)))
+        elif scan_type == 'energy':
+            H, K, L = eval(self.lineEdit_HKL.text())
+            es = np.arange(float(self.lineEdit_E_begin.text()),float(self.lineEdit_E_end.text()), float(self.lineEdit_E_step.text()))
+            self.plainTextEdit_cross_points_info.setPlainText('\n'.join(self._calc_angs_e_scan(H = H, K = K,  L = L, E_list = es)))
+            
     def calc_hkl_dc(self):
         self.energy_keV = float(self.lineEdit_eng.text())
         self.hardware.settings.hardware.energy = self.energy_keV
