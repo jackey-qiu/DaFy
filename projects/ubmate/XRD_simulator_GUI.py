@@ -241,6 +241,8 @@ class MyMainWindow(QMainWindow):
         #ub matrix control
         self.pushButton_show_constraint_editor.clicked.connect(self.show_or_hide_constraints)
         self.pushButton_apply_constraints.clicked.connect(self.set_cons)
+        self.comboBox_predefined_cons.currentTextChanged.connect(self.set_predefined_cons)
+        self.pushButton_clear_cons.clicked.connect(self.clear_all_cons)
         self.pushButton_calc_angs.clicked.connect(self.calc_angs)
         self.pushButton_calc_hkl.clicked.connect(self.calc_hkl_dc)
         self.comboBox_UB.currentTextChanged.connect(self.display_UB)
@@ -384,10 +386,10 @@ class MyMainWindow(QMainWindow):
     def set_cons(self):
         for each in self.cons:
             self.hkl.uncon(each)
-        cons_string = self.lineEdit_cons.text().rsplit('+')
-        self.cons = cons_string
-        # if len(cons_string)!=3:
-            # error_pop_up('You need THREE constraints to calculate angles!','Error')
+        tag = self._get_cons_string()
+        cons_string = self.cons
+        if tag == 'Failed':
+            return
         msg = None
         for each in cons_string:
             if each in ['a_eq_b', 'bin_eq_bout', 'mu_is_gam','bisect']:
@@ -396,6 +398,42 @@ class MyMainWindow(QMainWindow):
             else:
                 msg = self.hkl.con(each,float(getattr(self,'lineEdit_cons_{}'.format(each)).text()))
         error_pop_up('Constraints:\n'+msg,'Information')
+
+    def _get_cons_string(self):
+        used_strings = []
+        possible_strings = ['a_eq_b', 'bin_eq_bout', 'mu_is_gam','bisect','delta','gam','qaz','naz','alpha','beta','psi','betain','betaout','mu','eta','chi','phi','omega']
+        for each in possible_strings:
+            if getattr(self, 'checkBox_{}'.format(each)).isChecked():
+                used_strings.append(each)
+        if len(used_strings)>3:
+            error_pop_up('Too many cons. You need only 3 cons!','Error')
+            return 'Failed'
+        else:
+            if len(used_strings)==0:
+                error_pop_up('No constraint has been selected!','Error')
+            else:
+                self.cons = used_strings
+
+    def clear_all_cons(self):
+        possible_strings = ['a_eq_b', 'bin_eq_bout', 'mu_is_gam','bisect','delta','gam','qaz','naz','alpha','beta','psi','betain','betaout','mu','eta','chi','phi','omega']
+        for each in possible_strings:
+            getattr(self, 'checkBox_{}'.format(each)).setChecked(False)
+
+    def set_predefined_cons(self):
+        self.clear_all_cons()
+        if self.comboBox_predefined_cons.currentText()=='sxrd_ver':
+            for each in ['eta','mu','chi']:
+                getattr(self, 'checkBox_{}'.format(each)).setChecked(True)
+            self.lineEdit_cons_eta.setText('2')
+            self.lineEdit_cons_mu.setText('0')
+            self.lineEdit_cons_chi.setText('90')
+        elif self.comboBox_predefined_cons.currentText()=='reflectivity':
+            for each in ['qaz','mu','a_eq_b']:
+                getattr(self, 'checkBox_{}'.format(each)).setChecked(True)
+            self.lineEdit_cons_qaz.setText('90')
+            self.lineEdit_cons_mu.setText('0')
+            #self.lineEdit_cons_chi.setText('90')
+        self.set_cons()
 
     def calc_angs(self):
         self.energy_keV = float(self.lineEdit_eng.text())
