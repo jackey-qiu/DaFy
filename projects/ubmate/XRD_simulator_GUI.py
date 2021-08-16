@@ -212,6 +212,8 @@ class MyMainWindow(QMainWindow):
         self.timer_spin.timeout.connect(self.spin)
         self.timer_spin_sample = QtCore.QTimer(self)
         self.timer_spin_sample.timeout.connect(self.rotate_sample_SN)
+        self.timer_l_scan = QtCore.QTimer(self)
+        self.timer_l_scan.timeout.connect(self.simulate_l_scan_live)
         # self.timer_spin_sample.timeout.connect(self.simulate_image)
         self.azimuth_angle = 0
         self.pushButton_azimuth0.clicked.connect(self.azimuth_0)
@@ -238,6 +240,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_spin.clicked.connect(self.spin_)
         self.pushButton_draw_real_space.clicked.connect(self.draw_real_space)
         self.pushButton_simulate.clicked.connect(self.simulate_image)
+        self.pushButton_send_detector.clicked.connect(self.send_detector)
         #ub matrix control
         self.pushButton_show_constraint_editor.clicked.connect(self.show_or_hide_constraints)
         self.pushButton_apply_constraints.clicked.connect(self.set_cons)
@@ -467,6 +470,9 @@ class MyMainWindow(QMainWindow):
             H, K = eval(self.lineEdit_HK.text())
             ls = np.arange(float(self.lineEdit_L_begin.text()),float(self.lineEdit_L_end.text()), float(self.lineEdit_L_step.text()))
             self.plainTextEdit_cross_points_info.setPlainText('\n'.join(self._calc_angs_l_scan(H = H, K = K, L_list = ls, E = self.energy_keV)))
+            if self.checkBox_live.isChecked():
+                self.current_line = 0
+                self.timer_l_scan.start(float(self.lineEdit_scan_rate.text())*1000)
         elif scan_type == 'energy':
             H, K, L = eval(self.lineEdit_HKL.text())
             es = np.arange(float(self.lineEdit_E_begin.text()),float(self.lineEdit_E_end.text()), float(self.lineEdit_E_step.text()))
@@ -669,9 +675,30 @@ class MyMainWindow(QMainWindow):
         self.widget_glview.theta_SN = float(self.lineEdit_SN_degree.text())
         #update structue in the glviewer
         self.widget_glview.update_structure()
+        self.extract_peaks_in_zoom_viewer()
         self.extract_cross_point_info()
         #update detector viewer
         self.simulate_image()
+
+    def send_detector(self):
+        self.widget_glview.send_detector(gam = float(self.lineEdit_gam_angle.text()), delta = float(self.lineEdit_delta_angle.text()))
+
+    def simulate_l_scan_live(self):
+        ang_list = self.plainTextEdit_cross_points_info.toPlainText().rsplit('\n')
+        if (2+self.current_line)==len(ang_list):
+            self.timer_l_scan.stop()
+            self.current_line = 0
+            return
+        current_line = ang_list[2+self.current_line].rsplit('\t')
+        phi, gam, delta = -float(current_line[6]), float(current_line[3]), float(current_line[2])
+        self.lineEdit_delta_angle.setText(str(delta))
+        self.lineEdit_gam_angle.setText(str(gam))
+        self.lineEdit_SN_degree.setText(str(phi))
+        self.pushButton_spin.click()
+        self.pushButton_send_detector.click()
+        ang_list[2+self.current_line]='>'+ang_list[2+self.current_line]
+        self.plainTextEdit_cross_points_info.setPlainText('\n'.join(ang_list))
+        self.current_line = self.current_line + 1
 
     #extract cross points between the rods and the Ewarld sphere
     def extract_cross_point_info(self):
@@ -933,6 +960,46 @@ class MyMainWindow(QMainWindow):
         self.update_camera_position(widget_name=widget_name, angle_type="elevation", angle=90)
         self.update_camera_position(widget_name=widget_name, angle_type="azimuth", angle=270)
 
+    def extract_Bragg_peaks_along_a_rod(self, substrate_name, hkl_one_Bragg_peak):
+        bragg_peaks_list = []
+        structure = None
+        for each in self.structures:
+            if each.name == substrate_name:
+                structure = each
+                break
+        hkl = hkl_one_Bragg_peak
+        #hk.append(0)
+        qx, qy,_ = structure.lattice.RecTM.dot(hkl)
+        for each in self.peaks_dict[substrate_name]:
+            if abs(each[0][0]-qx)<0.05 and abs(each[0][1]-qy)<0.05:
+                bragg_peaks_list.append(tuple(each[3]))
+        return bragg_peaks_list
+
+    def _show_specified_items(self, name = '', sphere_key = [], line_key = []):
+        for each in self.widget_glview.line_items_according_to_substrate_and_hkl[name]:
+            if each in line_key:
+                self.widget_glview.line_items_according_to_substrate_and_hkl[name][each].show()
+                [each_item.show() for each_item in self.widget_glview.recreated_items_according_to_substrate_and_hkl[name][each]]
+        for each in self.widget_glview.sphere_items_according_to_substrate_and_hkl[name]:
+            if each in sphere_key:
+                self.widget_glview.sphere_items_according_to_substrate_and_hkl[name][each].show()
+
+    def _hide_all_items(self):
+        for name in self.widget_glview.line_items_according_to_substrate_and_hkl:
+            for each in self.widget_glview.line_items_according_to_substrate_and_hkl[name]:
+                self.widget_glview.line_items_according_to_substrate_and_hkl[name][each].hide()
+                [each_item.hide() for each_item in self.widget_glview.recreated_items_according_to_substrate_and_hkl[name][each]]
+            for each in self.widget_glview.sphere_items_according_to_substrate_and_hkl[name]:
+                self.widget_glview.sphere_items_according_to_substrate_and_hkl[name][each].hide()
+
+    def _show_all_items(self):
+        for name in self.widget_glview.line_items_according_to_substrate_and_hkl:
+            for each in self.widget_glview.line_items_according_to_substrate_and_hkl[name]:
+                self.widget_glview.line_items_according_to_substrate_and_hkl[name][each].show()
+                [each_item.show() for each_item in self.widget_glview.recreated_items_according_to_substrate_and_hkl[name][each]]
+            for each in self.widget_glview.sphere_items_according_to_substrate_and_hkl[name]:
+                self.widget_glview.sphere_items_according_to_substrate_and_hkl[name][each].show()
+
     def extract_peaks_in_zoom_viewer(self):
         structure = None
         for each in self.structures:
@@ -940,6 +1007,12 @@ class MyMainWindow(QMainWindow):
                 structure = each
                 break
         hkl = list(eval(self.comboBox_HKs.currentText()))
+        if self.radioButton_all_rods.isChecked():
+            self._show_all_items()
+        else:
+            self._hide_all_items()
+            sphere_key = self.extract_Bragg_peaks_along_a_rod(self.comboBox_names.currentText(), hkl)
+            self._show_specified_items(name = self.comboBox_names.currentText(), sphere_key = sphere_key, line_key = [tuple(hkl)])
         #hk.append(0)
         qx, qy,_ = each.lattice.RecTM.dot(hkl)
         # print('HK and QX and Qy',hk,qx,qy)
@@ -992,7 +1065,7 @@ class MyMainWindow(QMainWindow):
         peaks = self.peaks_dict[name]
         peaks_unique = []
         for i, peak in enumerate(peaks):
-            qxqyqz, _, intensity = peak
+            qxqyqz, _, intensity,_,_ = peak
             HKL = [int(round(each_, 0)) for each_ in structure.lattice.HKL(qxqyqz)]
             peaks_unique.append(HKL+[intensity])
         peaks_unique = np.array(peaks_unique)
@@ -1013,7 +1086,7 @@ class MyMainWindow(QMainWindow):
             peaks = self.peaks_dict[name]
             peaks_unique = []
             for i, peak in enumerate(peaks):
-                qxqyqz, _, intensity = peak
+                qxqyqz, _, intensity,_,_ = peak
                 HKL = [int(round(each_, 0)) for each_ in structure.lattice.HKL(qxqyqz)]
                 peaks_unique.append(HKL+[intensity])
             peaks_unique = np.array(peaks_unique)
@@ -1384,6 +1457,7 @@ class MyMainWindow(QMainWindow):
     def prepare_objects_for_render(self):
         self.peaks = []
         self.peaks_dict = {}
+        # self.peaks_HKLs_dict = {}
         self.HKLs_dict = {}
         self.rods_dict = {}
         self.rods = []
@@ -1398,11 +1472,13 @@ class MyMainWindow(QMainWindow):
             space_plots.append(rsplt.space_plot(struc.lattice))
 
             if(struc.plot_peaks):
-                peaks_, _ = space_plots[i].get_peaks(qx_lims=self.qx_lims, qy_lims=self.qy_lims, qz_lims=self.qz_lims, q_inplane_lim=self.q_inplane_lim, mag_q_lims=self.mag_q_lims, color=struc.color)
+                peaks_, HKLs_ = space_plots[i].get_peaks(qx_lims=self.qx_lims, qy_lims=self.qy_lims, qz_lims=self.qz_lims, q_inplane_lim=self.q_inplane_lim, mag_q_lims=self.mag_q_lims, color=struc.color, substrate_name = struc.name)
                 if len(peaks_)>0:
                     for each in peaks_:
                         self.peaks.append(each)
+                    
                 self.peaks_dict[struc.name] = peaks_
+                # self.peaks_HKLs_dict[struc.name] = HKLs_
                 
             if(struc.plot_rods):
                 rods_, HKLs = space_plots[i].get_rods(qx_lims=self.qx_lims, qy_lims=self.qy_lims, qz_lims=self.qz_lims, q_inplane_lim=self.q_inplane_lim, color=struc.color)
@@ -1446,6 +1522,7 @@ class MyMainWindow(QMainWindow):
         self.widget_glview.spheres = self.peaks
         self.widget_glview.lines = self.rods
         self.widget_glview.lines_dict = self.rods_dict
+        self.widget_glview.HKLs_dict = self.HKLs_dict
         self.widget_glview.grids = self.grids
         self.widget_glview.arrows = self.axes
         self.widget_glview.unit_cell_edges = self.unit_cell_edges

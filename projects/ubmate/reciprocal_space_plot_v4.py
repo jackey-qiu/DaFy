@@ -71,7 +71,7 @@ class space_plot():
 
     # Get Bragg peaks positions in Cartisian coordinate, with point size proportional to scattering intensity
     def get_peaks(self, HKL_lims=[-10, 10], qx_lims=None, qy_lims=None,
-                   q_inplane_lim=None, qz_lims=None, mag_q_lims=None, color=(0, 0, 0), scale_factor=1, scale_q=[1., 1., 1.]):
+                   q_inplane_lim=None, qz_lims=None, mag_q_lims=None, color=(0, 0, 0), scale_factor=1, scale_q=[1., 1., 1.], substrate_name = 'substrate'):
         HKL_range = np.arange(HKL_lims[0], HKL_lims[1] + 1)
         HKLs = np.array(list(itertools.product(HKL_range, repeat=3)))
         I0 = self.lattice.I([0,0,0])
@@ -93,12 +93,12 @@ class space_plot():
         # print('qs_calculated',np.dot(self.lattice.RecTM, HKLs.transpose()).transpose())
         #extract the unique HK tuples
         # print('length of HKLs:{} and length of Is:{}'.format(len(HKLs),len(Is)))
-        HKs =list(set([tuple(each) for each in HKLs[:,[0,1]]]))
+        HKs =list(set([tuple(each) for each in HKLs[:,[0,1,2]]]))
         # print(HKs)
 
         qs = np.swapaxes(qs, 0, 1)
         if(len(Is) > 0):
-            return [[[qs[0][i]*scale_q[0], qs[1][i]*scale_q[1], qs[2][i]*scale_q[2]], list(color)+[0.5],  np.sqrt(Is)[i]/2] for i in range(len(Is))],HKs          
+            return [[[qs[0][i]*scale_q[0], qs[1][i]*scale_q[1], qs[2][i]*scale_q[2]], list(color)+[0.5],  np.sqrt(Is)[i]/2, HKLs[i], substrate_name] for i in range(len(Is))],HKs          
         return [], []
 
     # Plot Bragg peaks, with point size proportional to scattering intensity

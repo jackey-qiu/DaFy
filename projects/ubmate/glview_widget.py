@@ -588,11 +588,13 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
     def recal_cross_points(self, xyz_dir = True):
         # self.apply_xyz_rotation()
+        self.recreated_items_according_to_substrate_and_hkl = {}
         for each_item in self.items_subject_to_recreation:
             self.removeItem(each_item)
         self.items_subject_to_recreation = []
         self.cross_points_info = {}
         for each_line in self.lines:
+            recreated_items = []
             v1, v2, color = each_line
             v1, v2 = list(self.RRM.dot(self.RM.dot(np.array(v1)))), list(self.RRM.dot(self.RM.dot(np.array(v2))))
             '''
@@ -609,6 +611,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     break
             #self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 3))
             #self.items_subject_to_transformation.append(self.items[-1])
+            hkl_key_ = self.HKLs_dict[name][self.lines_dict[name].index(each_line)]
             if len(self.ewarld_sphere)!=0:
                 #print('yes')
                 v1_, _, scale_factor = self.ewarld_sphere
@@ -623,19 +626,76 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     points_on_circle = self.compute_points_on_3d_circle(center=np.array(each)*[0,1,0], v1=np.array([0,0,1]), v2=np.array([1,0,0]), r=(scale_factor**2-(scale_factor-abs(each[1]))**2)**0.5,resolution = 100)
                     self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
+                    recreated_items.append(self.items[-1])
                     self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
+                    recreated_items.append(self.items[-1])
                     self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
                     self.items_subject_to_recreation.append(self.items[-1])
+                    recreated_items.append(self.items[-1])
                     #ki = self.draw_arrow(v1_,[0,0,0], tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
                     kfs=self.draw_arrow(v1_, each, tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
                     q_vs= self.draw_arrow([0,0,0], each, tip_width=0.1, tip_length_scale=0.02, color=(1.,1.,1,1),line_width =0.5)
                     for kf in kfs:
                         self.addItem(kf)
                         self.items_subject_to_recreation.append(self.items[-1])
+                        recreated_items.append(self.items[-1])
                     for q_v in q_vs:
                         self.addItem(q_v)
                         self.items_subject_to_recreation.append(self.items[-1])
+                        recreated_items.append(self.items[-1])
+                if name not in self.recreated_items_according_to_substrate_and_hkl:
+                    self.recreated_items_according_to_substrate_and_hkl[name] = {tuple(hkl_key_):recreated_items}
+                else:
+                    self.recreated_items_according_to_substrate_and_hkl[name][tuple(hkl_key_)] = recreated_items
+                    
+    def generate_detector_object_cube(self, origin = [1/2,1/6,1/2], unit_basis = 1, face_color = [0,1,0,0.5]):
+        vertexes = unit_basis*(np.array([[1, 0, 0], #0
+                     [0, 0, 0], #1
+                     [0, 1/3, 0], #2
+                     [0, 0, 1], #3
+                     [1, 1/3, 0], #4
+                     [1, 1/3, 1], #5
+                     [0, 1/3, 1], #6
+                     [1, 0, 1]])-origin)#7
+
+        faces = np.array([[1,0,7], [1,3,7],
+                        [1,2,4], [1,0,4],
+                        [1,2,6], [1,3,6],
+                        [0,4,5], [0,7,5],
+                        [2,4,5], [2,6,5],
+                        [3,6,5], [3,7,5]])
+
+        colors = np.array([face_color for i in range(12)])
+
+        cube = gl.GLMeshItem(vertexes=vertexes, faces=faces, faceColors=colors,
+                            drawEdges=True, edgeColor=(1, 0, 0, 1))
+        return cube
+
+    def _get_detector_pos(self, delta, gam):
+        r = self.ewarld_sphere[2]*2
+        #since ki point towards y axis which is 90 deg away from x axis
+        phi = np.deg2rad(gam + 90 )
+        theta = np.deg2rad(90 - delta)
+        x = r*np.cos(phi)*np.sin(theta)
+        y = r*np.sin(phi)*np.sin(theta)
+        z = r*np.cos(theta)
+        return np.array([x, y, z])+self.ewarld_sphere[0]
+
+    def send_detector(self, delta, gam):
+        pos = self._get_detector_pos(delta,gam)
+        self.detector, self.detector_line = self.generate_detector_object_sphere(pos)
+
+    def generate_detector_object_sphere(self, origin, color = [0,1,0,0.8]):
+        if hasattr(self, 'detector'):
+            self.removeItem(self.detector)
+            self.removeItem(self.detector_line)
+            self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
+            self.addItem(self.draw_line_between_two_points(v1 = self.ewarld_sphere[0], v2 = origin,color = [1,0,0,0.3],width = 1))
+        else:
+            self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
+            self.addItem(self.draw_line_between_two_points(v1 = self.ewarld_sphere[0], v2 = origin,color = [1,0,0,0.3],width = 1))
+        return self.items[-1], self.items[-2]
 
     def show_structure(self):
         self.clear()
@@ -653,8 +713,13 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.theta_SN = 0
         self.theta_SN_r = 0
         self.SN_vec = np.array([0,0,1])
+        self.sphere_items_according_to_substrate_and_hkl = {}
+        self.line_items_according_to_substrate_and_hkl = {}
+        self.recreated_items_according_to_substrate_and_hkl = {}
+        #self.addItem(self.detector)
 
         for each_line in self.lines:
+            recreated_items = []
             v1, v2, color = each_line
             name = None
             for each_name in self.lines_dict:
@@ -663,6 +728,12 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     break
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 3))
             self.items_subject_to_transformation.append(self.items[-1])
+
+            hkl_key_ = self.HKLs_dict[name][self.lines_dict[name].index(each_line)]
+            if name not in self.line_items_according_to_substrate_and_hkl:
+                self.line_items_according_to_substrate_and_hkl[name] = {tuple(hkl_key_):self.items[-1]}
+            else:
+                self.line_items_according_to_substrate_and_hkl[name][tuple(hkl_key_)] = self.items[-1]
             if len(self.ewarld_sphere)!=0:
                 v1_, _, scale_factor = self.ewarld_sphere
                 cross_points = list(self.compute_line_intersection_with_sphere(v1, v2, v1_, scale_factor))
@@ -675,24 +746,33 @@ class GLViewWidget_cum(gl.GLViewWidget):
                     points_on_circle = self.compute_points_on_3d_circle(center=np.array(each)*[0,1,0], v1=np.array([0,0,1]), v2=np.array([1,0,0]), r=(scale_factor**2-(scale_factor-abs(each[1]))**2)**0.5,resolution = 100)
                     self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
+                    recreated_items.append(self.items[-1])
                     self.addItem(gl.GLLinePlotItem(pos=points_on_circle_full_circle, width=0.5, color = (0.8,0.8,0.8,0.8),antialias=True))
                     self.items_subject_to_recreation.append(self.items[-1])
+                    recreated_items.append(self.items[-1])
                     self.addItem(self.draw_sphere(each, (0,0,1,1), 0.1))
                     self.items_subject_to_recreation.append(self.items[-1])
+                    recreated_items.append(self.items[-1])
                     ki = self.draw_arrow(v1_,[0,0,0], tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
                     kfs=self.draw_arrow(v1_, each, tip_width=0.1, tip_length_scale=0.02, color=(1,1.,1,1),line_width =0.5)
                     q_vs= self.draw_arrow([0,0,0], each, tip_width=0.1, tip_length_scale=0.02, color=(1.,1.,1,1),line_width =0.5)
                     for kf in kfs:
                         self.addItem(kf)
                         self.items_subject_to_recreation.append(self.items[-1])
+                        recreated_items.append(self.items[-1])
                     for q_v in q_vs:
                         self.addItem(q_v)
                         self.items_subject_to_recreation.append(self.items[-1])
+                        recreated_items.append(self.items[-1])
                     for each_ki in ki:
                         self.addItem(each_ki)
                     # text = CustomTextItem(*each, 'x', color = QtCore.Qt.red)
                     # text.setGLViewWidget(self)
                     # self.addItem(text)
+                if name not in self.recreated_items_according_to_substrate_and_hkl:
+                    self.recreated_items_according_to_substrate_and_hkl[name] = {tuple(hkl_key_):recreated_items}
+                else:
+                    self.recreated_items_according_to_substrate_and_hkl[name][tuple(hkl_key_)] = recreated_items
         for each_line in self.grids:
             v1, v2, color = each_line
             self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 1))
@@ -703,12 +783,17 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 self.addItem(self.draw_line_between_two_points(v1,v2,color, width = 2))
                 self.items_subject_to_transformation.append(self.items[-1])
         for each_sphere in self.spheres:
-            v1_, color_, scale_factor = each_sphere
+            v1_, color_, scale_factor, _hkl, _name = each_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor)) 
             self.items_subject_to_transformation.append(self.items[-1])
+            if _name not in self.sphere_items_according_to_substrate_and_hkl:
+                self.sphere_items_according_to_substrate_and_hkl[_name] = {tuple(_hkl): self.items[-1]}
+            else:
+                self.sphere_items_according_to_substrate_and_hkl[_name][tuple(_hkl)] = self.items[-1]
         if len(self.ewarld_sphere)!=0:
             v1_, color_, scale_factor = self.ewarld_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'additive'))
+            self.detector, self.detector_line = self.generate_detector_object_sphere(origin=-np.array(self.ewarld_sphere[0]),color = [1,0,1,1])
         labels_axis = ['H','K','L','x','y','z']
         for i,each_arrow in enumerate(self.arrows):
             v1, v2, tip_width, tip_length_scale, color = each_arrow
