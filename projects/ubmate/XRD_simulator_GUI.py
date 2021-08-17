@@ -58,6 +58,14 @@ import imageio, cv2
 pg.setConfigOption('background', 'w')
 pg.setConfigOption('foreground', 'k')
 
+class Formatter(object):
+    def __init__(self, main_gui):
+        self.main_gui = main_gui
+
+    def __call__(self, x, y):
+        hkl, phi, delta, gam, chi, eta = self.main_gui.get_simulated_hkl(x, y)
+        return 'hkl = {}, x={:.01f}, y={:.01f}, phi={:.01f}, delta = {:.01f}, gam = {:.01f}, chi = {:.01f}, eta = {:.01f}'.format(hkl, x, y, phi, delta, gam, chi, eta)
+
 #from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as NavigationToolbar)
 def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warning'][0]):
     msg = QMessageBox()
@@ -288,6 +296,31 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
 
+    def get_simulated_hkl(self, x, y):
+            
+        px, py = self.widget_glview.primary_beam_position
+        L = float(self.lineEdit_sample_detector_distance.text())
+        ps = float(self.lineEdit_pixel.text())
+
+        delta = np.rad2deg(np.arctan((py-y)*ps/(L**2+(x-px)**2*ps**2)**0.5))
+        gam = np.rad2deg(np.arctan((x-px)*ps/L))
+        phi = -float(self.lineEdit_SN_degree.text())
+        self.energy_keV = float(self.lineEdit_eng.text())
+        self.hardware.settings.hardware.energy = self.energy_keV
+        angles_string = ['mu', 'delta', 'gam', 'eta', 'chi', 'phi']
+        angles = []
+        for ag in angles_string:
+            angles.append(float(getattr(self, 'lineEdit_{}'.format(ag)).text()))
+        angles[1] = delta
+        angles[2] = gam
+        angles[-1] = phi
+        hkls, pars = self.dc.angles_to_hkl(angles, energy=self.energy_keV)
+        #hkl = [round(each,3) for each in hkls]
+        chi = angles[-2]
+        eta = angles[-3]
+        return [round(each,3) for each in hkls], phi, delta, gam, chi, eta 
+
+
     def update_TM(self):
         map_ = {'unity':'[[1,0,0],[0,1,0],[0,0,1]]',
                 'fcc':'[[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]',
@@ -495,6 +528,7 @@ class MyMainWindow(QMainWindow):
         pixel_size = [float(self.lineEdit_pixel.text())]*2
         self.widget_mpl.canvas.figure.clear()
         ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
+        ax.format_coord = Formatter(self)
         try:
             prim_beam = eval(self.lineEdit_prim_beam_pos.text())
         except:
@@ -588,6 +622,7 @@ class MyMainWindow(QMainWindow):
             prim_beam = None
         self.widget_mpl.canvas.figure.clear()
         ax = self.widget_mpl.canvas.figure.add_subplot(1,1,1)
+        # ax.format_coord = Formatter(None)
         self.widget_glview.calculate_index_on_pilatus_image_from_angles(
              pilatus_size = pilatus_size,
              pixel_size = pixel_size,

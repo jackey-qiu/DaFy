@@ -793,7 +793,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         if len(self.ewarld_sphere)!=0:
             v1_, color_, scale_factor = self.ewarld_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'additive'))
-            self.detector, self.detector_line = self.generate_detector_object_sphere(origin=-np.array(self.ewarld_sphere[0]),color = [1,0,1,1])
+            self.detector, self.detector_line = self.generate_detector_object_sphere(origin=-np.array(self.ewarld_sphere[0]))
         labels_axis = ['H','K','L','x','y','z']
         for i,each_arrow in enumerate(self.arrows):
             v1, v2, tip_width, tip_length_scale, color = each_arrow

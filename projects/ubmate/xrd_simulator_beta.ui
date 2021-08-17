@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="currentIndex">
-        <number>0</number>
+        <number>2</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -580,13 +580,6 @@
           </widget>
          </item>
          <item>
-          <widget class="QLabel" name="label_8">
-           <property name="text">
-            <string>Points crossing the Ewald sphere with the rotation angles below</string>
-           </property>
-          </widget>
-         </item>
-         <item>
           <layout class="QGridLayout" name="gridLayout_9">
            <item row="1" column="2">
             <widget class="QLineEdit" name="lineEdit_speed">
@@ -609,6 +602,12 @@
            </item>
            <item row="1" column="3">
             <widget class="QRadioButton" name="radioButton_once">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>once by</string>
              </property>
@@ -639,21 +638,21 @@
               </sizepolicy>
              </property>
              <property name="text">
-              <string>continually at (deg/s)</string>
+              <string>continually (deg/s)</string>
              </property>
             </widget>
            </item>
            <item row="1" column="0">
             <widget class="QPushButton" name="pushButton_spin">
              <property name="sizePolicy">
-              <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
                <horstretch>0</horstretch>
                <verstretch>0</verstretch>
               </sizepolicy>
              </property>
              <property name="minimumSize">
               <size>
-               <width>160</width>
+               <width>0</width>
                <height>0</height>
               </size>
              </property>
@@ -664,7 +663,7 @@
               </size>
              </property>
              <property name="text">
-              <string>Spin or stop along SN</string>
+              <string>Spin sample</string>
              </property>
             </widget>
            </item>
@@ -689,6 +688,12 @@
            </item>
            <item row="0" column="1">
             <widget class="QLineEdit" name="lineEdit_rot_x">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="maximumSize">
               <size>
                <width>8000</width>
@@ -702,8 +707,14 @@
            </item>
            <item row="0" column="0">
             <widget class="QPushButton" name="pushButton_rotate">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
-              <string>Tilt sample along X by</string>
+              <string>Tilt sample</string>
              </property>
             </widget>
            </item>
@@ -722,12 +733,25 @@
            </item>
            <item row="2" column="0">
             <widget class="QPushButton" name="pushButton_send_detector">
+             <property name="sizePolicy">
+              <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
+               <horstretch>0</horstretch>
+               <verstretch>0</verstretch>
+              </sizepolicy>
+             </property>
              <property name="text">
               <string>Position detector</string>
              </property>
             </widget>
            </item>
-           <item row="2" column="3">
+           <item row="2" column="1">
+            <widget class="QLabel" name="label_92">
+             <property name="text">
+              <string>delta (degree)</string>
+             </property>
+            </widget>
+           </item>
+           <item row="2" column="2">
             <widget class="QLineEdit" name="lineEdit_delta_angle">
              <property name="maximumSize">
               <size>
@@ -740,21 +764,14 @@
              </property>
             </widget>
            </item>
-           <item row="2" column="2">
-            <widget class="QLabel" name="label_92">
+           <item row="2" column="3">
+            <widget class="QLabel" name="label_93">
              <property name="text">
-              <string>delta</string>
+              <string>gam (degree)</string>
              </property>
             </widget>
            </item>
            <item row="2" column="4">
-            <widget class="QLabel" name="label_93">
-             <property name="text">
-              <string>gam</string>
-             </property>
-            </widget>
-           </item>
-           <item row="2" column="5">
             <widget class="QLineEdit" name="lineEdit_gam_angle">
              <property name="maximumSize">
               <size>
@@ -766,6 +783,19 @@
               <string>0</string>
              </property>
             </widget>
+           </item>
+           <item row="0" column="5">
+            <spacer name="horizontalSpacer_9">
+             <property name="orientation">
+              <enum>Qt::Horizontal</enum>
+             </property>
+             <property name="sizeHint" stdset="0">
+              <size>
+               <width>40</width>
+               <height>20</height>
+              </size>
+             </property>
+            </spacer>
            </item>
           </layout>
          </item>
@@ -977,6 +1007,13 @@
             </widget>
            </item>
           </layout>
+         </item>
+         <item>
+          <widget class="QLabel" name="label_8">
+           <property name="text">
+            <string>Points crossing the Ewald sphere with the rotation angles below</string>
+           </property>
+          </widget>
          </item>
          <item>
           <widget class="QPlainTextEdit" name="plainTextEdit_cross_points_info"/>
