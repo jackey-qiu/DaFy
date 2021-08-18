@@ -649,7 +649,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                 else:
                     self.recreated_items_according_to_substrate_and_hkl[name][tuple(hkl_key_)] = recreated_items
                     
-    def generate_detector_object_cube(self, origin = [1/2,1/6,1/2], unit_basis = 1, face_color = [0,1,0,0.5]):
+    def generate_detector_object_cube(self, origin = [1/2,1/6,1/2], unit_basis = 1, face_color = [0,1,0,1.], or_100 = 0, or_001 = 0):
         vertexes = unit_basis*(np.array([[1, 0, 0], #0
                      [0, 0, 0], #1
                      [0, 1/3, 0], #2
@@ -657,7 +657,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
                      [1, 1/3, 0], #4
                      [1, 1/3, 1], #5
                      [0, 1/3, 1], #6
-                     [1, 0, 1]])-origin)#7
+                     [1, 0, 1]])-[1/2,1/6,1/2])#7
 
         faces = np.array([[1,0,7], [1,3,7],
                         [1,2,4], [1,0,4],
@@ -669,7 +669,10 @@ class GLViewWidget_cum(gl.GLViewWidget):
         colors = np.array([face_color for i in range(12)])
 
         cube = gl.GLMeshItem(vertexes=vertexes, faces=faces, faceColors=colors,
-                            drawEdges=True, edgeColor=(1, 0, 0, 1))
+                            drawEdges=False, edgeColor=(1, 0, 0, 1))
+        cube.rotate(or_100,1,0,0,local = False)
+        cube.rotate(or_001,0,0,1,local = False)
+        cube.translate(*origin)
         return cube
 
     def _get_detector_pos(self, delta, gam):
@@ -684,16 +687,18 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
     def send_detector(self, delta, gam):
         pos = self._get_detector_pos(delta,gam)
-        self.detector, self.detector_line = self.generate_detector_object_sphere(pos)
+        self.detector, self.detector_line = self.generate_detector_object(pos, or_100 = delta, or_001 = gam)
 
-    def generate_detector_object_sphere(self, origin, color = [0,1,0,0.8]):
+    def generate_detector_object(self, origin, color = [0,1,0,0.8], or_100 = 0, or_001 =0):
         if hasattr(self, 'detector'):
             self.removeItem(self.detector)
             self.removeItem(self.detector_line)
-            self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
+            # self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
+            self.addItem(self.generate_detector_object_cube(origin,unit_basis = self.ewarld_sphere[2]*0.1, or_100= or_100, or_001 = or_001))
             self.addItem(self.draw_line_between_two_points(v1 = self.ewarld_sphere[0], v2 = origin,color = [1,0,0,0.3],width = 1))
         else:
-            self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
+            # self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
+            self.addItem(self.generate_detector_object_cube(origin,unit_basis = self.ewarld_sphere[2]*0.1, or_100= or_100, or_001 = or_001))
             self.addItem(self.draw_line_between_two_points(v1 = self.ewarld_sphere[0], v2 = origin,color = [1,0,0,0.3],width = 1))
         return self.items[-1], self.items[-2]
 
@@ -793,7 +798,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         if len(self.ewarld_sphere)!=0:
             v1_, color_, scale_factor = self.ewarld_sphere
             self.addItem(self.draw_sphere(v1_, color_, scale_factor,rows=100, cols=100, glOption = 'additive'))
-            self.detector, self.detector_line = self.generate_detector_object_sphere(origin=-np.array(self.ewarld_sphere[0]))
+            self.detector_line, self.detector = self.generate_detector_object(origin=-np.array(self.ewarld_sphere[0]))
         labels_axis = ['H','K','L','x','y','z']
         for i,each_arrow in enumerate(self.arrows):
             v1, v2, tip_width, tip_length_scale, color = each_arrow

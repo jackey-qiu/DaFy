@@ -168,8 +168,9 @@ class PandasModel(QtCore.QAbstractTableModel):
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','xrd_simulator_beta.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','ubmate','ubmate.ui'),self)
         self.widget_terminal.update_name_space('main_gui',self)
+        self.setWindowTitle('Data analysis factory: UBMate')
         self.widget_config.init_pars()
         #UB settings from diffcalc module
         self.ub = ub
