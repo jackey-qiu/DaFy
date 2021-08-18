@@ -36,6 +36,7 @@ import time
 import datetime
 import matplotlib
 # matplotlib.use("TkAgg")
+matplotlib.rc('image', cmap='prism')
 os.environ["QT_MAC_WANTS_LAYER"] = "1"
 #import _tkinter
 import pyqtgraph as pg
