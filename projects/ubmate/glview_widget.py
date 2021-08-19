@@ -690,7 +690,7 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.detector, self.detector_line = self.generate_detector_object(pos, or_100 = delta, or_001 = gam)
 
     def generate_detector_object(self, origin, color = [0,1,0,0.8], or_100 = 0, or_001 =0):
-        if hasattr(self, 'detector'):
+        if self.detector!=None:
             self.removeItem(self.detector)
             self.removeItem(self.detector_line)
             # self.addItem(self.draw_sphere(origin,color,scale_factor = self.ewarld_sphere[2]*0.1))
@@ -704,6 +704,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
 
     def show_structure(self):
         self.clear()
+        self.detector = None
+        self.detector_line = None
         self.cross_points_info = {}
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
