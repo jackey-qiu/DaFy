@@ -257,6 +257,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_clear_cons.clicked.connect(self.clear_all_cons)
         self.pushButton_calc_angs.clicked.connect(self.calc_angs)
         self.pushButton_calc_hkl.clicked.connect(self.calc_hkl_dc)
+        self.pushButton_to_HKL.clicked.connect(self.send_hkl_angs)
         self.comboBox_UB.currentTextChanged.connect(self.display_UB)
         self.pushButton_update_ub.clicked.connect(self.set_UB_matrix)
         self.pushButton_cal_ub.clicked.connect(self.add_refs)
@@ -471,6 +472,33 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_cons_mu.setText('0')
             #self.lineEdit_cons_chi.setText('90')
         self.set_cons()
+
+    def send_hkl_angs(self):
+        self.calc_angs()
+        all = list([self.comboBox_bragg_peak.itemText(i) for i in range(self.comboBox_bragg_peak.count())])
+        h, k = int(self.lineEdit_H_calc.text()), int(self.lineEdit_K_calc.text())
+        #l = None
+        index = None
+        for i, each in enumerate(all):
+            if each.startswith('['):
+                h_, k_, l_ = eval(each)
+                if (h == h_) and (k == k_):
+                    #l = l_
+                    index = i
+                    break
+        #Bragg_peak = '[{},{},{}]'.format(h, k, l)
+        if index==None:
+            return
+        else:
+            self.comboBox_bragg_peak.setCurrentIndex(index)
+            self.radioButton_single_rod.setChecked(True)
+            self.extract_peaks_in_zoom_viewer()
+            self.lineEdit_delta_angle.setText(self.lineEdit_delta.text())
+            self.lineEdit_rot_x.setText(self.lineEdit_eta.text())
+            self.lineEdit_gam_angle.setText(self.lineEdit_gam.text())
+            self.lineEdit_SN_degree.setText(str(-float(self.lineEdit_phi.text())))
+            self.rotate_sample()
+            self.send_detector()
 
     def calc_angs(self):
         self.energy_keV = float(self.lineEdit_eng.text())

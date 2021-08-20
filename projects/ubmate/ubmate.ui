@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1052</height>
+    <height>1060</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -39,7 +39,7 @@
         </font>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab">
         <attribute name="title">
@@ -2028,6 +2028,13 @@
                 </property>
                </widget>
               </item>
+              <item row="3" column="4">
+               <widget class="QPushButton" name="pushButton_to_HKL">
+                <property name="text">
+                 <string>go to the specified HKL</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
            </layout>
@@ -2369,7 +2376,7 @@ Once a UB matrix has been calculated, the diffractometer may be driven in hkl co
         </font>
        </property>
        <property name="currentIndex">
-        <number>1</number>
+        <number>0</number>
        </property>
        <widget class="QWidget" name="tab_3">
         <attribute name="title">

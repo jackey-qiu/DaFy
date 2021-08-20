@@ -723,6 +723,11 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.sphere_items_according_to_substrate_and_hkl = {}
         self.line_items_according_to_substrate_and_hkl = {}
         self.recreated_items_according_to_substrate_and_hkl = {}
+        if len(self.ewarld_sphere)!=0:
+            points_on_circle = self.compute_points_on_3d_circle(center=self.ewarld_sphere[0], v1=np.array([1,0,0]), v2=np.array([0,1,0]), r=self.ewarld_sphere[2],resolution = 100)
+            self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.8, color = (0.8,0,0,0.8),antialias=True))
+            points_on_circle = self.compute_points_on_3d_circle(center=self.ewarld_sphere[0], v1=np.array([1,0,0]), v2=np.array([0,0,1]), r=self.ewarld_sphere[2],resolution = 100)
+            self.addItem(gl.GLLinePlotItem(pos=points_on_circle, width=0.8, color = (0.8,0,0,0.8),antialias=True))
         #self.addItem(self.detector)
 
         for each_line in self.lines:
