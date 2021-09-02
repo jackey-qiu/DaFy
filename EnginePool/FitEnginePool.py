@@ -1594,7 +1594,7 @@ class background_subtraction_single_img():
 
         for s in ss:
             for ord_cus in ord_cus_s:
-                # print(s)
+                # print(ss, len(n), len(y),peak_l, peak_r)
                 # z,a,it,ord_cus,s,fct = backcor(n,y,ord_cus,s,fct)
                 z,a,it,ord_cus,s,fct = backcor_confined(n,y,ord_cus,s,fct,[peak_l,peak_r])
 
@@ -1786,7 +1786,6 @@ class background_subtraction_single_img():
             func = self.integrate_one_image
         else:
             func = self.integrate_one_image_use_traditional_polyfit
-        # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf, index_offset = index_offset)
         try:
             # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
             I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf, index_offset = index_offset)

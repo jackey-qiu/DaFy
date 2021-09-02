@@ -29,7 +29,7 @@ from PyQt5.QtGui import QTransform
 from pyqtgraph.Qt import QtGui
 import logging
 
-pg.setConfigOption('background', (50,50,100))
+# pg.setConfigOption('background', (50,50,100))
 # pg.setConfigOption('foreground', 'k')
 
 #redirect the error stream to qt widget
@@ -980,6 +980,6 @@ if __name__ == "__main__":
     app = QApplication(sys.argv)
     # QApplication.setGraphicsSystem("raster")
     myWin = MyMainWindow()
-    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())

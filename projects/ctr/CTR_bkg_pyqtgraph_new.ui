@@ -6,12 +6,12 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1878</width>
-    <height>1058</height>
+    <width>1269</width>
+    <height>878</height>
    </rect>
   </property>
   <property name="sizePolicy">
-   <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
+   <sizepolicy hsizetype="Preferred" vsizetype="Expanding">
     <horstretch>0</horstretch>
     <verstretch>0</verstretch>
    </sizepolicy>
@@ -19,7 +19,7 @@
   <property name="maximumSize">
    <size>
     <width>16777215</width>
-    <height>10470000</height>
+    <height>16777215</height>
    </size>
   </property>
   <property name="windowTitle">
@@ -67,7 +67,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -2065,8 +2065,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1878</width>
-     <height>22</height>
+     <width>1269</width>
+     <height>21</height>
     </rect>
    </property>
   </widget>

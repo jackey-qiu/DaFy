@@ -1,5 +1,5 @@
 import sys,os,qdarkstyle
-from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog
+from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QShortcut
 from PyQt5 import uic
 import random
 import numpy as np
@@ -22,6 +22,7 @@ matplotlib.use("TkAgg")
 import pyqtgraph as pg
 from PyQt5 import QtCore
 from PyQt5.QtWidgets import QCheckBox, QRadioButton
+from pyqtgraph.Qt import QtGui
 
 #customize the label of image axis (q basis instead of index basis)
 class pixel_to_q(pg.AxisItem):
@@ -77,14 +78,18 @@ class MyMainWindow(QMainWindow):
         self.save.clicked.connect(self.save_file)
         self.plot.clicked.connect(self.plot_figure)
         self.runstepwise.clicked.connect(self.plot_)
+        self.nextShort = QShortcut(QtGui.QKeySequence("Right"), self)
+        self.nextShort.activated.connect(self.plot_)
         self.pushButton_filePath.clicked.connect(self.locate_data_folder)
         # self.pushButton_fold_or_unfold.clicked.connect(self.fold_or_unfold)
         for each in self.groupBox_2.findChildren(QCheckBox):
             each.released.connect(self.update_poly_order)
+        '''
         for each in self.groupBox_cost_func.findChildren(QRadioButton):
             each.toggled.connect(self.update_cost_func)
+        '''
         self.pushButton_remove_current_point.clicked.connect(self.remove_data_point)
-        self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
+        #self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
         self.comboBox_p2.activated.connect(self.select_source_for_plot_p2)
         self.actionOpenConfig.triggered.connect(self.load_file)
         self.actionSaveConfig.triggered.connect(self.save_file)
@@ -143,23 +148,28 @@ class MyMainWindow(QMainWindow):
         for each in self.groupBox_cost_func.findChildren(QRadioButton):
             if each.isChecked():
                 self.app_ctr.bkg_sub.update_integration_function(each.text())
+                if not init_step:
+                    self.updatePlot()
                 break
+        '''
         try:
-            self.updatePlot()
         except:
             pass
+        '''
 
     def update_ss_factor(self, init_step = False):
         self.app_ctr.bkg_sub.update_ss_factor(self.doubleSpinBox_ss_factor.value())
         self.updatePlot()
+        '''
         try:
             self.updatePlot()
         except:
             pass
+        '''
 
     #set up the image zone (base on pyqtgraph engine)
     def setup_image(self):
-        global img, roi, roi_bkg, p2, p2_r, p3_r, p3, p4, p4_r, isoLine, iso
+        # global img, roi, roi_bkg, p2, p2_r, p3_r, p3, p4, p4_r, isoLine, iso
 
         win = self.widget_image
 
@@ -319,11 +329,15 @@ class MyMainWindow(QMainWindow):
                 pass
 
             self.reset_peak_center_and_width()
+            self.update_bkg_signal()
+            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity)
+            '''
             if self.stop:
                 self.update_bkg_signal()
                 self.app_ctr.run_update(bkg_intensity=self.bkg_intensity)
             else:
                 pass
+            '''
             ##update iso curves
             x, y = [int(each) for each in self.roi.pos()]
             w, h = [int(each) for each in self.roi.size()]
@@ -353,8 +367,8 @@ class MyMainWindow(QMainWindow):
         self.updatePlot = updatePlot
 
         def updateIsocurve():
-            global isoLine, iso
-            iso.setLevel(isoLine.value())
+            # global isoLine, iso
+            self.iso.setLevel(isoLine.value())
             self.lcdNumber_iso.display(isoLine.value())
         self.updateIsocurve = updateIsocurve
         isoLine.sigDragged.connect(updateIsocurve)
@@ -393,7 +407,7 @@ class MyMainWindow(QMainWindow):
         self.app_ctr.data_path = data_file
         self.app_ctr.run(self.lineEdit.text())
         self.update_poly_order(init_step=True)
-        self.update_cost_func(init_step=True)
+        # self.update_cost_func(init_step=True)
         if self.launch.text()=='Launch':
             self.setup_image()
             self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
@@ -409,7 +423,7 @@ class MyMainWindow(QMainWindow):
         try:
             self.app_ctr.run(self.lineEdit.text())
             self.update_poly_order(init_step=True)
-            self.update_cost_func(init_step=True)
+            # self.update_cost_func(init_step=True)
             if self.launch.text()=='Launch':
                 self.setup_image()
             else:
@@ -442,7 +456,7 @@ class MyMainWindow(QMainWindow):
     def plot_figure(self):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.plot_)
-        self.timer.start(5)
+        self.timer.start(50)
 
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)
@@ -466,8 +480,8 @@ class MyMainWindow(QMainWindow):
 
                 #set roi
                 size_of_roi = self.roi.size()
-                # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
-                self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
+                self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
+                # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
                 #self.p1.plot([0,400],[200,200])
                 if self.app_ctr.img_loader.frame_number == 0:
                     self.p1.autoRange() 

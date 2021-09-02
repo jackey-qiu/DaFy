@@ -92,11 +92,12 @@ class run_app(object):
                 setattr(self,'current_scan_number',self.img_loader.scan_number)
             self.current_frame = self.img_loader.frame_number
             self.img = img
-            self.peak_fitting_instance.reset_fit(img, check = False)
-            self.bkg_sub.fit_background(None, img, plot_live = False, freeze_sf = True)
-            self.data = merge_data(self.data, self.img_loader, self.peak_fitting_instance, self.bkg_sub, self.kwarg_global, tweak = False)
-            self.data = cal_strain_and_grain(self.data,HKL = self.kwarg_film['film_hkl_bragg_peak'][0], lattice = self.lattice_skin)
-            self.data['bkg'].append(bkg_intensity)
+            good_check = self.peak_fitting_instance.reset_fit(img, check = True)
+            if good_check:
+                self.bkg_sub.fit_background(None, img, plot_live = False, freeze_sf = True)
+                self.data = merge_data(self.data, self.img_loader, self.peak_fitting_instance, self.bkg_sub, self.kwarg_global, tweak = False)
+                self.data = cal_strain_and_grain(self.data,HKL = self.kwarg_film['film_hkl_bragg_peak'][0], lattice = self.lattice_skin)
+                self.data['bkg'].append(bkg_intensity)
             return True
         except StopIteration:
             self.save_data_file(self.data_path)
