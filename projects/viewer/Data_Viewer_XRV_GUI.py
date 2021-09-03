@@ -1148,16 +1148,19 @@ class MyMainWindow(QMainWindow):
         self.plot_reaction_order_and_tafel(axs = axs_2)
         '''
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
-        self.plot_reaction_order_and_tafel(axs = axs_2)
-        ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
-        bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
-        ax_3.set_ylabel(r'q / mCcm$^{-2}$')
-        #ax_3.set_title('Comparison of charge')
-        ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
-        #labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
-        ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
-        for i, bar_ in enumerate(bar_list):
-            bar_.set_color(self.cv_tool.info['color'][i])
+        try:
+            self.plot_reaction_order_and_tafel(axs = axs_2)
+            ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
+            bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
+            ax_3.set_ylabel(r'q / mCcm$^{-2}$')
+            #ax_3.set_title('Comparison of charge')
+            ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
+            #labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
+            ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
+            for i, bar_ in enumerate(bar_list):
+                bar_.set_color(self.cv_tool.info['color'][i])
+        except:
+            pass
         
         #ax_3.legend()
         #self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
