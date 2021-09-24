@@ -111,6 +111,7 @@ def merge_data_image_loader(data, object_image_loader):
                      'delta':object_image_loader.motor_angles['delta'],
                      'gamma':object_image_loader.motor_angles['gamma'],
                      'omega_t':object_image_loader.motor_angles['omega_t'],
+                     'omega':object_image_loader.motor_angles['omega'],
                      'mon':object_image_loader.motor_angles['mon'],
                      'transm':object_image_loader.motor_angles['transm']
                      }
@@ -157,9 +158,9 @@ def merge_data_bkg(data, object_bkg):
                      "poly_type":object_bkg.opt_values['poly_type'],
                      "peak_width":object_bkg.opt_values['peak_width']
                      }
-    for key in key_map_rules:
-        data[key].append(key_map_rules[key])
-    # data['peak_intensity_error'][-1] = data['peak_intensity_error'][-1]/(data['mon'][-1]*data['transm'][-1])**0.5
+    if object_bkg.fit_status:
+        for key in key_map_rules:
+            data[key].append(key_map_rules[key])
     return data
 
 def update_data_bkg(data, object_bkg):
@@ -318,7 +319,7 @@ def cut_profile_from_2D_img_around_center(img, cut_offset = {'hor':10, 'ver':20}
             'ver': cut_profile_from_2D_img(img, cut_range['ver'], cut_direction ='vertical', sum_result = sum_result)[data_range['ver'][0]:data_range['ver'][1]]}
     return cut
 
-def create_mask(img, img_q_par, img_q_ver, threshold = 10000, compare_method ='larger',remove_columns = [], \
+def create_mask_(img, img_q_par, img_q_ver, threshold = 10000, compare_method ='larger',remove_columns = [], \
                 remove_rows = [], remove_pix = None, remove_q_range = {'par':[], 'ver':[]}, \
                 remove_partial_range = {'point_couple':[{'p1':[2.4,3.2],'p2':[2.5,3.0]},{'p1':[2.55,3.3],'p2':[2.4,3.0]}],'pixel_width':[]}):
     #remove_partial_range, each point is of form [q_hor, q_ver]; two point couple will be used to calculate a line equation, which will be
@@ -363,7 +364,7 @@ def create_mask(img, img_q_par, img_q_ver, threshold = 10000, compare_method ='l
     elif compare_method =='smaller':
         mask[img<threshold]=0
     elif compare_method =='equal':
-        maks[img == threshold] =0
+        mask[img == threshold] =0
     mask[:,remove_columns] = 0
     mask[remove_rows,:] = 0
     if remove_pix!=None:
@@ -428,13 +429,19 @@ class create_mask():
             mask[img<threshold/mon]=0
         elif compare_method =='equal':
             maks[img == threshold/mon] =0
-        mask[:,remove_columns] = 0
-        mask[remove_rows,:] = 0
+        #mask[:,remove_columns] = 0
+        #mask[remove_rows,:] = 0
         if remove_pix!=None:
             for each in remove_pix:
                 mask[tuple(each)] = 0
                 # print('remove pix at',each)
-        return mask*mask_ip_q*mask_oop_q*img
+        new_img = mask*mask_ip_q*mask_oop_q*img
+        #now remove the masked columns and rows
+        new_img = np.delete(new_img, remove_columns, axis =1)
+        new_img = np.delete(new_img, remove_rows, axis =0)
+
+        return new_img
+
 
 
 def create_mask_bkg(img, threshold = 10000, compare_method ='larger',remove_columns = [], \
@@ -471,7 +478,7 @@ def create_mask_bkg(img, threshold = 10000, compare_method ='larger',remove_colu
     elif compare_method =='smaller':
         mask[img<threshold]=0
     elif compare_method =='equal':
-        maks[img == threshold] =0
+        mask[img == threshold] =0
     mask[:,remove_columns] = 0
     mask[remove_rows,:] = 0
     if remove_pix!=None:

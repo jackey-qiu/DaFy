@@ -366,7 +366,7 @@ class MyMainWindow(QMainWindow):
         self.roi.setPos(pos = [self.ref_fit_pars_current_point['roi_x'],self.ref_fit_pars_current_point['roi_y']])
         self.roi.setSize(size = [self.ref_fit_pars_current_point['roi_w'],self.ref_fit_pars_current_point['roi_h']])
         self.doubleSpinBox_ss_factor.setValue(self.ref_fit_pars_current_point['ss_factor'])
-        self.spinBox_peak_width.setValue(self.ref_fit_pars_current_point['peak_width'])
+        self.spinBox_peak_width.setValue(self.ref_fit_pars_current_point['peak_width']/2)
         def _split_poly_order(order):
             if order in [1,2,3,4]:
                 return [order]

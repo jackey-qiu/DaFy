@@ -1787,34 +1787,29 @@ class background_subtraction_single_img():
         else:
             func = self.integrate_one_image_use_traditional_polyfit
         try:
-            # I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=self.integrate_one_image(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf)
             I,noise,FOM,I_err,s,ord_cus,center_pix,peak_width,r_width,c_width,bkg_sum,check_result=func(fig,img,data,plot_live=plot_live,freeze_sf = freeze_sf, index_offset = index_offset)
             self.fit_status = True
-        except:
+            self.fit_results['F']=I**0.5
+            self.fit_results['Ferr']=I_err**0.5
+            self.fit_results['I']=I
+            self.fit_results['noise'] = noise
+            self.fit_results['Ierr']=I_err#scale intensity error
+            self.fit_results['bkg']=bkg_sum
+            #fit parameters values
+            self.opt_values['cen'] = center_pix
+            self.opt_values['peak_width'] = peak_width
+            self.opt_values['row_width'] = r_width
+            self.opt_values['col_width'] = c_width
+            self.opt_values['fit_threshold'] = s
+            self.opt_values['int_power'] = ord_cus
+            self.opt_values['int_dir'] = self.int_direct
+            self.opt_values['cost_fun'] = self.fct
+            self.opt_values['poly_type'] = poly_func.lower()
+            self.fit_status = True
+            return check_result
+        except Exception as e:
             self.fit_status = False
-        # t2=time.time()
-        #I_temp.append(I)
-        # print(result_dict)
-        self.fit_results['F']=I**0.5
-        self.fit_results['Ferr']=I_err**0.5
-        self.fit_results['I']=I
-        self.fit_results['noise'] = noise
-        self.fit_results['Ierr']=I_err#scale intensity error
-        self.fit_results['bkg']=bkg_sum
-        #fit parameters values
-        self.opt_values['cen'] = center_pix
-        self.opt_values['peak_width'] = peak_width
-        self.opt_values['row_width'] = r_width
-        self.opt_values['col_width'] = c_width
-        self.opt_values['fit_threshold'] = s
-        self.opt_values['int_power'] = ord_cus
-        self.opt_values['int_dir'] = self.int_direct
-        self.opt_values['cost_fun'] = self.fct
-        self.opt_values['poly_type'] = poly_func.lower()
-        # t3=time.time()
-        # print(t3-t2,t2-t1)
-        # return data
-        return check_result
+            print(e)
 
 class background_subtraction_single_img_old():
     def __init__(self,config_file = '../config/config_bkg_sub.ini'):

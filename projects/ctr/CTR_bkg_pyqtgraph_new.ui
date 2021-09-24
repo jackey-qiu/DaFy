@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1269</width>
-    <height>878</height>
+    <width>1920</width>
+    <height>1027</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -67,7 +67,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>0</number>
+           <number>1</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -2030,7 +2030,7 @@
            <double>0.100000000000000</double>
           </property>
           <property name="value">
-           <double>1.000000000000000</double>
+           <double>0.000000000000000</double>
           </property>
          </widget>
         </item>
@@ -2065,8 +2065,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1269</width>
-     <height>21</height>
+     <width>1920</width>
+     <height>24</height>
     </rect>
    </property>
   </widget>

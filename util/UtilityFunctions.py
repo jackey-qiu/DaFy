@@ -1162,7 +1162,7 @@ class nexus_image_loader(object):
         #img_path=os.path.join(self.nexus_path,img_name)
         #data=nxload(img_path)
         motors={}
-        motor_names = ['phi', 'chi', 'delta', 'gamma', 'mu', 'omega_t']
+        motor_names = ['phi', 'chi', 'delta', 'gamma', 'mu', 'omega_t','omega']
         #for motor in self.constant_motors:
         #    motors[motor] = self.constant_motors[motor]
         for motor in motor_names:

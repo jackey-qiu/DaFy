@@ -368,6 +368,7 @@ class MyMainWindow(QMainWindow):
     def plot_figure_ctr(self):
         self.mplwidget.fig.clear()
         col_num=2#two columns only
+        self.data_to_save = {}
         if len(self.scan_numbers_all.text().rsplit('+')) in [1,2]:
             col_num = 1
         else:
@@ -408,9 +409,9 @@ class MyMainWindow(QMainWindow):
                         pass
                     len_data = len(self.data_to_plot[scan]['L'])
                     #Lorentz factor calculation, refer to Vlieg 1997, J.Appl.Cryst. Equation 16
-                    lorentz_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['delta']))*np.cos(np.deg2rad(self.data_to_plot[scan]['omega_t']))*np.cos(np.deg2rad(self.data_to_plot[scan]['gamma']))
+                    lorentz_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['delta']))*np.cos(np.deg2rad(self.data_to_plot[scan]['omega']))*np.cos(np.deg2rad(self.data_to_plot[scan]['gamma']))
                     #footprint area correction factor (take effect only for specular rod)
-                    area_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['omega_t']))
+                    area_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['omega']))
                     self.data_to_save[temp_key] = self.data_to_save[temp_key].append(pd.DataFrame({"L":self.data_to_plot[scan]['L'],"H":self.data_to_plot[scan]['H'],\
                                                                                      "K":self.data_to_plot[scan]['K'],"na":[0]*len_data,"I":self.data_to_plot[scan]['peak_intensity']*lorentz_ft*area_ft,\
                                                                                      "I_err":self.data_to_plot[scan]['peak_intensity_error']*lorentz_ft*area_ft,"BL":[BL]*len_data ,"dL":[2]*len_data}))
@@ -573,6 +574,9 @@ class MyMainWindow(QMainWindow):
 
         if 'omega_t' not in plot_label_list:
             plot_label_list.append('omega_t')
+
+        if 'omega' not in plot_label_list:
+            plot_label_list.append('omega')
 
         if 'peak_intensity_error' not in plot_label_list:
             plot_label_list.append('peak_intensity_error')

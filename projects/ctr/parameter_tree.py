@@ -27,14 +27,14 @@ class ScalableGroup(pTypes.GroupParameter):
 
 foms_label = ["diff",'log','log_debug','sqrt','R1','R1_weighted','R1_weighted_2','chi2bars_2','R1_weighted_2b','R1_weighted_3','logR1','R2','R2_wighted','logR2','sintth4','Norm','chi2bars','chi2bars_w_trainor','chi2bars_weighted','chibars','logbars','R1bars','R2bars']
 
-data_keys_petra3 =",".join(['scan_no','image_no','potential','current','peak_intensity','peak_intensity_error', \
-          'bkg', 'H','K','L','phi','chi','mu', 'delta', 'gamma','omega_t','mon','transm','mask_ctr'])
+data_keys_petra3 =str(['scan_no','image_no','potential','current','peak_intensity','peak_intensity_error', \
+          'bkg', 'H','K','L','phi','chi','mu', 'delta', 'gamma','omega','omega_t','mon','transm','mask_ctr','roi_x', 'roi_y', 'roi_w', 'roi_h', 'ss_factor', 'peak_width', 'poly_func', 'poly_order', 'poly_type'])
 
 params_petra3 = [
     {'name': 'Global', 'type': 'group', 'children': [
-        {'name': 'beamline', 'type': 'str', 'value': "P23_PETRA3"},
+        {'name': 'beamline', 'type': 'str', 'value': "PETRA3_P23"},
         {'name': 'beamtime_id', 'type': 'str', 'value': "I20190574"},
-        {'name': 'scan_nos', 'type': 'text', 'value': '82'},
+        {'name': 'scan_nos', 'type': 'text', 'value': '[82]'},
         {'name': 'data_keys', 'type': 'text', 'value': data_keys_petra3},
         {'name': 'update_width', 'type': 'str', 'value': "False"},
         {'name': 'cen', 'type': 'str', 'value': "637,328"},
@@ -45,14 +45,14 @@ params_petra3 = [
         {"name":"check_abnormality","type":"str","value":'False'},
         {'name': 'frame_prefix', 'type': 'str', 'value': 'i20180678_2'},
         {'name':'nexus_path','type':'str','value':'F://P23_I20180678/raw'},
-        {'name':'constant_motors','type':'str','value':"{'omega_t':2, 'phi':0, 'chi':0}"},
+        {'name':'constant_motors','type':'str','value':"{}"},
     ]},
     {'name': 'Mask', 'type': 'group', 'children': [
         {"name":"threshold","type":"str","value":'50000'},
         {"name":"compare_method","type":"list","value":'larger',"values":["larger","smaller"]},
         {"name":"remove_columns","type":"str","value":"10"},
         {"name":"remove_rows","type":"str","value":"10"},
-        {"name":"remove_pix","type":"text","value":"[231,206]"},
+        {"name":"remove_pix","type":"text","value":"[]"},
         {"name":"remove_q_par","type":"str","value":"[]"},
         {"name":"remove_q_ver","type":"str","value":"[]"},
         {"name":"line_strike_segments","type":"str","value":"[]"},
