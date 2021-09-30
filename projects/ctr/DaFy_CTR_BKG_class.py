@@ -94,13 +94,13 @@ class run_app(object):
         # print(data)
         #init peak fit, bkg subtraction and reciprocal space and image loader instance
         self.bkg_sub = background_subtraction_single_img(self.cen_clip, self.conf_file, sections = ['Background_Subtraction'])
+        self.bkg_sub.update_col_row_width(clip_lib = self.kwarg_global['clip_width'], default_padding_rate = 0.8)
         if self.beamline == 'PETRA3_P23':
             self.img_loader = nexus_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image)
         elif self.beamline == 'APS_13IDC':
             self.img_loader = gsecars_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image, scan_numbers= self.scan_nos)
         self.create_mask_new = create_mask(kwarg = self.kwarg_mask)
         self.setup_frames()
-
 
     def setup_frames(self):
         #build generator funcs
@@ -128,6 +128,7 @@ class run_app(object):
             elif self.beamline == 'APS_13IDC':
                 self.data = merge_data_image_loader_gsecars(self.data, self.img_loader)
             self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True,poly_func = poly_func)
+            # print(self.bkg_sub.fit_results)
             self.data = merge_data_bkg(self.data, self.bkg_sub)
             self.data['bkg'].append(bkg_intensity)
             # print(t1-t0,t2-t1,t3-t2,t4-t3,t5-t4)

@@ -1197,6 +1197,13 @@ class background_subtraction_single_img():
         # self.col_width_origin = self.col_width
         # self.row_width_origin = self.row_width
 
+    def update_col_row_width(self, clip_lib, default_padding_rate = 0.8):
+        assert 'hor' in clip_lib and 'ver' in clip_lib, 'the format of clip_lib is not correct!'
+        self.col_width_origin = int(clip_lib['ver']*default_padding_rate)
+        self.col_width = int(clip_lib['ver']*default_padding_rate)
+        self.row_width_origin = int(clip_lib['hor']*default_padding_rate)
+        self.row_width = int(clip_lib['hor']*default_padding_rate)
+
     def update_center_pix_up_and_down(self,offset):
         offset = int(offset)
         #offset = np.array([-offset,0])
@@ -1486,24 +1493,7 @@ class background_subtraction_single_img():
         y_min,y_max=sub_index[0][0],sub_index[1][0]
         pil_y,pil_x=img.shape#shape of the pilatus image
         #reset the boundary if the index number is beyond the pilatus shape
-        #x_min,x_max,y_min,y_max=[int(x_min>0)*x_min,int(x_max>0)*x_max,int(y_min>0)*y_min,int(y_max>0)*y_max]
-        #x_min,x_max,y_min,y_max=[int(x_min<pil_x)*x_min,int(x_max<pil_x)*x_max,int(y_min<pil_y)*y_min,int(y_max<pil_y)*y_max]
         x_min,x_max,y_min,y_max=[int(x_min<pil_x)*x_min,[pil_x,x_max][int(x_max<pil_x)],int(y_min<pil_y)*y_min,[pil_y,y_max][int(y_max<pil_y)]]
-        # x_min_new,x_max_new,y_min_new,y_max_new=[int(x_min>0)*x_min,int(x_max>0)*x_max,int(y_min>0)*y_min,int(y_max>0)*y_max]
-        # x_min_new,x_max_new,y_min_new,y_max_new=[int(x_min_new<pil_x)*x_min_new,int(x_max_new<pil_x)*x_max_new,int(y_min_new<pil_y)*y_min_new,int(y_max_new<pil_y)*y_max_new]
-        # compare_results =[x_min == x_min_new, x_max == x_max_new, y_min == y_min_new, y_max == y_max_new]
-        # x_corner, y_corner =None, None
-
-        # for i in range(4):
-            # if i in [0,1] and compare_results[i]:
-                # x_corner = i
-            # elif i in [2,3] and compare_results[i]:
-                # y_corner = i
-        # if [x_corner,y_corner] == [0,1]:
-
-        # elif [x_corner,y_corner] == [1,1]:
-        # elif [x_corner,y_corner] == [0,0]:
-        # elif [x_corner,y_corner] == [1,0]:
 
         x_span,y_span=x_max-x_min,y_max-y_min
         clip_image_center = [int(y_span/2)+self.peak_shift,int(x_span/2)+self.peak_shift]
@@ -1513,7 +1503,7 @@ class background_subtraction_single_img():
         self.x_min, self.y_min, self.x_max, self.y_max, self.x_span, self.y_span = x_min, y_min, x_max, y_max, x_span, y_span
         #print (y_min,y_max,x_min,x_max)
         clip_img=img[y_min:y_max+1,x_min:x_max+1]
-        
+
         clip_image_center_bkg = clip_image_center+np.array([-self.bkg_win_cen_offset_ud,self.bkg_win_cen_offset_lr])
         y_min_bkg = clip_image_center_bkg[0]-self.bkg_col_width
         y_max_bkg = clip_image_center_bkg[0]+self.bkg_col_width
