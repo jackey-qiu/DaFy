@@ -274,7 +274,7 @@ class MyMainWindow(QMainWindow):
         self.app_ctr.bkg_sub.update_ss_factor(self.doubleSpinBox_ss_factor.value())
         #print(self.app_ctr.bkg_sub.ss_factor)
         try:
-            self.updatePlot(init_step)
+            self.updatePlot()
         except:
             pass
 
