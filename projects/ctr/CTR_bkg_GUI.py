@@ -402,28 +402,37 @@ class MyMainWindow(QMainWindow):
 
 
     def move_roi_left(self):
-        pos = [int(each) for each in self.roi.pos()] 
-        size=[int(each) for each in self.roi.size()]
-        if self.radioButton_roi_position.isChecked():
-            pos_return,size_return = self._check_roi_boundary([pos[0]-int(self.lineEdit_roi_offset.text()),pos[1]],size)
-            self.roi.setPos(pos = pos_return)
-            self.roi.setSize(size = size_return)
+        if not self.checkBox_big_roi.isChecked():
+            self.app_ctr.bkg_sub.peak_shift = self.app_ctr.bkg_sub.peak_shift-int(self.lineEdit_roi_offset.text())
+            # self.app_ctr.bkg_sub.peak_shift = -int(self.lineEdit_roi_offset.text())
+            self.updatePlot()
         else:
-            pos_return,size_return = self._check_roi_boundary(pos=[pos[0]-int(self.lineEdit_roi_offset.text()), pos[1]],size=[size[0]+int(self.lineEdit_roi_offset.text())*2, size[1]])
-            self.roi.setSize(size=size_return)
-            self.roi.setPos(pos = pos_return)
+            pos = [int(each) for each in self.roi.pos()] 
+            size=[int(each) for each in self.roi.size()]
+            if self.radioButton_roi_position.isChecked():
+                pos_return,size_return = self._check_roi_boundary([pos[0]-int(self.lineEdit_roi_offset.text()),pos[1]],size)
+                self.roi.setPos(pos = pos_return)
+                self.roi.setSize(size = size_return)
+            else:
+                pos_return,size_return = self._check_roi_boundary(pos=[pos[0]-int(self.lineEdit_roi_offset.text()), pos[1]],size=[size[0]+int(self.lineEdit_roi_offset.text())*2, size[1]])
+                self.roi.setSize(size=size_return)
+                self.roi.setPos(pos = pos_return)
 
     def move_roi_right(self):
-        pos = [int(each) for each in self.roi.pos()] 
-        size=[int(each) for each in self.roi.size()]
-        if self.radioButton_roi_position.isChecked():
-            pos_return,size_return = self._check_roi_boundary([pos[0]+int(self.lineEdit_roi_offset.text()),pos[1]],size)
-            self.roi.setPos(pos = pos_return)
-            self.roi.setSize(size = size_return)
+        if not self.checkBox_big_roi.isChecked():
+            self.app_ctr.bkg_sub.peak_shift = self.app_ctr.bkg_sub.peak_shift + int(self.lineEdit_roi_offset.text())
+            self.updatePlot()
         else:
-            pos_return,size_return = self._check_roi_boundary(pos=[pos[0]+int(self.lineEdit_roi_offset.text()), pos[1]],size=[size[0]-int(self.lineEdit_roi_offset.text())*2, size[1]])
-            self.roi.setSize(size=size_return)
-            self.roi.setPos(pos = pos_return)
+            pos = [int(each) for each in self.roi.pos()] 
+            size=[int(each) for each in self.roi.size()]
+            if self.radioButton_roi_position.isChecked():
+                pos_return,size_return = self._check_roi_boundary([pos[0]+int(self.lineEdit_roi_offset.text()),pos[1]],size)
+                self.roi.setPos(pos = pos_return)
+                self.roi.setSize(size = size_return)
+            else:
+                pos_return,size_return = self._check_roi_boundary(pos=[pos[0]+int(self.lineEdit_roi_offset.text()), pos[1]],size=[size[0]-int(self.lineEdit_roi_offset.text())*2, size[1]])
+                self.roi.setSize(size=size_return)
+                self.roi.setPos(pos = pos_return)
 
     def move_roi_down(self):
         pos = [int(each) for each in self.roi.pos()] 
@@ -657,9 +666,9 @@ class MyMainWindow(QMainWindow):
             self.iso.setPos(x,y)
             #update peak roi
             self.roi_peak.setSize([self.app_ctr.bkg_sub.peak_width*2,h])
-            self.roi_peak.setPos([x+w/2.-self.app_ctr.bkg_sub.peak_width,y])
+            self.roi_peak.setPos([x+w/2.-self.app_ctr.bkg_sub.peak_width+self.app_ctr.bkg_sub.peak_shift,y])
             #update bkg roi
-            self.roi_bkg.setSize([w/2-self.app_ctr.bkg_sub.peak_width,h])
+            self.roi_bkg.setSize([w/2-self.app_ctr.bkg_sub.peak_width+self.app_ctr.bkg_sub.peak_shift,h])
             self.roi_bkg.setPos([x,y])
             # t2 = time.time()
             # print(t1-t0,t2-t1)
@@ -852,7 +861,7 @@ class MyMainWindow(QMainWindow):
         self.timer = QtCore.QTimer(self)
         self.timer.timeout.connect(self.plot_)
         self.run_mode = True
-        self.timer.start(5)
+        self.timer.start(100)
 
     def update_image(self):
         int_max,int_min = np.max(self.app_ctr.bkg_sub.img),np.min(self.app_ctr.bkg_sub.img)

@@ -67,7 +67,7 @@
            </sizepolicy>
           </property>
           <property name="currentIndex">
-           <number>1</number>
+           <number>0</number>
           </property>
           <widget class="QWidget" name="tab">
            <attribute name="title">
@@ -1784,6 +1784,13 @@
            <string>ROI adjustment</string>
           </property>
           <layout class="QHBoxLayout" name="horizontalLayout_10">
+           <item>
+            <widget class="QCheckBox" name="checkBox_big_roi">
+             <property name="text">
+              <string>big roi</string>
+             </property>
+            </widget>
+           </item>
            <item>
             <widget class="QRadioButton" name="radioButton_roi_position">
              <property name="font">

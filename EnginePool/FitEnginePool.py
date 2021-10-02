@@ -1504,6 +1504,8 @@ class background_subtraction_single_img():
         #print (y_min,y_max,x_min,x_max)
         clip_img=img[y_min:y_max+1,x_min:x_max+1]
 
+        #not used in the end, could be deleted
+        """
         clip_image_center_bkg = clip_image_center+np.array([-self.bkg_win_cen_offset_ud,self.bkg_win_cen_offset_lr])
         y_min_bkg = clip_image_center_bkg[0]-self.bkg_col_width
         y_max_bkg = clip_image_center_bkg[0]+self.bkg_col_width
@@ -1515,6 +1517,8 @@ class background_subtraction_single_img():
         y_span_bkg = y_max_bkg - y_min_bkg
         self.x_min_bkg, self.y_min_bkg, self.x_max_bkg, self.y_max_bkg, self.x_span_bkg, self.y_span_bkg = x_min_bkg, y_min_bkg, x_max_bkg, y_max_bkg, x_span_bkg, y_span_bkg
         bkg_sum = np.sum(img[y_min_bkg:y_max_bkg+1,x_min_bkg:x_max_bkg+1])
+        """
+        bkg_sum = 0
 
         if integration_direction=="x":
             #y=img.sum(axis=0)[:,np.newaxis][sub_index[0][1]:sub_index[1][1]]
@@ -1551,7 +1555,7 @@ class background_subtraction_single_img():
         # If you know the parameter, use this syntax:
         I_container=[]
         noise_container = []
-        Ibgr_container=[]
+        # Ibgr_container=[]
         Ierr_container=[]
         FOM_container=[]
         z_container=[]
@@ -1564,15 +1568,15 @@ class background_subtraction_single_img():
         # elif self.int_direct=='x':
             # peak_width=int(self.row_width*peak_width_percent)
         #y=y-np.average(list(y[0:brg_width])+list(y[-brg_width:-1]))
-        def _cal_FOM(y,z,peak_width):
-            ct=int(len(y)/2)
-            lf=ct-peak_width
-            rt=ct+peak_width
+        def _cal_FOM(y,z,lf, rt):
+            #ct=int(len(y)/2)
+            #lf=ct-peak_width
+            #rt=ct+peak_width
             sum_temp=np.sum(np.abs(y[0:lf]-z[0:lf]))+np.sum(np.abs(y[rt:-1]-z[rt:-1]))
             left_boundary=list(np.abs(y[rt:-1]-z[rt:-1]))
             right_boundary=list(np.abs(y[rt:-1]-z[rt:-1]))
             std_fom=np.array(left_boundary+right_boundary).std()
-            return sum_temp/(len(y)-peak_width*2),std_fom#averaged offset (goodness of result), standard deviation of residual (counted as error during data integration)
+            return sum_temp/(len(y)-abs(lf-rt)),std_fom*abs(lf-rt)#averaged offset (goodness of result), standard deviation of residual scaled to the point number in peak roi (counted as error during data integration)
             #return std_fom
 
         def _cal_FOM_2(y,z,s):
@@ -1584,56 +1588,33 @@ class background_subtraction_single_img():
 
         for s in ss:
             for ord_cus in ord_cus_s:
-                # print(ss, len(n), len(y),peak_l, peak_r)
-                # z,a,it,ord_cus,s,fct = backcor(n,y,ord_cus,s,fct)
                 z,a,it,ord_cus,s,fct = backcor_confined(n,y,ord_cus,s,fct,[peak_l,peak_r])
-
                 I_container.append(np.sum(y[peak_l:peak_r]-z[peak_l:peak_r]))
-                # print(I_container[-1])
-                # print(peak_l,peak_r)
-                # print(index)
                 indexs_bkg=list(range(0,peak_l))+list(range(peak_r,len(y)))
                 if len(indexs_bkg)!=0:
                     std_I_bkg = np.array(y[indexs_bkg]-z[indexs_bkg]).std()
                 else:
                     std_I_bkg = 0
-                # print(I_container[-1],std_I_bkg,std_I_bkg*abs(peak_l-peak_r))
-                # print('sensor',y[index])
-                # I_container.append(np.sum(y[index]))
-                Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
-                FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
-                #Ierr_container.append((I_container[-1]+FOM_container[-1])**0.5)
-                # Ierr_container.append((I_container[-1])**0.5+FOM_container[-1][1]+I_container[-1]*0.03)#possoin error + error from integration + 3% of current intensity
-                # Ierr_container.append(std_bkg/abs(I_container[-1])*std_bkg+(np.sum(y)/data['mon'][-1]/data['transm'][-1])**0.5)#possoin error + error from integration + 3% of current intensity
-                #Ierr_container.append((I_container[-1])**.5+std_I_bkg*(peak_r-peak_l))#possoin error + error from integration + 3% of current intensity
-                #Ierr_container.append((I_container[-1])**.5)#possoin error + error from integration + 3% of current intensity
+                #Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
+                #FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
+                FOM_container.append(_cal_FOM(y,z,peak_l, peak_r))
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
-                # print(peak_l,peak_r,len(y),std_I_bkg,noise_container[-1])
                 try:
-                    Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                    Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5+FOM_container[-1][1])#possoin error + error from integration + 3% of current intensity
                 except:
-                    Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
-                # Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                    Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5+FOM_container[-1][1])#possoin error + error from integration + 3% of current intensity
 
                 z_container.append(z)
                 s_container.append(s)
                 ord_cus_container.append(ord_cus)
         index_best=np.argmin(np.array(FOM_container)[:,0])
-        #print 'std=',FOM_container[index_best]
-        #print 'all std=',FOM_container
         index = np.argsort(n)
-        # data['peak_intensity'].append(I_container[index_best])
         check_result = True
-        # if check:
-            # if I_container[index_best]<check_level:
-                # check_result = False
 
         self.fit_data['x'] = n[index]
         self.fit_data['y_total'] = y[index]
         self.fit_data['y_bkg'] = z[index]
-        # print ("When s=",s_container[index_best],'pow=',ord_cus_container[index_best],"integration sum is ",I_container[index_best], " counts!",'S/N ratio is {:3.2f}'.format(I_container[index_best]/Ibgr_container[index_best]+1))
-        #return np.sum(y[index]-z[index]),abs(np.sum(z[index])),np.sum(y[index])**0.5+np.sum(y[index]-z[index])**0.5
-        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,self.peak_width*2,r_width,c_width,bkg_sum,check_result
+        return I_container[index_best],noise_container[index_best], FOM_container[index_best][0],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,self.peak_width*2,r_width,c_width,bkg_sum,check_result
 
     def integrate_one_image_use_traditional_polyfit(self,fig, img, data=None, plot_live = False, freeze_sf=False, index_offset = 0):
         self.img = img
@@ -1663,6 +1644,7 @@ class background_subtraction_single_img():
         self.x_min, self.y_min, self.x_max, self.y_max, self.x_span, self.y_span = x_min, y_min, x_max, y_max, x_span, y_span
         clip_img=img[y_min:y_max+1,x_min:x_max+1]
         
+        '''
         clip_image_center_bkg = clip_image_center+np.array([-self.bkg_win_cen_offset_ud,self.bkg_win_cen_offset_lr])
         y_min_bkg = clip_image_center_bkg[0]-self.bkg_col_width
         y_max_bkg = clip_image_center_bkg[0]+self.bkg_col_width
@@ -1674,6 +1656,8 @@ class background_subtraction_single_img():
         y_span_bkg = y_max_bkg - y_min_bkg
         self.x_min_bkg, self.y_min_bkg, self.x_max_bkg, self.y_max_bkg, self.x_span_bkg, self.y_span_bkg = x_min_bkg, y_min_bkg, x_max_bkg, y_max_bkg, x_span_bkg, y_span_bkg
         bkg_sum = np.sum(img[y_min_bkg:y_max_bkg+1,x_min_bkg:x_max_bkg+1])
+        '''
+        bkg_sum = 0 
 
         if integration_direction=="x":
             y=clip_img.sum(axis=0)[:,np.newaxis]
@@ -1700,15 +1684,16 @@ class background_subtraction_single_img():
         s_container=[]
         ord_cus_container=[]
         index=None
-        def _cal_FOM(y,z,peak_width):
-            ct=int(len(y)/2)
-            lf=ct-peak_width
-            rt=ct+peak_width
+
+        def _cal_FOM(y,z,lf, rt):
+            #ct=int(len(y)/2)
+            #lf=ct-peak_width
+            #rt=ct+peak_width
             sum_temp=np.sum(np.abs(y[0:lf]-z[0:lf]))+np.sum(np.abs(y[rt:-1]-z[rt:-1]))
             left_boundary=list(np.abs(y[rt:-1]-z[rt:-1]))
             right_boundary=list(np.abs(y[rt:-1]-z[rt:-1]))
             std_fom=np.array(left_boundary+right_boundary).std()
-            return sum_temp/(len(y)-peak_width*2),std_fom#averaged offset (goodness of result), standard deviation of residual (counted as error during data integration)
+            return sum_temp/(len(y)-abs(lf-rt)),std_fom*abs(lf-rt)#averaged offset (goodness of result), standard deviation of residual scaled to the point number in peak roi (counted as error during data integration)
             #return std_fom
 
         def _cal_FOM_2(y,z,s):
@@ -1729,15 +1714,15 @@ class background_subtraction_single_img():
                     std_I_bkg = np.array(y[indexs_bkg]-z[indexs_bkg]).std()
                 else:
                     std_I_bkg = 0
-                Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
-                FOM_container.append(_cal_FOM(y,z,peak_width=int(len(y)/4)))
+                #Ibgr_container.append(abs(np.sum(z[peak_l:peak_r][index])))
+                FOM_container.append(_cal_FOM(y,z,peak_l, peak_r))
                 noise_container.append(std_I_bkg*abs(peak_l-peak_r))#error = std of values outside the peak area and scaling to the length of peak area
                 # Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
                 if data != None:
                     try:
-                        Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                        Ierr_container.append((np.sum(y)/data['mon'][-1-index_offset]/data['transm'][-1-index_offset])**0.5+FOM_container[-1][1])#possoin error + bkg baseline error from integration 
                     except:
-                        Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5)#possoin error + error from integration + 3% of current intensity
+                        Ierr_container.append((np.sum(y)/data['norm'][-1-index_offset]/data['transmission'][-1-index_offset])**0.5+FOM_container[-1][1])#possoin error + bkg baseline error from integration 
                 else:
                     Ierr_container.append(np.sum(y))
                 z_container.append(z)
@@ -1750,7 +1735,7 @@ class background_subtraction_single_img():
         self.fit_data['x'] = n[index]
         self.fit_data['y_total'] = y[index]
         self.fit_data['y_bkg'] = z[index]
-        return I_container[index_best],noise_container[index_best], FOM_container[index_best][1],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,self.peak_width*2,r_width,c_width,bkg_sum,check_result
+        return I_container[index_best],noise_container[index_best], FOM_container[index_best][0],Ierr_container[index_best],s_container[index_best],ord_cus_container[index_best],center_pix,self.peak_width*2,r_width,c_width,bkg_sum,check_result
 
     def update_motor_angles(self, motor_lib):
         # keys_motor_new = ['gamma','delta','mu','omega_t', 'phi', 'chi']
