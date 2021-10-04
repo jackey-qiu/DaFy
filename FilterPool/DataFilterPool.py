@@ -170,7 +170,8 @@ def merge_data_bkg(data, object_bkg, correction_factor = 1):
                      "poly_func":object_bkg.fct, 
                      "poly_order":object_bkg.opt_values['int_power'], 
                      "poly_type":object_bkg.opt_values['poly_type'],
-                     "peak_width":object_bkg.opt_values['peak_width']
+                     "peak_width":object_bkg.opt_values['peak_width'],
+                     "peak_shift":object_bkg.peak_shift,
                      }
     if object_bkg.fit_status:
         for key in key_map_rules:

@@ -91,6 +91,8 @@ class run_app(object):
             self.data_keys.append('noise')
         if 'ctot' not in self.data_keys:
             self.data_keys.append('ctot')
+        if 'peak_shift' not in self.data_keys:
+            self.data_keys.append('peak_shift')
         for key in self.data_keys:
             self.data[key]=[]
         # print(data)

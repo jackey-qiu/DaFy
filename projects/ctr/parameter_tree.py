@@ -37,7 +37,7 @@ params_petra3 = [
         {'name': 'scan_nos', 'type': 'text', 'value': '[82]'},
         {'name': 'data_keys', 'type': 'text', 'value': data_keys_petra3},
         {'name': 'update_width', 'type': 'str', 'value': "False"},
-        {'name': 'cen', 'type': 'str', 'value': "637,328"},
+        {'name': 'cen', 'type': 'str', 'value': "(637,328)"},
         {'name': 'clip_width', 'type': 'str', 'value': "{'hor':200,'ver':300}"},
         {'name': 'dim_detector', 'type': 'str', 'value': "[1556,516]"},
         {'name': 'incidence_ang', 'type': 'str', 'value': "omega"},

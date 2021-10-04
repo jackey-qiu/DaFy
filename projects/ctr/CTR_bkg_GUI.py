@@ -117,6 +117,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_right.clicked.connect(self.move_roi_right)
         self.pushButton_up.clicked.connect(self.move_roi_up)
         self.pushButton_down.clicked.connect(self.move_roi_down)
+        self.pushButton_set_roi.clicked.connect(self.set_roi)
         self.pushButton_go.clicked.connect(self.reprocess_previous_frame)
         self.comboBox_beamline.currentTextChanged.connect(self.change_config_layout)
         self.pushButton_track_peak.clicked.connect(self.track_peak)
@@ -342,7 +343,7 @@ class MyMainWindow(QMainWindow):
         if len(data_sub)!=0:
             which_row = (data_sub['L']-current_L).abs().idxmin()
             f = lambda obj_, str_,row_:obj_[str_][row_]
-            for each in ["H", "K", "roi_x", "roi_y", "roi_w", "roi_h", "ss_factor", "peak_width","poly_func", "poly_order", "poly_type"]:
+            for each in ["H", "K", "roi_x", "roi_y", "roi_w", "roi_h", "ss_factor", "peak_width","peak_shift","poly_func", "poly_order", "poly_type"]:
                 self.ref_fit_pars_current_point[each] = f(data_sub, each, which_row) 
         else:
             self.ref_fit_pars_current_point = {}
@@ -367,6 +368,7 @@ class MyMainWindow(QMainWindow):
         self.roi.setSize(size = [self.ref_fit_pars_current_point['roi_w'],self.ref_fit_pars_current_point['roi_h']])
         self.doubleSpinBox_ss_factor.setValue(self.ref_fit_pars_current_point['ss_factor'])
         self.spinBox_peak_width.setValue(self.ref_fit_pars_current_point['peak_width']/2)
+        self.app_ctr.bkg_sub.peak_shift = self.ref_fit_pars_current_point['peak_shift']
         def _split_poly_order(order):
             if order in [1,2,3,4]:
                 return [order]
@@ -457,7 +459,23 @@ class MyMainWindow(QMainWindow):
             pos_return,size_return =self._check_roi_boundary([pos[0], pos[1]-int(self.lineEdit_roi_offset.text())],[size[0],size[1]+int(self.lineEdit_roi_offset.text())*2])
             self.roi.setPos(pos = pos_return)
             self.roi.setSize(size=size_return)
+
+    def display_current_roi_info(self):
+        pos = [int(each) for each in self.roi.pos()] 
+        size=[int(each) for each in self.roi.size()]
+        pos_return,size_return = self._check_roi_boundary(pos,size)
+        if not self.checkBox_lock.isChecked():
+            self.lineEdit_roi_info.setText(str(pos_return + size_return))
         
+    def set_roi(self):
+        if self.lineEdit_roi_info.text()=='':
+            return
+        else:
+            roi = eval(self.lineEdit_roi_info.text())
+            self.roi.setPos(pos = roi[0:2])
+            self.roi.setSize(size = roi[2:])
+        
+
     def find_bounds_of_hist(self):
         bins = 200
         hist, bin_edges = np.histogram(self.app_ctr.bkg_sub.img, bins=bins)
@@ -670,6 +688,7 @@ class MyMainWindow(QMainWindow):
             #update bkg roi
             self.roi_bkg.setSize([w/2-self.app_ctr.bkg_sub.peak_width+self.app_ctr.bkg_sub.peak_shift,h])
             self.roi_bkg.setPos([x,y])
+            self.display_current_roi_info()
             # t2 = time.time()
             # print(t1-t0,t2-t1)
             if self.app_ctr.img_loader.frame_number ==0:
