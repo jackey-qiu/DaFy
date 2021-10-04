@@ -119,6 +119,19 @@ def merge_data_image_loader(data, object_image_loader):
         data[key].append(key_map_rules[key])
     return data
 
+def cal_ctot_stationary(incidence_ang, det_ang_ver, det_ang_hor):
+    """
+    correction factors for stationary measurements (e.g. images)
+    all angels in degree
+    refer to Vlieg 1997, J.Appl.Cryst. for details
+    """
+    lorentz_factor = np.cos(np.deg2rad(incidence_ang)) * np.sin(np.deg2rad(det_ang_ver)) - np.sin(np.deg2rad(incidence_ang)) * np.cos(np.deg2rad(det_ang_ver)) * np.cos(np.deg2rad(det_ang_hor))
+    area_factor = np.sin(np.deg2rad(incidence_ang))
+    polarization_factor = 1/(1 - np.sin(np.deg2rad(det_ang_hor))**2 * np.cos(np.deg2rad(det_ang_ver))**2)
+    # print(incidence_ang, det_ang_ver, det_ang_hor)
+    # print(lorentz_factor, area_factor, polarization_factor)
+    return lorentz_factor * area_factor * polarization_factor
+
 def merge_data_image_loader_gsecars(data, object_image_loader):
     key_map_rules = {'scan_no':object_image_loader.scan_number,
                      'image_no':object_image_loader.frame_number,
@@ -142,10 +155,11 @@ def merge_data_image_loader_gsecars(data, object_image_loader):
         pass
     return data
 
-def merge_data_bkg(data, object_bkg):
+def merge_data_bkg(data, object_bkg, correction_factor = 1):
+    #correction_factor = lorenz_factor * polorization_factor * area_factor
     key_map_rules = {
-                     'peak_intensity':object_bkg.fit_results['I'],
-                     'peak_intensity_error':object_bkg.fit_results['Ierr'],
+                     'peak_intensity':object_bkg.fit_results['I'] * correction_factor,
+                     'peak_intensity_error':object_bkg.fit_results['Ierr'] * correction_factor,
                      'noise':object_bkg.fit_results['noise'],
                      'mask_ctr':object_bkg.fit_status,
                      "roi_x": object_bkg.opt_values["cen"][1]-object_bkg.opt_values["row_width"], 

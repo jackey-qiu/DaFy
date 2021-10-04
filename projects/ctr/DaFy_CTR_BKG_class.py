@@ -24,7 +24,7 @@ matplotlib.use("TkAgg")
 import matplotlib.pyplot as plt
 from GrainAnalysisEnginePool import cal_strain_and_grain
 from VisualizationEnginePool import plot_bkg_fit
-from DataFilterPool import create_mask, merge_data_bkg, update_data_bkg, update_data_bkg_previous_frame, merge_data_image_loader, merge_data_image_loader_gsecars,make_data_config_file
+from DataFilterPool import create_mask, merge_data_bkg, update_data_bkg, update_data_bkg_previous_frame, merge_data_image_loader, merge_data_image_loader_gsecars,make_data_config_file, cal_ctot_stationary
 from FitEnginePool import fit_pot_profile
 from FitEnginePool import Reciprocal_Space_Mapping
 from FitEnginePool import XRD_Peak_Fitting
@@ -89,6 +89,8 @@ class run_app(object):
         self.data = {}
         if 'noise' not in self.data_keys:
             self.data_keys.append('noise')
+        if 'ctot' not in self.data_keys:
+            self.data_keys.append('ctot')
         for key in self.data_keys:
             self.data[key]=[]
         # print(data)
@@ -129,8 +131,18 @@ class run_app(object):
                 self.data = merge_data_image_loader_gsecars(self.data, self.img_loader)
             self.bkg_sub.fit_background(None, img, self.data, plot_live = True, freeze_sf = True,poly_func = poly_func)
             # print(self.bkg_sub.fit_results)
-            self.data = merge_data_bkg(self.data, self.bkg_sub)
+            ctot = 1
+            if 'incidence_ang' in self.kwarg_global and 'det_ang_ver' in self.kwarg_global and 'det_ang_hor' in self.kwarg_global:
+                ctot = cal_ctot_stationary(incidence_ang = self.data[self.kwarg_global['incidence_ang']][-1],
+                                           det_ang_ver = self.data[self.kwarg_global['det_ang_ver']][-1],
+                                           det_ang_hor = self.data[self.kwarg_global['det_ang_hor']][-1])
+            # assert ctot > 0, 'Correction factor is a negative value, check it out.'
+            if ctot<0:
+                ctot = abs(ctot)
+                print(f'Correction factor of frame {self.current_frame} is a negative value at this point, check it out.')
+            self.data = merge_data_bkg(self.data, self.bkg_sub, ctot)
             self.data['bkg'].append(bkg_intensity)
+            self.data['ctot'].append(ctot)
             # print(t1-t0,t2-t1,t3-t2,t4-t3,t5-t4)
             return True
         except StopIteration:

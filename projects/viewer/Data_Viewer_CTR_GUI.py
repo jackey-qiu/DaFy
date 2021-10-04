@@ -16,6 +16,7 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
+from DataFilterPool import cal_ctot_stationary
 from PlotSetup import data_viewer_plot_cv
 import pandas as pd
 import time
@@ -365,7 +366,8 @@ class MyMainWindow(QMainWindow):
         # self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
         self.mplwidget.canvas.draw()
 
-    def plot_figure_ctr(self):
+    def plot_figure_ctr(self, without_correction = True):
+        #if without_correction == True, the correction has been done.
         self.mplwidget.fig.clear()
         col_num=2#two columns only
         self.data_to_save = {}
@@ -408,13 +410,20 @@ class MyMainWindow(QMainWindow):
                     else:
                         pass
                     len_data = len(self.data_to_plot[scan]['L'])
+                    if without_correction:
+                        ctot = 1
+                    else:
+                        #assuming omega is the incidence angle, delta and gamma a detector angle in vertical and horizontal directions
+                        #the real situation could be difference from this assumption. Be careful.
+                        # Better to cal the ctot from ctr bkg software.
+                        ctot = cal_ctot_stationary(self.data_to_plot[scan]['omega'],self.data_to_plot[scan]['delta'],self.data_to_plot[scan]['gamma'])
                     #Lorentz factor calculation, refer to Vlieg 1997, J.Appl.Cryst. Equation 16
-                    lorentz_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['delta']))*np.cos(np.deg2rad(self.data_to_plot[scan]['omega']))*np.cos(np.deg2rad(self.data_to_plot[scan]['gamma']))
+                    #lorentz_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['delta']))*np.cos(np.deg2rad(self.data_to_plot[scan]['omega']))*np.cos(np.deg2rad(self.data_to_plot[scan]['gamma']))
                     #footprint area correction factor (take effect only for specular rod)
-                    area_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['omega']))
+                    #area_ft = np.sin(np.deg2rad(self.data_to_plot[scan]['omega']))
                     self.data_to_save[temp_key] = self.data_to_save[temp_key].append(pd.DataFrame({"L":self.data_to_plot[scan]['L'],"H":self.data_to_plot[scan]['H'],\
-                                                                                     "K":self.data_to_plot[scan]['K'],"na":[0]*len_data,"I":self.data_to_plot[scan]['peak_intensity']*lorentz_ft*area_ft,\
-                                                                                     "I_err":self.data_to_plot[scan]['peak_intensity_error']*lorentz_ft*area_ft,"BL":[BL]*len_data ,"dL":[2]*len_data}))
+                                                                                     "K":self.data_to_plot[scan]['K'],"na":[0]*len_data,"I":self.data_to_plot[scan]['peak_intensity']*ctot,\
+                                                                                     "I_err":self.data_to_plot[scan]['peak_intensity_error']*ctot,"BL":[BL]*len_data ,"dL":[2]*len_data}))
                     #remove [ or ] in the fmt and label
                     if ('[' in fmt) and (']' in fmt):
                         fmt = fmt[1:-1]
@@ -434,17 +443,17 @@ class MyMainWindow(QMainWindow):
                         else:
                             pass
                     if self.checkBox_time_scan.isChecked():
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[0]]*lorentz_ft*area_ft,fmt,label =label)
+                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[0]]*ctot,fmt,label =label)
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel(self.plot_label_x)
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('Intensity')
                         pot_ax = getattr(self,'plot_axis_plot_set{}'.format(i+1)).twinx()
-                        pot_ax.plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[1]]*lorentz_ft*area_ft,'b-',label = None)
+                        pot_ax.plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[1]]*ctot,'b-',label = None)
                         pot_ax.set_ylabel(self.plot_labels_y[1],color = 'b')
                         pot_ax.tick_params(axis = 'y', labelcolor = 'b')
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).legend()
                     else:
                         # getattr(self,'plot_axis_plot_set{}'.format(i+1)).plot(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan][self.plot_labels_y[0]]*lorentz_ft*area_ft,fmt,label =label)
-                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).errorbar(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan]['peak_intensity']*lorentz_ft*area_ft,yerr=self.data_to_plot[scan]['peak_intensity_error']*lorentz_ft*area_ft,fmt=fmt,label =label)
+                        getattr(self,'plot_axis_plot_set{}'.format(i+1)).errorbar(self.data_to_plot[scan][self.plot_label_x],self.data_to_plot[scan]['peak_intensity']*ctot,yerr=self.data_to_plot[scan]['peak_intensity_error']*ctot,fmt=fmt,label =label)
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_ylabel('Intensity')
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_xlabel('L')
                         getattr(self,'plot_axis_plot_set{}'.format(i+1)).set_title('{}{}L'.format(int(round(list(self.data[self.data['scan_no']==scan]['H'])[0],0)),int(round(list(self.data[self.data['scan_no']==scan]['K'])[0],0))))

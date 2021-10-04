@@ -40,6 +40,9 @@ params_petra3 = [
         {'name': 'cen', 'type': 'str', 'value': "637,328"},
         {'name': 'clip_width', 'type': 'str', 'value': "{'hor':200,'ver':300}"},
         {'name': 'dim_detector', 'type': 'str', 'value': "[1556,516]"},
+        {'name': 'incidence_ang', 'type': 'str', 'value': "omega"},
+        {'name': 'det_ang_ver', 'type': 'str', 'value': "delta"},
+        {'name': 'det_ang_hor', 'type': 'str', 'value': "gamma"},
     ]},
     {'name': 'Image_Loader', 'type': 'group', 'children': [
         {"name":"check_abnormality","type":"str","value":'False'},
@@ -78,6 +81,9 @@ params_aps = [
         {'name': 'cen', 'type': 'str', 'value': "200,100"},
         {'name': 'clip_width', 'type': 'str', 'value': "{'hor':50,'ver':50}"},
         {'name': 'dim_detector', 'type': 'str', 'value': "[487,195]"},
+        {'name': 'incidence_ang', 'type': 'str', 'value': "eta"},
+        {'name': 'det_ang_ver', 'type': 'str', 'value': "del"},
+        {'name': 'det_ang_hor', 'type': 'str', 'value': "nu"},
     ]},
     {'name': 'Image_Loader', 'type': 'group', 'children': [
         {'name':'spec_path','type':'str','value':'F://P23_I20180678/raw'},

@@ -529,6 +529,9 @@ def plot_bkg_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_pot,app_ctr , processed_fr
         elif app_ctr.p3_data_source == 'bkg_intensity':
             ax_ctr.plot(L_list, bkg_intensity,pen={'color': 'g', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
             ax_ctr.setLogMode(x=False,y=True)
+        else:
+            ax_ctr.plot(L_list, np.array([data[app_ctr.p3_data_source][i] for i in plot_index]),pen={'color': 'g', 'width': 1},  symbolBrush=(255,0,0), symbolSize=5,symbolPen='w',clear = True)
+            ax_ctr.setLogMode(x=False,y=True)
 
 def plot_bkg_fit_gui_pyqtgraph_old(ax_profile, ax_ctr, ax_pot,data, fit_bkg_object, plot_final = False):
     z = fit_bkg_object.fit_data['y_bkg'][:,0]
