@@ -180,5 +180,36 @@ class run_app(object):
         #for key in self.data_keys:
         #    self.data[key]=[self.data[key][-1]]
 
+    #export csv data to be imported in SuPerRod software
+    def save_rod_data(self, path, conditions_df):
+        '''
+        conditions_df is a pandas dataframe containing columns of save, scan_no, H, K, dL, BL and escan
+        '''
+        data_saved_rod = pd.DataFrame(np.zeros([1,8])[0:0],columns=["L","H","K","na","peak_intensity","peak_intensity_error","BL","dL"])
+        data_saved_raxs = pd.DataFrame(np.zeros([1,8])[0:0],columns=["E","H","K","L","peak_intensity","peak_intensity_error","BL","dL"])
+        data_df = pd.DataFrame(self.data)
+        for i in range(conditions_df.shape[0]):
+            current_row = conditions_df.iloc[i]
+            if current_row['save']:
+                escan = current_row['escan']
+                H, K, dL, BL, scan_no = map(lambda x: int(current_row[x]), ['H', 'K', 'dL', 'BL', 'scan_no'])
+                if not escan:
+                    subset_df = data_df.loc[(data_df['scan_no']==scan_no) & (data_df['H']==H) & (data_df['K']==K)].reset_index()
+                    dL_BL_df = pd.DataFrame({'dL': [dL]*subset_df.shape[0], 'BL': [BL]*subset_df.shape[0],'na': [0]*subset_df.shape[0]})
+                    data_merged = pd.concat([subset_df, dL_BL_df], axis = 1)
+                    data_selected = data_merged.loc[:,["L","H","K","na","peak_intensity","peak_intensity_error","BL","dL"]]
+                    data_saved_rod = pd.concat([data_saved_rod,data_selected], ignore_index = True)
+                else:
+                    subset_df = data_df.loc[(data_df['scan_no']==scan_no) & (data_df['H']==H) & (data_df['K']==K)].reset_index()
+                    dL_BL_df = pd.DataFrame({'dL': [dL]*subset_df.shape[0], 'BL': [BL]*subset_df.shape[0],'na': [0]*subset_df.shape[0]})
+                    data_merged = pd.concat([subset_df, dL_BL_df], axis = 1)
+                    data_selected = data_merged.loc[:,["E","H","K","L","peak_intensity","peak_intensity_error","BL","dL"]]
+                    data_saved_rod = pd.concat([data_saved_rod,data_selected], ignore_index = True)
+        if data_saved_rod.shape[0]!=0:
+            data_saved_rod.to_csv(path, header = False, sep =' ', index=False)
+        if data_saved_raxs.shape[0]!=0:
+            data_saved_raxs.to_csv(path, header = False, sep =' ', index=False)
+
+
 if __name__ == "__main__":
     run_app()

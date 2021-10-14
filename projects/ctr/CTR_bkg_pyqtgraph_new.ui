@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1063</height>
+    <height>1089</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -591,7 +591,7 @@
                  </size>
                 </property>
                 <property name="text">
-                 <string>File Path</string>
+                 <string>File_path</string>
                 </property>
                </widget>
               </item>
@@ -662,53 +662,6 @@
              </layout>
             </item>
             <item>
-             <layout class="QHBoxLayout" name="horizontalLayout_11">
-              <item>
-               <widget class="QPushButton" name="pushButton_load_ref_data">
-                <property name="text">
-                 <string>Load_ref_data</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit_ref_data_path"/>
-              </item>
-              <item>
-               <widget class="QCheckBox" name="checkBox_match_scan">
-                <property name="text">
-                 <string>match_scan</string>
-                </property>
-               </widget>
-              </item>
-             </layout>
-            </item>
-            <item>
-             <widget class="Line" name="line_5">
-              <property name="orientation">
-               <enum>Qt::Horizontal</enum>
-              </property>
-             </widget>
-            </item>
-            <item>
-             <widget class="QLabel" name="label_6">
-              <property name="minimumSize">
-               <size>
-                <width>0</width>
-                <height>13</height>
-               </size>
-              </property>
-              <property name="font">
-               <font>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Save frequency</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_5">
               <item>
                <widget class="QLabel" name="label_7">
@@ -744,20 +697,42 @@
                 </property>
                </spacer>
               </item>
+              <item>
+               <widget class="QPushButton" name="pushButton_save_rod_data">
+                <property name="text">
+                 <string>export_SuPerRod_data</string>
+                </property>
+               </widget>
+              </item>
              </layout>
             </item>
             <item>
-             <spacer name="verticalSpacer">
+             <widget class="Line" name="line_5">
               <property name="orientation">
-               <enum>Qt::Vertical</enum>
+               <enum>Qt::Horizontal</enum>
               </property>
-              <property name="sizeHint" stdset="0">
-               <size>
-                <width>20</width>
-                <height>40</height>
-               </size>
-              </property>
-             </spacer>
+             </widget>
+            </item>
+            <item>
+             <layout class="QHBoxLayout" name="horizontalLayout_11">
+              <item>
+               <widget class="QPushButton" name="pushButton_load_ref_data">
+                <property name="text">
+                 <string>Load_ref_data</string>
+                </property>
+               </widget>
+              </item>
+              <item>
+               <widget class="QLineEdit" name="lineEdit_ref_data_path"/>
+              </item>
+              <item>
+               <widget class="QCheckBox" name="checkBox_match_scan">
+                <property name="text">
+                 <string>match_scan</string>
+                </property>
+               </widget>
+              </item>
+             </layout>
             </item>
             <item>
              <widget class="Line" name="line_8">
@@ -2215,6 +2190,12 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header>terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QWidget</extends>
    <header location="global">pyqtgraph.h</header>
@@ -2224,12 +2205,6 @@
    <class>SolverParameters</class>
    <extends>QWidget</extends>
    <header location="global">parameter_tree.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>TerminalWidget</class>
-   <extends>QWidget</extends>
-   <header>terminal_widget.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>
