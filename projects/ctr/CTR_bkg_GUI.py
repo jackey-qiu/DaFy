@@ -85,6 +85,7 @@ class MyMainWindow(QMainWindow):
         logging.getLogger().setLevel(logging.DEBUG)
 
         self.app_ctr=run_app(beamline = self.comboBox_beamline.currentText())
+        self.lineEdit.setText(os.path.join(self.app_ctr.data_path,'default.ini'))
         self.ref_data = None
         self.ref_fit_pars_current_point = {}
         #self.app_ctr.run()
