@@ -13,12 +13,16 @@ import numpy as np
 from numpy.linalg import inv
 import matplotlib.pyplot as plt
 try:
-    from . import locate_path
+    from . import locate_path_ubmate
 except:
-    import locate_path
-script_path = locate_path.module_path_locator()
+    import locate_path_ubmate
+#DaFy_path = locate_path.module_path_locator()
+#script_path = os.path.join(DaFy_path,'projects','ubmate')
+script_path = locate_path_ubmate.module_path_locator()
 DaFy_path = os.path.dirname(os.path.dirname(script_path))
+print(DaFy_path,script_path)
 sys.path.append(DaFy_path)
+sys.path.append(script_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
@@ -347,6 +351,7 @@ class MyMainWindow(QMainWindow):
         #fcc to rhombahedral TM [[0.5,0.5,0],[0.5,0,0.5],[0,0.5,0.5]]
         TM_ = eval(self.lineEdit_TM.text())
         self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=self.spinBox_term.value(),bulk_trns=np.array(TM_),use_tradition = self.checkBox_use_tradition.isChecked(), z_start_from_0 = self.checkBox_from_zero.isChecked())
+        # self.surf = SurfaceCell(uc,hkl=eval(self.lineEdit_hkl.text()),nd=self.spinBox_slab_num.value(),term=self.spinBox_term.value(),bulk_trns=np.array(TM_))
         info, data = self.surf._write_pandas_df()
         self.textEdit_info.setHtml(info + data.to_html(index = False))
 

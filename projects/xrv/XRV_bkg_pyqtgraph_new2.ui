@@ -9,8 +9,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1440</width>
-    <height>859</height>
+    <width>1920</width>
+    <height>1027</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -50,7 +50,7 @@
        </property>
        <property name="maximumSize">
         <size>
-         <width>400000</width>
+         <width>550</width>
          <height>16777215</height>
         </size>
        </property>
@@ -952,8 +952,8 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1440</width>
-     <height>21</height>
+     <width>1920</width>
+     <height>24</height>
     </rect>
    </property>
   </widget>
@@ -1038,6 +1038,12 @@
  </widget>
  <customwidgets>
   <customwidget>
+   <class>TerminalWidget</class>
+   <extends>QWidget</extends>
+   <header location="global">terminal_widget.h</header>
+   <container>1</container>
+  </customwidget>
+  <customwidget>
    <class>GraphicsLayoutWidget</class>
    <extends>QWidget</extends>
    <header location="global">pyqtgraph.h</header>
@@ -1046,13 +1052,7 @@
   <customwidget>
    <class>SolverParameters</class>
    <extends>QWidget</extends>
-   <header location="global">parameter_tree.h</header>
-   <container>1</container>
-  </customwidget>
-  <customwidget>
-   <class>TerminalWidget</class>
-   <extends>QWidget</extends>
-   <header>terminal_widget.h</header>
+   <header>parameter_tree_superrod.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

@@ -361,8 +361,8 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.primary_beam_position = PRIMARY_BEAM_POS[::-1]
         # self.setConfigOption('background', 'w')
         # self.setConfigOption('foreground', 'k')
-        self.setBackgroundColor((50,50,50))
-        # self.setBackgroundColor('w')
+        # self.setBackgroundColor((100,100,100))
+        self.setBackgroundColor('k')
 
         self.lines = []
         self.lines_dict = {}

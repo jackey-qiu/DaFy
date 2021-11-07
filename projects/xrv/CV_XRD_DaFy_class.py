@@ -2,14 +2,14 @@ import sys,os,itertools
 import numpy as np
 import pandas as pd
 try:
-    from . import locate_path
+    from . import locate_path_xrv
 except:
-    import locate_path
+    import locate_path_xrv
 try:
     import ConfigParser as configparser
 except:
     import configparser
-script_path = locate_path.module_path_locator()
+script_path = locate_path_xrv.module_path_locator()
 DaFy_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))

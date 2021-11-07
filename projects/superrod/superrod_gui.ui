@@ -40,7 +40,7 @@
         <enum>QTabWidget::South</enum>
        </property>
        <property name="currentIndex">
-        <number>2</number>
+        <number>3</number>
        </property>
        <widget class="QWidget" name="tab_13">
         <attribute name="title">
@@ -589,7 +589,7 @@ p, li { white-space: pre-wrap; }
             <enum>QTabWidget::South</enum>
            </property>
            <property name="currentIndex">
-            <number>6</number>
+            <number>1</number>
            </property>
            <widget class="QWidget" name="tab">
             <attribute name="title">
@@ -1572,7 +1572,7 @@ p, li { white-space: pre-wrap; }
                 </font>
                </property>
                <property name="plainText">
-                <string/>
+                <string>import numpy as np</string>
                </property>
               </widget>
              </item>
@@ -1987,7 +1987,7 @@ p, li { white-space: pre-wrap; }
   <customwidget>
    <class>SolverParameters</class>
    <extends>QWidget</extends>
-   <header location="global">parameter_tree.h</header>
+   <header>parameter_tree_superrod.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>

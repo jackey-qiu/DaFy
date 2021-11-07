@@ -438,12 +438,13 @@ class create_mask():
                 j, k = np.ogrid[:h,:w]
                 temp_mask = abs(j*slope+offset-k) < remove_partial_range['pixel_width'][i]
                 remove_pix.extend([each for each in np.argwhere(temp_mask == True) if (each[0]>min(p1_index[0],p2_index[0])) and (each[0]<max(p1_index[0],p2_index[0]))])
+        mon = 1 #More pratical to only compare the scaled image pixel value to the specified threshold
         if compare_method =='larger':
-            mask[img>threshold/mon]=0
+            mask[img>(threshold/mon)]=0
         elif compare_method =='smaller':
-            mask[img<threshold/mon]=0
+            mask[img<(threshold/mon)]=0
         elif compare_method =='equal':
-            maks[img == threshold/mon] =0
+            maks[img == (threshold/mon)] =0
         #mask[:,remove_columns] = 0
         #mask[remove_rows,:] = 0
         if remove_pix!=None:

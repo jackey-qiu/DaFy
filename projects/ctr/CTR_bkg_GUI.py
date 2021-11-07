@@ -8,10 +8,12 @@ import numpy as np
 import matplotlib.pyplot as plt
 from DaFy_CTR_BKG_class import run_app
 try:
-    from . import locate_path
+    from . import locate_path_ctr
 except:
-    import locate_path
-script_path = locate_path.module_path_locator()
+    import locate_path_ctr
+#DaFy_path = locate_path.module_path_locator()
+#script_path = os.path.join(DaFy_path,'projects','ctr')
+script_path = locate_path_ctr.module_path_locator()
 DaFy_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))

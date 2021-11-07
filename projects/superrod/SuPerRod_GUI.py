@@ -10,11 +10,13 @@ import pandas as pd
 import types,copy
 import matplotlib.pyplot as plt
 try:
-    from . import locate_path
+    from . import locate_path_superrod
 except:
-    import locate_path
-script_path = locate_path.module_path_locator()
+    import locate_path_superrod
+script_path = locate_path_superrod.module_path_locator()
 DaFy_path = os.path.dirname(os.path.dirname(script_path))
+# DaFy_path = locate_path.module_path_locator()
+# script_path = os.path.join(DaFy_path,'projects','superrod')
 sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'dump_files'))
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
@@ -51,7 +53,7 @@ import syntax_pars
 from models.structure_tools import sorbate_tool
 from models.structure_tools import sorbate_tool_beta
 import logging
-from superrod_ui import Ui_MainWindow
+# from superrod_ui import Ui_MainWindow
 
 class PandasModel(QtCore.QAbstractTableModel):
     """
@@ -1239,7 +1241,7 @@ class MyMainWindow(QMainWindow):
                         total += 1
             return index_in_sequence
         sizeObject = QtWidgets.QDesktopWidget().screenGeometry(-1)
-        height, width = sizeObject.height()*25.4/dpi,sizeObject.width()*25.4/dpi
+        height, width = sizeObject.height()*25.4/self.dpi,sizeObject.width()*25.4/self.dpi
         #maximum number of plots allowd to be fit in one screen
         #assuming the minimum plot panel has a size of (w:50mm * h:40mm)
         plot_cols, plot_rows = int(width/50), int(height/40)
@@ -3239,6 +3241,7 @@ if __name__ == "__main__":
     dpi = screen.physicalDotsPerInch()
     myWin = MyMainWindow()
     myWin.setWindowIcon(QtGui.QIcon('DAFY.png'))
+    myWin.dpi = dpi
     hightlight = syntax_pars.PythonHighlighter(myWin.plainTextEdit_script.document())
     myWin.plainTextEdit_script.show()
     myWin.plainTextEdit_script.setPlainText(myWin.plainTextEdit_script.toPlainText())

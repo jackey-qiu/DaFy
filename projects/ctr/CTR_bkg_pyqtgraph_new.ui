@@ -7,7 +7,7 @@
     <x>0</x>
     <y>0</y>
     <width>1920</width>
-    <height>1089</height>
+    <height>1063</height>
    </rect>
   </property>
   <property name="sizePolicy">
@@ -2203,7 +2203,7 @@
   <customwidget>
    <class>TerminalWidget</class>
    <extends>QWidget</extends>
-   <header>terminal_widget.h</header>
+   <header location="global">terminal_widget.h</header>
    <container>1</container>
   </customwidget>
   <customwidget>
@@ -2215,7 +2215,7 @@
   <customwidget>
    <class>SolverParameters</class>
    <extends>QWidget</extends>
-   <header location="global">parameter_tree.h</header>
+   <header>parameter_tree_ctr.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

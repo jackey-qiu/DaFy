@@ -7,10 +7,10 @@ import random
 import numpy as np
 import matplotlib.pyplot as plt
 try:
-    from . import locate_path
+    from . import locate_path_viewer
 except:
-    import locate_path
-script_path = locate_path.module_path_locator()
+    import locate_path_viewer
+script_path = locate_path_viewer.module_path_locator()
 DaFy_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
@@ -1651,6 +1651,6 @@ if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
-    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())
