@@ -54,7 +54,7 @@ class MyMainWindow(QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major')
         pg.mkQApp()
         #load ui script
-        uic.loadUi(os.path.join(DaFy_path,'projects','xrv','XRV_bkg_pyqtgraph_new2.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','xrv','XRV_GUI.ui'),self)
         self.setWindowTitle('Data analysis factory: XRV data analasis')
         self.app_ctr=run_app()
         self.current_image_no = 0
@@ -223,7 +223,7 @@ class MyMainWindow(QMainWindow):
 
         # double-y axis plot for structure data (strain and size)
         p2 = win.addPlot(row=1,col=1,colspan=2,rowspan=1, title = 'Strain (left,white) and size (right,blue)')
-        p2.setLabel('bottom','frame_number')
+        p2.setLabel('bottom','x channel')
         # p2.showAxis('right')
         # p2.setLabel('right','grain_size', pen = "b")
         #p2.setLogMode(y = True)
@@ -267,7 +267,7 @@ class MyMainWindow(QMainWindow):
         # plot to show current/potential over time
         p4 = win.addPlot(row=3,col=1,colspan=2,rowspan=1, title = 'Potential (left,white) and current(right,blue)')
         #p4.setMaximumHeight(200)
-        p4.setLabel('bottom','frame number')
+        p4.setLabel('bottom','x channel')
         p4_r = pg.ViewBox()
         p4.showAxis('right')
         p4.scene().addItem(p4_r)
@@ -353,7 +353,7 @@ class MyMainWindow(QMainWindow):
                 pass
 
             #plot others
-            plot_xrv_gui_pyqtgraph(self.p1,[self.p2,self.p2_r], [self.p3,self.p3_r], [self.p4,self.p4_r],self.p5, self.p6, self.p7,self.app_ctr)
+            plot_xrv_gui_pyqtgraph(self.p1,[self.p2,self.p2_r], [self.p3,self.p3_r], [self.p4,self.p4_r],self.p5, self.p6, self.p7,self.app_ctr, self.checkBox_x_channel.isChecked())
             # add slider afterwards to have it show up on th plot
             self.p2.addItem(self.region_abnormal, ignoreBounds = True)
 

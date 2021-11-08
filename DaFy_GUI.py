@@ -91,6 +91,8 @@ class MyMainWindow(QMainWindow):
         ubmateWin.show()
 
     def launch_xrv(self):
+        pg.setConfigOption('foreground', 'w')
+        xrvWin.widget_image.setBackground('k')
         xrvWin.show()
 
     def launch_viewer(self):

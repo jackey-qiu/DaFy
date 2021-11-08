@@ -597,26 +597,10 @@
         </widget>
        </item>
        <item>
-        <layout class="QFormLayout" name="formLayout">
-         <property name="labelAlignment">
-          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignVCenter</set>
-         </property>
-         <property name="formAlignment">
-          <set>Qt::AlignLeading|Qt::AlignLeft|Qt::AlignTop</set>
-         </property>
+        <layout class="QGridLayout" name="gridLayout_3">
          <property name="horizontalSpacing">
           <number>6</number>
          </property>
-         <item row="0" column="0">
-          <widget class="QLabel" name="label_21">
-           <property name="frameShape">
-            <enum>QFrame::StyledPanel</enum>
-           </property>
-           <property name="text">
-            <string>P2</string>
-           </property>
-          </widget>
-         </item>
          <item row="0" column="1">
           <widget class="QComboBox" name="comboBox_p2">
            <item>
@@ -629,6 +613,23 @@
              <string>horizontal</string>
             </property>
            </item>
+          </widget>
+         </item>
+         <item row="0" column="0">
+          <widget class="QLabel" name="label_21">
+           <property name="frameShape">
+            <enum>QFrame::StyledPanel</enum>
+           </property>
+           <property name="text">
+            <string>P2</string>
+           </property>
+          </widget>
+         </item>
+         <item row="0" column="2">
+          <widget class="QCheckBox" name="checkBox_x_channel">
+           <property name="text">
+            <string>x=E</string>
+           </property>
           </widget>
          </item>
         </layout>
@@ -982,14 +983,14 @@
    <addaction name="actionOpenConfig"/>
    <addaction name="actionSaveConfig"/>
    <addaction name="actionRun"/>
-   <addaction name="actionStop"/>
    <addaction name="actionSaveData"/>
+   <addaction name="actionStop"/>
   </widget>
   <action name="actionOpenConfig">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/blue-folder--arrow.png</normalon>
-    </iconset>
+     <normaloff>icons/open.png</normaloff>
+     <normalon>../../../icons/blue-folder--arrow.png</normalon>icons/open.png</iconset>
    </property>
    <property name="text">
     <string>OpenConfig</string>
@@ -998,8 +999,8 @@
   <action name="actionSaveConfig">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/application-dock-270.png</normalon>
-    </iconset>
+     <normaloff>icons/save.png</normaloff>
+     <normalon>../../../icons/application-dock-270.png</normalon>icons/save.png</iconset>
    </property>
    <property name="text">
     <string>SaveConfig</string>
@@ -1008,8 +1009,8 @@
   <action name="actionRun">
    <property name="icon">
     <iconset>
-     <normaloff>../../../icons/clapperboard--arrow.png</normaloff>
-     <normalon>../../../icons/battery-charge.png</normalon>../../../icons/clapperboard--arrow.png</iconset>
+     <normaloff>icons/run.png</normaloff>
+     <normalon>../../../icons/battery-charge.png</normalon>icons/run.png</iconset>
    </property>
    <property name="text">
     <string>Run</string>
@@ -1018,8 +1019,8 @@
   <action name="actionSaveData">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/disc--plus.png</normalon>
-    </iconset>
+     <normaloff>icons/save_data.png</normaloff>
+     <normalon>../../../icons/disc--plus.png</normalon>icons/save_data.png</iconset>
    </property>
    <property name="text">
     <string>SaveData</string>
@@ -1028,8 +1029,8 @@
   <action name="actionStop">
    <property name="icon">
     <iconset>
-     <normalon>../../../icons/clapperboard--minus.png</normalon>
-    </iconset>
+     <normaloff>icons/stop.png</normaloff>
+     <normalon>../../../icons/clapperboard--minus.png</normalon>icons/stop.png</iconset>
    </property>
    <property name="text">
     <string>Stop</string>
@@ -1052,7 +1053,7 @@
   <customwidget>
    <class>SolverParameters</class>
    <extends>QWidget</extends>
-   <header>parameter_tree_superrod.h</header>
+   <header>parameter_tree_xrv.h</header>
    <container>1</container>
   </customwidget>
  </customwidgets>

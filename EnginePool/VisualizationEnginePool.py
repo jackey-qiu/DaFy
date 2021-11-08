@@ -241,7 +241,7 @@ def replot_bkg_profile(ax_profile, data, fit_bkg_object, plot_final = False):
     ax_profile.plot([peak_l,peak_l],[z[peak_l],y.max()],pen = 'g')
     ax_profile.plot([peak_r,peak_r],[z[peak_r],y.max()],pen = 'g')
 
-def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr):
+def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potential = False):
     p2,p2_r = p2
     p3,p3_r = p3
     p4,p4_r = p4
@@ -249,23 +249,40 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr):
     current_scan_number = app_ctr.current_scan_number
     index_list = np.where((np.array(data['scan_no'])==current_scan_number)&(np.array(data['mask_cv_xrd'])==True))
     img_number = np.array(data['image_no'])[index_list]
+    #potential = np.array(data['potential'])[index_list]
+    potential = 0.205+np.array(data['potential'])[index_list]+0.059*np.array(data['phs'])[index_list]
 
     #cut_values_oop=[peak_center[0]-cut_offset['hor'][-1],peak_center[0]+cut_offset['hor'][-1]]
     #cut_values_ip = [peak_center[1]-cut_offset['ver'][-1],peak_center[1]+cut_offset['ver'][-1]]
 
     if app_ctr.p2_data_source == 'vertical':
-        p2.plot(img_number,np.array(data['strain_oop'])[index_list],clear = True)
-        p2_r.clear()
-        p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_oop'])[index_list], pen='b',clear = True))
+        if x_channel_potential:
+            p2.plot(potential,np.array(data['strain_oop'])[index_list],clear = True)
+            p2_r.clear()
+            p2_r.addItem(pg.PlotCurveItem(potential,np.array(data['grain_size_oop'])[index_list], pen='b',clear = True))
+        else:
+            p2.plot(img_number,np.array(data['strain_oop'])[index_list],clear = True)
+            p2_r.clear()
+            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_oop'])[index_list], pen='b',clear = True))
     elif app_ctr.p2_data_source == 'horizontal':
-        p2.plot(img_number,np.array(data['strain_ip'])[index_list],clear = True)
-        p2_r.clear()
-        p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_ip'])[index_list], pen='b',clear= True))
+        if x_channel_potential:
+            p2.plot(potential,np.array(data['strain_ip'])[index_list],clear = True)
+            p2_r.clear()
+            p2_r.addItem(pg.PlotCurveItem(potential,np.array(data['grain_size_ip'])[index_list], pen='b',clear= True))
+        else:
+            p2.plot(img_number,np.array(data['strain_ip'])[index_list],clear = True)
+            p2_r.clear()
+            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_ip'])[index_list], pen='b',clear= True))
 
     # if app_ctr.p3_data_source == 'peak_intensity':
-    p3.plot(img_number,np.array(data['peak_intensity'])[index_list],clear = True)
-    p3_r.clear()
-    p3_r.addItem(pg.PlotCurveItem(img_number,np.array(data['bkg'])[index_list], pen='b',clear = True))
+    if x_channel_potential:
+        p3.plot(potential,np.array(data['peak_intensity'])[index_list],clear = True)
+        p3_r.clear()
+        p3_r.addItem(pg.PlotCurveItem(potential,np.array(data['bkg'])[index_list], pen='b',clear = True))
+    else:
+        p3.plot(img_number,np.array(data['peak_intensity'])[index_list],clear = True)
+        p3_r.clear()
+        p3_r.addItem(pg.PlotCurveItem(img_number,np.array(data['bkg'])[index_list], pen='b',clear = True))
     # elif app_ctr.p3_data_source == 'bkg_intensity':
         # p3.plot(img_number,np.array(data['bkg'])[index_list],clear = True)
 
