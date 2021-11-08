@@ -481,7 +481,7 @@ class MyMainWindow(QMainWindow):
     def send_hkl_angs(self):
         self.calc_angs()
         all = list([self.comboBox_bragg_peak.itemText(i) for i in range(self.comboBox_bragg_peak.count())])
-        h, k = int(self.lineEdit_H_calc.text()), int(self.lineEdit_K_calc.text())
+        h, k = int(float(self.lineEdit_H_calc.text())), int(float(self.lineEdit_K_calc.text()))
         #l = None
         index = None
         for i, each in enumerate(all):
