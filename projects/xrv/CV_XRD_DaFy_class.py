@@ -92,7 +92,7 @@ class run_app(object):
                 setattr(self,'current_scan_number',self.img_loader.scan_number)
             self.current_frame = self.img_loader.frame_number
             self.img = img
-            good_check = self.peak_fitting_instance.reset_fit(img, check = True)
+            good_check = self.peak_fitting_instance.reset_fit(img, check = True, first_frame = self.current_frame==0)
             if good_check:
                 self.bkg_sub.fit_background(None, img, plot_live = False, freeze_sf = True)
                 self.data = merge_data(self.data, self.img_loader, self.peak_fitting_instance, self.bkg_sub, self.kwarg_global, tweak = False)

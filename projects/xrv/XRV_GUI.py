@@ -89,6 +89,7 @@ class MyMainWindow(QMainWindow):
             each.toggled.connect(self.update_cost_func)
         '''
         self.pushButton_remove_current_point.clicked.connect(self.remove_data_point)
+        self.pushButton_recenter.clicked.connect(self.recenter)
         #self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
         self.comboBox_p2.activated.connect(self.select_source_for_plot_p2)
         self.actionOpenConfig.triggered.connect(self.load_file)
@@ -361,6 +362,12 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
             self.lcdNumber_current.display(self.app_ctr.data['current'][-1])
             self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][-1])
+            self.lcdNumber_strain_par.display(self.app_ctr.data['strain_ip'][-1])
+            self.lcdNumber_strain_ver.display(self.app_ctr.data['strain_oop'][-1])
+            self.lcdNumber_size_par.display(self.app_ctr.data['grain_size_ip'][-1])
+            self.lcdNumber_size_ver.display(self.app_ctr.data['grain_size_oop'][-1])
+            self.lineEdit_peak_center.setText(str(self.app_ctr.peak_fitting_instance.peak_center))
+            self.lineEdit_previous_center.setText(str(self.app_ctr.peak_fitting_instance.previous_peak_center))
             self.lcdNumber_iso.display(isoLine.value())
 
         roi.sigRegionChanged.connect(updatePlot)
@@ -372,6 +379,11 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_iso.display(isoLine.value())
         self.updateIsocurve = updateIsocurve
         isoLine.sigDragged.connect(updateIsocurve)
+
+    def recenter(self):
+        #self.app_ctr.peak_fitting_instance.previous_peak_center = self.app_ctr.peak_fitting_instance.peak_center
+        self.app_ctr.peak_fitting_instance.recenter = True
+        self.updatePlot()
 
     def stop_func(self):
         if not self.stop:

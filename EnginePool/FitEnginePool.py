@@ -640,6 +640,7 @@ class XRD_Peak_Fitting(object):
         self.fit_results_plot = {'hor':[],'ver':[]}
         self.peak_intensity = 0
         self.fit_status = False
+        self.recenter = False
         #self.fit()
 
     @property
@@ -669,8 +670,8 @@ class XRD_Peak_Fitting(object):
         # ver = int(self.fit_p0['ver'][1]*2/abs(self.q_oop[0,1]-self.q_oop[1,1]))
         return {'hor':hor,'ver':ver}
 
-    def reset_fit(self,img, check = False, level = 0.05, **kwarg):
-        self.first_frame = False
+    def reset_fit(self,img, check = False, level = 0.05, first_frame = False, **kwarg):
+        self.first_frame = first_frame
         self.img = img
         check_result = self.fit(check, level)
         return check_result
@@ -821,7 +822,6 @@ class XRD_Peak_Fitting(object):
 
 
     def fit(self, check=True, level = 0.05, **kwarg):
-        #self.img[self.mask ==0]=0
         self.fit_data = {'hor':{'x':[],'y':[]},'ver':{'x':[],'y':[]}}
         fit_ip_0, fom_ip_0 = None, None
         fit_oop_0, fom_oop_0 = None, None
@@ -835,10 +835,10 @@ class XRD_Peak_Fitting(object):
                 cycles = 2
             for j in range(cycles):
                 fit_p0 = {0:self.fit_p0,1:self.fit_p0_2}
-                if self.first_frame:
-                    center_index = {0:self.prim_beam_pot, 1:self.peak_center}
-                else:
-                    center_index = {0:self.peak_center, 1:self.peak_center}
+                # if self.first_frame:
+                    # center_index = {0:self.prim_beam_pot, 1:self.peak_center}
+                # else:
+                center_index = {0:self.peak_center, 1:self.peak_center}
                 cut_offset_temp =dict([(key,value[i]) for key, value in self.cut_offset.items()])
                 data_range_offset_temp =dict([(key,value[i]) for key, value in self.data_range_offset.items()])
                 cut = self.cut_profile_from_2D_img_around_center(self.img,cut_offset_temp,data_range_offset_temp, center_index[i], sum_result = True)
@@ -852,9 +852,7 @@ class XRD_Peak_Fitting(object):
 
                 #check nan and inf values
                 index_used = {'hor':~(np.isnan(cut['hor'])|np.isinf(cut['hor'])), 'ver':~(np.isnan(cut['ver'])|np.isinf(cut['ver']))}
-                if self.first_frame and i==0:
-                    self.fit_p0['ver'][0] = self.q_oop[self.peak_center[0],0]
-                    self.fit_p0['hor'][0] = self.q_ip[0,self.peak_center[1]]
+                #peak fit engine
                 try:
                     fit_ip,fom_ip = opt.curve_fit(f=self.model, xdata=cut_ip_q[index_used['hor']], ydata=cut['hor'][index_used['hor']], p0 = fit_p0[i]['hor'], bounds = self.fit_bounds['hor'], max_nfev = 10000)
                     fit_oop,fom_oop = opt.curve_fit(f=self.model, xdata=cut_oop_q[index_used['ver']], ydata=cut['ver'][index_used['ver']], p0 = fit_p0[i]['ver'], bounds = self.fit_bounds['ver'], max_nfev = 10000)
@@ -864,23 +862,32 @@ class XRD_Peak_Fitting(object):
                     fit_ip, fom_ip = [0,0,0,0,0,0],[0]
                     fit_oop, fom_oop = [0,0,0,0,0,0],[0]
                     print('Peak fit failed!')
-                    #break
-                # print('updata fit_data now!',i,min(cut_ip_q[index_used['hor']]),min(cut['hor'][index_used['hor']]),min(cut_oop_q[index_used['ver']]),min(cut['ver'][index_used['ver']]))
+                    #return False
+                #only document the fit data for the large cut and last cycle of the small cut
                 if i==0 or (i==1 and j==1):
                     self.fit_data['hor']['x'].append(cut_ip_q[index_used['hor']])
                     self.fit_data['hor']['y'].append(cut['hor'][index_used['hor']])
                     self.fit_data['ver']['x'].append(cut_oop_q[index_used['ver']])
                     self.fit_data['ver']['y'].append(cut['ver'][index_used['ver']])
-                if i==0:
+                if i==0:# document the fit result for the case of large cut
                     fit_ip_0, fom_ip_0 = fit_ip, fom_ip
                     fit_oop_0, fom_oop_0 = fit_oop, fom_oop
-                peak_center_ = [np.argmin(np.abs(self.q_oop[:,0]-fit_oop[0])),np.argmin(np.abs(self.q_ip[0,:]-fit_ip[0]))]
-                # print(i,j,peak_center_,fit_oop[0],fit_ip[0])
-                if i==0 or (i==1 and j==0):
-                    self.peak_center = peak_center_
+                if self.fit_status:
+                    peak_center_ = [np.argmin(np.abs(self.q_oop[:,0]-fit_oop[0])),np.argmin(np.abs(self.q_ip[0,:]-fit_ip[0]))]
+                else:
+                    peak_center_ = self.peak_center
+                #updaate peak center and previous peak center
+                if self.recenter:
                     self.previous_peak_center = peak_center_
+                    self.peak_center = peak_center_
+                    self.recenter = False
+                if i==0 or (i==1 and j==0):
+                    if np.abs(peak_center_ - np.array(self.prim_beam_pot)).sum()<15:
+                        self.peak_center = peak_center_
+                        if self.first_frame:
+                            self.previous_peak_center = peak_center_
                 elif (i==1 and j==1):#in second where run j=1 and j=0, the peakcenter should be very close to each other, if not peak is not located correctly! Note 10 pixel away is only arbitrary value, which may be changed accordingly!
-                    if (not self.pot_step_scan) and np.abs(np.array(self.previous_peak_center)-np.array(peak_center_)).sum()>4 and (not self.first_frame):
+                    if ((not self.pot_step_scan) and np.abs(np.array(self.previous_peak_center)-np.array(peak_center_)).sum()>10 and (not self.first_frame)) or (not self.fit_status):
                         center_far_off_test = False
                         print('Two successive fit results is far off!! CHECK frame!!')
                         print('current peak center:{},previous peak center:{}'.format(peak_center_,self.previous_peak_center))
@@ -888,15 +895,15 @@ class XRD_Peak_Fitting(object):
                         self.peak_center = peak_center_
                         self.previous_peak_center = peak_center_
                         #update the peak center, but not change the other par values
+                        '''
                         self.fit_p0['ver'] = fit_oop
                         self.fit_p0['hor'] = fit_ip
 
                         self.fit_p0_2['ver'] = fit_oop
                         self.fit_p0_2['hor'] = fit_ip
                         self.update_bounds(fit_oop[0],fit_ip[0])
-                # quit()
+                        '''
 
-        # quit()
         #finish the fit and update the fit par values
         # self.update_bounds(fit_oop[0],fit_ip[0])
         self.fit_results_plot['hor'] = [copy.deepcopy(fit_ip), copy.deepcopy(fom_ip)]
@@ -904,13 +911,13 @@ class XRD_Peak_Fitting(object):
         if self.use_first_fit_for_pos and peak_locating_step:
             fit_ip[0], fom_ip[0] = fit_ip_0[0], fom_ip_0[0]
             fit_oop[0], fom_oop[0] = fit_oop_0[0], fom_oop_0[0]
+        '''
         def _check(old, new, level = level):
             check_result = bool((abs((np.array(old)[0:2] - np.array(new)[0:2])/np.array(old)[0:2])>level).sum())
-            # print(check_result)
             return check_result
+        '''
         if check:
             if center_far_off_test:
-            # if (_check(self.fit_results['hor'][0],fit_ip) | _check(self.fit_results['ver'][0],fit_oop))==False:
                 self.fit_results['hor'] = [fit_ip, fom_ip]
                 self.fit_results['ver'] = [fit_oop, fom_oop]
                 return True
