@@ -26,7 +26,7 @@ from util.XRD_tools import reciprocal_space_v3 as rsp
 from util.UtilityFunctions import image_generator
 from util.UtilityFunctions import scan_generator
 from util.UtilityFunctions import nexus_image_loader
-from util.UtilityFunctions import find_boundary
+from util.UtilityFunctions import find_boundary, timer_placer
 from util.UtilityFunctions import extract_global_vars_from_string
 from util.UtilityFunctions import extract_vars_from_config
 from util.UtilityFunctions import get_console_size
@@ -82,8 +82,11 @@ class run_app(object):
         self._images = image_generator(self._scans,self.img_loader,self.rsp_instance,self.peak_fitting_instance,self.create_mask_new)
 
     def run_script(self, bkg_intensity = 0):
+        # tp = timer_placer()
+        # tp.add_timer('begin')
         try:
             img = next(self._images)
+            # tp.add_timer('next image')
             if hasattr(self,'current_scan_number'):
                 if self.current_scan_number!=self.img_loader.scan_number:
                     self.save_data_file(self.data_path)
@@ -93,11 +96,15 @@ class run_app(object):
             self.current_frame = self.img_loader.frame_number
             self.img = img
             good_check = self.peak_fitting_instance.reset_fit(img, check = True, first_frame = self.current_frame==0)
+            # tp.add_timer('after peak fitting')
             if good_check:
                 self.bkg_sub.fit_background(None, img, plot_live = False, freeze_sf = True)
+                # tp.add_timer('after bkg fit')
                 self.data = merge_data(self.data, self.img_loader, self.peak_fitting_instance, self.bkg_sub, self.kwarg_global, tweak = False)
                 self.data = cal_strain_and_grain(self.data,HKL = self.kwarg_film['film_hkl_bragg_peak'][0], lattice = self.lattice_skin)
                 self.data['bkg'].append(bkg_intensity)
+                # tp.add_timer('after merge data')
+            # tp.report()
             return True
         except StopIteration:
             self.save_data_file(self.data_path)

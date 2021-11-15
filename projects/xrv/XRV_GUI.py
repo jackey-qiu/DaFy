@@ -64,6 +64,8 @@ class MyMainWindow(QMainWindow):
         self.stop = False
         self.widget_terminal.update_name_space('xrv',self.app_ctr)
         self.widget_terminal.update_name_space('main_gui',self)
+        self.single_point_strain_ax_handle = None
+        self.single_point_size_ax_handle = None
 
         #pre-set the data path and data name
         self.lineEdit_data_file_name.setText('temp_data_xrv.xlsx')
@@ -179,7 +181,7 @@ class MyMainWindow(QMainWindow):
         win.addItem(self.hist,row=0,col=0,rowspan=1,colspan=2)
 
         # A plot area (ViewBox + axes) for displaying the image
-        p1 = win.addPlot(row=0,col=2,rowspan=1,colspan=2)
+        p1 = win.addPlot(row=0,col=2,rowspan=1,colspan=3)
         # Item for displaying image data
         img = pg.ImageItem()
         p1.getViewBox().invertY(False)
@@ -223,13 +225,24 @@ class MyMainWindow(QMainWindow):
         p1.addItem(self.region_cut_ver, ignoreBounds = True)
 
         # double-y axis plot for structure data (strain and size)
-        p2 = win.addPlot(row=1,col=1,colspan=2,rowspan=1, title = 'Strain (left,white) and size (right,blue)')
+        p2 = win.addPlot(row=1,col=1,colspan=3,rowspan=1, title = 'film structure parameters')
+        self.vLine_par = pg.InfiniteLine(angle=90, movable=False)
+        self.hLine_par = pg.InfiniteLine(angle=0, movable=False)
+        self.vLine_par.setZValue(100)
+        self.hLine_par.setZValue(100)
+        # p2 = win.addPlot(row=1,col=1,colspan=2,rowspan=1)
         p2.setLabel('bottom','x channel')
+        p2.getAxis('left').setLabel('Strain (%)')
+        p2.getAxis('left').setPen(pg.mkPen('w', width=2))
+
+        self.proxy_p2_panel = pg.SignalProxy(p2.scene().sigMouseMoved, rateLimit=60, slot=self.mouseMoved_in_p2)
         # p2.showAxis('right')
         # p2.setLabel('right','grain_size', pen = "b")
         #p2.setLogMode(y = True)
         p2_r = pg.ViewBox()
         p2.showAxis('right')
+        p2.setLabel('right','grain size (nm)')
+        p2.getAxis('right').setPen(pg.mkPen('g', width=2))
         p2.scene().addItem(p2_r)
         p2.getAxis('right').linkToView(p2_r)
         p2_r.setXLink(p2)
@@ -246,10 +259,15 @@ class MyMainWindow(QMainWindow):
         p2.vb.sigResized.connect(updateViews_p2)
 
         # plot to show intensity(sig and bkg) over time
-        p3 = win.addPlot(row=2,col=1,colspan=2,rowspan=1,title = 'Peak intensity(left,white) and bkg intensity (right,blue)')
+        p3 = win.addPlot(row=2,col=1,colspan=3,rowspan=1,title = 'CTR intensity')
+        p3.getAxis('left').setLabel('Peak intensity')
+        p3.getAxis('left').setPen(pg.mkPen('w', width=2))
         #p3.setLabel('left','Integrated Intensity', units='c/s')
+        p3.setLabel('bottom','x channel')
         p3_r = pg.ViewBox()
         p3.showAxis('right')
+        p3.setLabel('right','bkg intensity')
+        p3.getAxis('right').setPen(pg.mkPen('g', width=2))
         p3.scene().addItem(p3_r)
         p3.getAxis('right').linkToView(p3_r)
         p3_r.setXLink(p3)
@@ -266,11 +284,15 @@ class MyMainWindow(QMainWindow):
         p3.vb.sigResized.connect(updateViews_p3)
 
         # plot to show current/potential over time
-        p4 = win.addPlot(row=3,col=1,colspan=2,rowspan=1, title = 'Potential (left,white) and current(right,blue)')
+        p4 = win.addPlot(row=3,col=1,colspan=3,rowspan=1,title = 'CV data')
+        p4.getAxis('left').setLabel('Potential_RHE (V)')
+        p4.getAxis('left').setPen(pg.mkPen('w', width=2))
         #p4.setMaximumHeight(200)
         p4.setLabel('bottom','x channel')
         p4_r = pg.ViewBox()
         p4.showAxis('right')
+        p4.setLabel('right','current (mA)')
+        p4.getAxis('right').setPen(pg.mkPen('g', width=2))
         p4.scene().addItem(p4_r)
         p4.getAxis('right').linkToView(p4_r)
         p4_r.setXLink(p4)
@@ -354,9 +376,16 @@ class MyMainWindow(QMainWindow):
                 pass
 
             #plot others
-            plot_xrv_gui_pyqtgraph(self.p1,[self.p2,self.p2_r], [self.p3,self.p3_r], [self.p4,self.p4_r],self.p5, self.p6, self.p7,self.app_ctr, self.checkBox_x_channel.isChecked())
+            handles = plot_xrv_gui_pyqtgraph(self.p1,[self.p2,self.p2_r], [self.p3,self.p3_r], [self.p4,self.p4_r],self.p5, self.p6, self.p7,self.app_ctr, self.checkBox_x_channel.isChecked())
+            if len(handles) == 2:
+                self.single_point_strain_ax_handle, self.single_point_size_ax_handle = handles
+            elif len(handles) == 4:
+                self.single_point_strain_oop_ax_handle, self.single_point_strain_ip_ax_handle, self.single_point_size_oop_ax_handle, self.single_point_size_ip_ax_handle = handles
+
             # add slider afterwards to have it show up on th plot
             self.p2.addItem(self.region_abnormal, ignoreBounds = True)
+            self.p2.addItem(self.vLine_par, ignoreBounds = True)
+            self.p2.addItem(self.hLine_par, ignoreBounds = True)
 
             #show values for current status
             self.lcdNumber_potential.display(self.app_ctr.data['potential'][-1])
@@ -379,6 +408,48 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_iso.display(isoLine.value())
         self.updateIsocurve = updateIsocurve
         isoLine.sigDragged.connect(updateIsocurve)
+
+    def _update_info(self,index):
+        self.lcdNumber_potential.display(self.app_ctr.data['potential'][index])
+        self.lcdNumber_current.display(self.app_ctr.data['current'][index])
+        self.lcdNumber_intensity.display(self.app_ctr.data['peak_intensity'][index])
+        self.lcdNumber_strain_par.display(self.app_ctr.data['strain_ip'][index])
+        self.lcdNumber_strain_ver.display(self.app_ctr.data['strain_oop'][index])
+        self.lcdNumber_size_par.display(self.app_ctr.data['grain_size_ip'][index])
+        self.lcdNumber_size_ver.display(self.app_ctr.data['grain_size_oop'][index])
+        self.lcdNumber_frame_number.display(self.app_ctr.data['image_no'][index])
+
+    def mouseMoved_in_p2(self, evt):
+         pos = evt[0]  ## using signal proxy turns original arguments into a tuple
+         current_scan_no = self.app_ctr.data['scan_no'][-1]
+         start = self.app_ctr.data['scan_no'].index(current_scan_no)
+         if self.p2.sceneBoundingRect().contains(pos):
+            mousePoint = self.p2.vb.mapSceneToView(pos)
+            index = mousePoint.x()
+            which = np.argmin(abs(np.array(self.app_ctr.data['image_no'][start:])-index)) + start
+            self._update_info(which)
+            if self.app_ctr.p2_data_source == 'vertical':
+                strain = self.app_ctr.data['strain_oop'][which]
+                size = self.app_ctr.data['grain_size_oop'][which]
+                self.single_point_size_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [size])
+                self.single_point_strain_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [strain])
+            elif self.app_ctr.p2_data_source == 'horizontal':
+                strain = self.app_ctr.data['strain_ip'][which]
+                size = self.app_ctr.data['grain_size_ip'][which]
+                self.single_point_size_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [size])
+                self.single_point_strain_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [strain])
+            else:
+                strain = [self.app_ctr.data['strain_oop'][which]]
+                size = [self.app_ctr.data['grain_size_oop'][which]]
+                strain.append(self.app_ctr.data['strain_ip'][which])
+                size.append(self.app_ctr.data['grain_size_ip'][which])
+                self.single_point_size_oop_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [size[0]])
+                self.single_point_strain_oop_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [strain[0]])
+                self.single_point_size_ip_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [size[1]])
+                self.single_point_strain_ip_ax_handle.setData(x = [self.app_ctr.data['image_no'][which]], y = [strain[1]])
+            self.vLine_par.setPos(self.app_ctr.data['image_no'][which])
+            self.hLine_par.setPos(mousePoint.y())
+            #self.hLine_par.setPos(strain)
 
     def recenter(self):
         #self.app_ctr.peak_fitting_instance.previous_peak_center = self.app_ctr.peak_fitting_instance.peak_center
@@ -422,6 +493,11 @@ class MyMainWindow(QMainWindow):
         # self.update_cost_func(init_step=True)
         if self.launch.text()=='Launch':
             self.setup_image()
+            #ugly way to rescale the widget correctly
+            size = self.widget_image.size()
+            self.widget_image.resize(size.width()*2,size.height())
+            self.widget_image.resize(size.width(),size.height())
+            ##########################################
             self.timer_save_data.start(self.spinBox_save_frequency.value()*1000*60)
         else:
             pass

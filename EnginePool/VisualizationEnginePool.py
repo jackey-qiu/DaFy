@@ -17,6 +17,7 @@ import pandas as pd
 import matplotlib.patches as patches
 import scipy
 import pyqtgraph as pg
+import time
 
 def plot_pxrd_profile_time_scan(fig,data,image,delta_range=None,int_range=None, int_range_bkg=None,plot_final = False):
     if not plot_final:
@@ -251,6 +252,8 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potenti
     img_number = np.array(data['image_no'])[index_list]
     #potential = np.array(data['potential'])[index_list]
     potential = 0.205+np.array(data['potential'])[index_list]+0.059*np.array(data['phs'])[index_list]
+    single_point_handle_1b = None
+    single_point_handle_2b = None
 
     #cut_values_oop=[peak_center[0]-cut_offset['hor'][-1],peak_center[0]+cut_offset['hor'][-1]]
     #cut_values_ip = [peak_center[1]-cut_offset['ver'][-1],peak_center[1]+cut_offset['ver'][-1]]
@@ -258,38 +261,76 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potenti
     if app_ctr.p2_data_source == 'vertical':
         if x_channel_potential:
             p2.plot(potential,np.array(data['strain_oop'])[index_list],clear = True)
+            single_point_handle_1 = p2.plot([potential[-1]], [np.array(data['strain_oop'])[index_list][-1]], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
             p2_r.clear()
-            p2_r.addItem(pg.PlotCurveItem(potential,np.array(data['grain_size_oop'])[index_list], pen='b',clear = True))
+            p2_r.addItem(pg.PlotCurveItem(potential,np.array(data['grain_size_oop'])[index_list], pen='g',clear = True))
+            single_point_handle_2 = pg.PlotDataItem(name='name')
+            p2_r.addItem(single_point_handle_2)
+            single_point_handle_2.setData(x=[potential[-1]], y=[np.array(data['grain_size_oop'])[index_list][-1]],pen=None, symbolBrush=(0,100,100),symbol='o', symbolSize=10)
         else:
             p2.plot(img_number,np.array(data['strain_oop'])[index_list],clear = True)
+            single_point_handle_1 = p2.plot([img_number[-1]], [np.array(data['strain_oop'])[index_list][-1]], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
             p2_r.clear()
-            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_oop'])[index_list], pen='b',clear = True))
+            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_oop'])[index_list], pen='g',clear = True))
+            single_point_handle_2 = pg.PlotDataItem(name='name')
+            p2_r.addItem(single_point_handle_2)
+            single_point_handle_2.setData(x=[img_number[-1]], y=[np.array(data['grain_size_oop'])[index_list][-1]],pen=None, symbolBrush=(0,100,100),symbol='o', symbolSize=10)
     elif app_ctr.p2_data_source == 'horizontal':
         if x_channel_potential:
             p2.plot(potential,np.array(data['strain_ip'])[index_list],clear = True)
+            single_point_handle_1 = p2.plot([potential[-1]], [np.array(data['strain_ip'])[index_list][-1]], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
             p2_r.clear()
-            p2_r.addItem(pg.PlotCurveItem(potential,np.array(data['grain_size_ip'])[index_list], pen='b',clear= True))
+            p2_r.addItem(pg.PlotCurveItem(potential,np.array(data['grain_size_ip'])[index_list], pen='g',clear= True))
+            single_point_handle_2 = pg.PlotDataItem(name='name')
+            p2_r.addItem(single_point_handle_2)
+            single_point_handle_2.setData(x=[potential[-1]], y=[np.array(data['grain_size_ip'])[index_list][-1]],pen=None, symbolBrush=(0,100,100),symbol='o', symbolSize=10)
+            # p2_r.plot(potential[0:1], np.array(data['grain_size_ip'])[index_list][0:1], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
         else:
             p2.plot(img_number,np.array(data['strain_ip'])[index_list],clear = True)
+            single_point_handle_1 = p2.plot([img_number[-1]], [np.array(data['strain_ip'])[index_list][-1]], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
             p2_r.clear()
-            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_ip'])[index_list], pen='b',clear= True))
+            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_ip'])[index_list], pen='g',clear= True))
+            # p2_r.plot(img_number[0:1], np.array(data['grain_size_ip'])[index_list][0:1], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
+            single_point_handle_2 = pg.PlotDataItem(name='name')
+            p2_r.addItem(single_point_handle_2)
+            single_point_handle_2.setData(x=[img_number[-1]], y=[np.array(data['grain_size_ip'])[index_list][-1]],pen=None, symbolBrush=(0,100,100),symbol='o', symbolSize=10)
+    else:
+        if x_channel_potential:
+            pass
+        else:
+            p2.plot(img_number,np.array(data['strain_oop'])[index_list],clear = True)
+            single_point_handle_1 = p2.plot([img_number[-1]], [np.array(data['strain_oop'])[index_list][-1]], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
+            p2_r.clear()
+            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_oop'])[index_list], pen='g',clear = True))
+            single_point_handle_2 = pg.PlotDataItem(name='name')
+            p2_r.addItem(single_point_handle_2)
+            single_point_handle_2.setData(x=[img_number[-1]], y=[np.array(data['grain_size_oop'])[index_list][-1]],pen=None, symbolBrush=(0,100,100),symbol='o', symbolSize=10)
+
+            p2.plot(img_number,np.array(data['strain_ip'])[index_list],clear = False)
+            single_point_handle_1b = p2.plot([img_number[-1]], [np.array(data['strain_ip'])[index_list][-1]], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
+            #p2_r.clear()
+            p2_r.addItem(pg.PlotCurveItem(img_number,np.array(data['grain_size_ip'])[index_list], pen='g',clear= True))
+            # p2_r.plot(img_number[0:1], np.array(data['grain_size_ip'])[index_list][0:1], pen=None, symbolBrush=(200,200,0), symbolPen='w', symbol='o', symbolSize=10)
+            single_point_handle_2b = pg.PlotDataItem(name='name2')
+            p2_r.addItem(single_point_handle_2b)
+            single_point_handle_2b.setData(x=[img_number[-1]], y=[np.array(data['grain_size_ip'])[index_list][-1]],pen=None, symbolBrush=(0,100,100),symbol='o', symbolSize=10)
 
     # if app_ctr.p3_data_source == 'peak_intensity':
     if x_channel_potential:
         p3.plot(potential,np.array(data['peak_intensity'])[index_list],clear = True)
         p3_r.clear()
-        p3_r.addItem(pg.PlotCurveItem(potential,np.array(data['bkg'])[index_list], pen='b',clear = True))
+        p3_r.addItem(pg.PlotCurveItem(potential,np.array(data['bkg'])[index_list], pen='g',clear = True))
     else:
         p3.plot(img_number,np.array(data['peak_intensity'])[index_list],clear = True)
         p3_r.clear()
-        p3_r.addItem(pg.PlotCurveItem(img_number,np.array(data['bkg'])[index_list], pen='b',clear = True))
+        p3_r.addItem(pg.PlotCurveItem(img_number,np.array(data['bkg'])[index_list], pen='g',clear = True))
     # elif app_ctr.p3_data_source == 'bkg_intensity':
         # p3.plot(img_number,np.array(data['bkg'])[index_list],clear = True)
 
     # if app_ctr.p4_data_source == 'current':
     p4.plot(img_number,0.205+np.array(data['potential'])[index_list]+0.059*np.array(data['phs'])[index_list],clear = True)
     p4_r.clear()
-    p4_r.addItem(pg.PlotCurveItem(img_number, np.array(data['current'])[index_list], pen='b',clear = True))
+    p4_r.addItem(pg.PlotCurveItem(img_number, np.array(data['current'])[index_list], pen='g',clear = True))
     # elif app_ctr.p4_data_source == 'potential':
         # p4.plot(img_number,np.array(data['potential'])[index_list],clear = True)
     
@@ -321,6 +362,11 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potenti
     # p7.plot(list(app_ctr.bkg_sub.fit_data['x']),list(app_ctr.bkg_sub.fit_data['y_bkg'][:,0]),pen='r')
     p7.plot(list(app_ctr.bkg_sub.fit_data['x']),list(app_ctr.bkg_sub.fit_data['y_total']),pen='w',clear = True)
     p7.plot(list(app_ctr.bkg_sub.fit_data['x']),list(app_ctr.bkg_sub.fit_data['y_bkg']),pen='r')
+    if single_point_handle_1b == None:
+        return single_point_handle_1, single_point_handle_2
+    else:
+        return single_point_handle_1,single_point_handle_1b, single_point_handle_2,single_point_handle_2b
+
 
 def plot_pxrd_fit_gui_pyqtgraph(ax_profile, ax_ctr, ax_strain, ax_pot,app_ctr):
 

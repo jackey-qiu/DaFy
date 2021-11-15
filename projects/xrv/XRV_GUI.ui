@@ -384,7 +384,7 @@
           <item>
            <widget class="GraphicsLayoutWidget" name="widget_image" native="true">
             <property name="sizePolicy">
-             <sizepolicy hsizetype="Expanding" vsizetype="Expanding">
+             <sizepolicy hsizetype="Preferred" vsizetype="Preferred">
               <horstretch>0</horstretch>
               <verstretch>0</verstretch>
              </sizepolicy>
@@ -622,6 +622,11 @@
            <item>
             <property name="text">
              <string>horizontal</string>
+            </property>
+           </item>
+           <item>
+            <property name="text">
+             <string>all</string>
             </property>
            </item>
           </widget>
