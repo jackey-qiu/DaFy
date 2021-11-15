@@ -15,6 +15,7 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
+from util.UtilityFunctions import timer_placer
 from VisualizationEnginePool import plot_xrv_gui_pyqtgraph,replot_bkg_profile
 import time
 import matplotlib
@@ -32,7 +33,7 @@ class pixel_to_q(pg.AxisItem):
         self.shift = shift
 
     def tickStrings(self, values, scale, spacing):
-        return [round(value*self.scale+self.shift,2) for value in values]
+        return [round(value*self.scale+self.shift,3) for value in values]
 
     def attachToPlotItem(self, plotItem):
         """Add this axis to the given PlotItem
@@ -344,7 +345,7 @@ class MyMainWindow(QMainWindow):
         self.update_bkg_signal = update_bkg_signal
 
         # Callbacks for handling user interaction
-        def updatePlot():
+        def updatePlot(fit = True):
             #global data
             try:
                 selected = self.roi.getArrayRegion(self.app_ctr.bkg_sub.img, self.img_pyqtgraph)
@@ -353,7 +354,10 @@ class MyMainWindow(QMainWindow):
 
             self.reset_peak_center_and_width()
             self.update_bkg_signal()
-            self.app_ctr.run_update(bkg_intensity=self.bkg_intensity)
+            if fit:
+                self.app_ctr.run_update(bkg_intensity=self.bkg_intensity)
+            else:
+                self.app_ctr.data['bkg'][-1] = self.bkg_intensity
             '''
             if self.stop:
                 self.update_bkg_signal()
@@ -548,13 +552,17 @@ class MyMainWindow(QMainWindow):
 
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)
+        # tp = timer_placer()
+        # tp.add_timer('begin')
         t0 = time.time()
         if self.stop:
             self.timer.stop()
         else:
             return_value = self.app_ctr.run_script()
+            # tp.add_timer('place 1')
             self.update_bkg_signal()
             self.app_ctr.data['bkg'][-1] = self.bkg_intensity
+            # tp.add_timer('place 2')
             if self.app_ctr.bkg_sub.img is not None:
                 #if self.current_scan_number == None:
                 #    self.current_scan_number = self.app_ctr.img_loader.scan_number
@@ -565,10 +573,12 @@ class MyMainWindow(QMainWindow):
                 self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
                 self.region_cut_hor.setRegion(cut_values_hoz)
                 self.region_cut_ver.setRegion(cut_values_ver)
+                # tp.add_timer('place 3')
 
                 #set roi
                 size_of_roi = self.roi.size()
                 self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
+                # tp.add_timer('place 4')
                 # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
                 #self.p1.plot([0,400],[200,200])
                 if self.app_ctr.img_loader.frame_number == 0:
@@ -585,13 +595,16 @@ class MyMainWindow(QMainWindow):
                     ax_item_img_hor.attachToPlotItem(self.p1)
                     ax_item_img_ver.attachToPlotItem(self.p1)
                 self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
-                self.updatePlot()
+                # tp.add_timer('place 4.1')
+                self.updatePlot(fit = False)
+                # tp.add_timer('place 5')
 
             if return_value:
                 self.statusbar.clearMessage()
                 self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1,self.app_ctr.img_loader.total_frame_number))
                 self.progressBar.setValue((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100)
                 self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
+                # tp.add_timer('place 6')
                 #self.app_ctr.img_loader.frame_number
                 #self.current_image_no += 1
             else:
@@ -605,6 +618,7 @@ class MyMainWindow(QMainWindow):
             self.lcdNumber_speed.display(int(1./(time.time()-t0)))
         except:
             pass
+        # tp.report()
 
     def reset_peak_center_and_width(self):
         roi_size = [int(each/2) for each in self.roi.size()][::-1]
