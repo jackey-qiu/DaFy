@@ -288,7 +288,7 @@ def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_cre
                 peak_fitting_instance.q_oop = rsp_instance.q['grid_q_perp']
                 peak_fitting_instance.initiat_p0_and_bounds()
             yield gaussian_filter(mask_creator.create_mask_new(img = rsp_instance.grid_intensity, img_q_ver = rsp_instance.q['grid_q_perp'],
-                                  img_q_par = rsp_instance.q['grid_q_par'], mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 0)
+                                  img_q_par = rsp_instance.q['grid_q_par'], mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 3)
             current_image_no +=1
 
 def image_generator_bkg(scans,img_loader,mask_creator):
@@ -1126,7 +1126,9 @@ class nexus_image_loader(object):
                 img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                         self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
                 #normalized the intensity by the monitor and trams counters
+                #self.current_img = img/self.motor_angles['mon']/self.motor_angles['transm']
                 yield img/self.motor_angles['mon']/self.motor_angles['transm']
+                # yield img/self.motor_angles['mon']/self.motor_angles['transm']
                 #yield img/self.motor_angles['transm']/200000
                 frame_number +=1
         elif self.img_structure == 'multiple':
@@ -1150,6 +1152,7 @@ class nexus_image_loader(object):
                 img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                         self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
                 #normalized the intensity by the monitor and trams counters
+                #self.current_img = img/self.motor_angles['mon']/self.motor_angles['transm']
                 yield img/self.motor_angles['mon']/self.motor_angles['transm']
                 #yield img/self.motor_angles['transm']/200000
                 frame_number +=1

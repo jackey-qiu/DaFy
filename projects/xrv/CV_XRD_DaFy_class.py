@@ -58,9 +58,19 @@ class run_app(object):
         self.kwarg_mask = extract_vars_from_config(self.conf_file,section_var = 'Mask')
 
         #recal clip_boundary and cen
+        '''
         self.clip_boundary = {"ver":[self.cen[0]-self.clip_width['ver'],self.cen[0]+self.clip_width['ver']+1],
                         "hor":[self.cen[1]-self.clip_width['hor'],self.cen[1]+self.clip_width['hor']+1]}
         self.cen_clip = [self.clip_width['ver'],self.clip_width['hor']]
+        '''
+
+        self.clip_boundary = {"ver":[max([self.cen[0]-self.clip_width['ver'],0]),min([self.cen[0]+self.clip_width['ver']+1,self.kwarg_global['dim_detector'][0]])],
+                        "hor":[max([self.cen[1]-self.clip_width['hor'],0]),min([self.cen[1]+self.clip_width['hor']+1,self.kwarg_global['dim_detector'][1]])]}
+        #self.cen_clip = [self.clip_width['ver'],self.clip_width['hor']] 
+        self.cen_clip = [int(abs(self.clip_boundary['ver'][1]-self.clip_boundary['ver'][0])/2), int(abs(self.clip_boundary['hor'][1]-self.clip_boundary['hor'][0])/2)]       
+        offset = [self.cen_clip[0] - self.clip_width['ver'], self.cen_clip[1] - self.clip_width['hor']]
+        #apply offset now
+        self.cen_clip = [self.cen_clip[0] - abs(offset[0]),self.cen_clip[1] - abs(offset[1])]
 
         #data file
         for key in self.data_keys:

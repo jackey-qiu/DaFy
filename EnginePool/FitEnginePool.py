@@ -882,8 +882,10 @@ class XRD_Peak_Fitting(object):
                     self.peak_center = peak_center_
                     self.recenter = False
                 if i==0 or (i==1 and j==0):
+                # if i==0:#peak center will be the fit result of large cut
                     if np.abs(peak_center_ - np.array(self.prim_beam_pot)).sum()<15:
-                        self.peak_center = peak_center_
+                        # self.peak_center = peak_center_
+                        # self.previous_peak_center = peak_center_
                         if self.first_frame:
                             self.previous_peak_center = peak_center_
                 elif (i==1 and j==1):#in second where run j=1 and j=0, the peakcenter should be very close to each other, if not peak is not located correctly! Note 10 pixel away is only arbitrary value, which may be changed accordingly!
@@ -894,6 +896,7 @@ class XRD_Peak_Fitting(object):
                     else:#CV scan without large offset of peak center or pot_step_scan
                         self.peak_center = peak_center_
                         self.previous_peak_center = peak_center_
+                        # pass
                         #update the peak center, but not change the other par values
                         '''
                         self.fit_p0['ver'] = fit_oop
@@ -1006,6 +1009,7 @@ class Reciprocal_Space_Mapping():
             setattr(self, key, kwarg[key])
         self.wavelength = 12.39854*self.e_kev
         self.k0 = 2.*np.pi/self.wavelength
+        #for test purpose, if set to True, use raw data instaed of q mapping
         #self.boost_mapping = boost_mapping
         # self.prepare_frame()
         # self.get_grid_q()
@@ -1029,8 +1033,10 @@ class Reciprocal_Space_Mapping():
         gam_= self.motor_angles['delta']
         del_= self.motor_angles['gamma']
         #the chi and phi values are arbitrary in the fio file, should be set to the same values as the ones that are usd to cal UB matrix(all 0 so far)
-        phi_= self.motor_angles['phi']
-        chi_= self.motor_angles['chi']
+        #chi and phi have to be 0 to work, otherwise the mapping will be wrong
+        #so here force this condition
+        phi_= self.motor_angles['phi']*0
+        chi_= self.motor_angles['chi']*0
         mu_= self.motor_angles['omega_t']
         # print del_,gam_
         #first item is the incident angle (mu_ here)

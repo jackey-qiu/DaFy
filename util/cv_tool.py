@@ -444,6 +444,7 @@ class cvAnalysis(object):
     def plot_tafel_from_formatted_cv_info_one_scan_2(self,scan, ax, forward_cycle = True):
         #half = 0, first half cycle E scan from low to high values
         #how many points to be extended beyond the Tafel E range
+        return_text = [str(scan)]
         offset = 0
         which = self.info['sequence_id'].index(scan)
         resistance = [self.info['resistance'][which]]
@@ -484,7 +485,8 @@ class cvAnalysis(object):
             color = cv_info[scans[i]]['color']
             #pot_start=pot_starts[i]
             #pot_end=pot_ends[i]
-            print(label,': resistance ={};pot_range between {} and {}'.format(resistance[i],pot_start, pot_end))
+            return_text.append('{}: resistance ={};pot_range between {} and {}'.format(label,resistance[i],pot_start, pot_end))
+            print(return_text[-1])
             current = signal.savgol_filter(cv_info[scans[i]]['current_density'],21,0)
             pot = cv_info[scans[i]]['potential']
             # ax2.plot(pot)
@@ -518,15 +520,17 @@ class cvAnalysis(object):
             #linear regression
             try:
                 slope,intercept,r_value, *others =stats.linregress(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),np.log10(current_fit[indx1:indx2]))
-                print('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
-                print('Tafel slope = {} mV/decade'.format(1/slope*1000))
+                return_text.append('Linear fit results: log(current) = {} E + {}, R2 = {}'.format(slope, intercept, r_value**2))
+                print(return_text[-1])
+                return_text.append('Tafel slope = {} mV/decade'.format(1/slope*1000))
+                print(return_text[-1])
                 # ax.text(min_x,min_y+0.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
                 # ax.text(1.65,0.1,'b = {} mV/decade'.format(int(round(1/slope*1000,0))),color='k')
                 log_current_density.append(potential_for_reaction_order*slope+intercept)
             except:
                 pass
         # ax.legend()
-        return min_x, max_x, min_y, max_y
+        return min_x, max_x, min_y, max_y, return_text
 
     #plot tafel slope for one scan
     def plot_tafel_from_formatted_cv_info_one_scan(self,scan, ax, forward_cycle = True):
@@ -599,8 +603,11 @@ class cvAnalysis(object):
     def plot_tafel_with_reaction_order(self,ax_tafel, ax_order,constant_value = 1,mode = 'constant_current', forward_cycle = True):
         self.plot_reaction_order_with_pH(constant_value = constant_value, ax = ax_order, mode = mode, forward_cycle = forward_cycle)
         self.pH13_count = 1
+        text_log = {}
         for scan in self.info['sequence_id']:
-            self.plot_tafel_from_formatted_cv_info_one_scan_2(scan=scan, ax=ax_tafel, forward_cycle = forward_cycle)
+            *dump, return_text = self.plot_tafel_from_formatted_cv_info_one_scan_2(scan=scan, ax=ax_tafel, forward_cycle = forward_cycle)
+            text_log[scan] = '\n'.join(return_text)
+        return text_log
 
     #plot reaction order with pH
     #two modes: 

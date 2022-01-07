@@ -47,7 +47,7 @@ def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warn
 class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
-        uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer__xrv_new.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_xrv_gui.ui'),self)
         # self.setupUi(self)
         # plt.style.use('ggplot')
         self.cv_tool = cvAnalysis()
@@ -98,6 +98,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update.clicked.connect(self.append_scans_xrv)
         self.pushButton_update_info.clicked.connect(self.make_plot_lib)
         self.pushButton_apply.clicked.connect(self.update_pot_offset)
+        self.pushButton_tweak.clicked.connect(self.tweak_one_channel)
         self.pushButton_load_cv_config.clicked.connect(self.load_cv_config_file)
         self.pushButton_update_cv_config.clicked.connect(self.update_cv_config_file)
         self.pushButton_plot_cv.clicked.connect(self.plot_cv_data)
@@ -123,6 +124,25 @@ class MyMainWindow(QMainWindow):
         self.cv_info = {}
         self.tick_label_settings = {}
         self.plot_tafel = plot_tafel_from_formatted_cv_info
+
+    def _init_meta_data_for_scans(self, scans):
+        for each in scans:
+            setattr(self, f'strain_ip_offset_{each}',0)
+            setattr(self, f'strain_oop_offset_{each}',0)
+            setattr(self, f'grain_size_ip_offset_{each}',0)
+            setattr(self, f'grain_size_oop_offset_{each}',0)
+            setattr(self, f'potential_offset_{each}',0)
+            setattr(self, f'current_offset_{each}',0)
+            setattr(self, f'image_no_offset_{each}',0)
+
+    def tweak_one_channel(self):
+        scan = int(self.comboBox_scans_2.currentText())
+        channel = self.comboBox_tweak_channel.currentText()
+        tweak_value = self.doubleSpinBox_offset.value()
+        if channel == 'image_no':
+            tweak_value = int(tweak_value)
+        setattr(self, f'{channel}_offset_{scan}',tweak_value)
+        self.plot_figure_xrv()
 
     def extract_tick_label_settings(self):
         if hasattr(self,'plainTextEdit_tick_label_settings'):
@@ -168,6 +188,8 @@ class MyMainWindow(QMainWindow):
 
     def update_pot_offset(self):
         self.potential_offset = eval(self.lineEdit_pot_offset.text())/1000
+        self.append_scans_xrv()
+        self.plot_figure_xrv()
 
     def make_plot_lib(self):
         self.plot_lib = {}
@@ -672,6 +694,8 @@ class MyMainWindow(QMainWindow):
         self.scans_all = scans
         self.comboBox_scans.clear()
         self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
+        self.comboBox_scans_2.clear()
+        self.comboBox_scans_2.addItems([str(each) for each in sorted(scans)])
         self.image_range_info = {}
         self.plainTextEdit_img_range.setPlainText("")
         scans.sort()
@@ -979,7 +1003,10 @@ class MyMainWindow(QMainWindow):
             constant_value = self.cv_tool.info['current_reaction_order']
         mode = self.cv_tool.info['reaction_order_mode']
         forward_cycle = True
-        self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle)
+        text_log_tafel = self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle)
+        plainText = '\n'.join([text_log_tafel[each] for each in text_log_tafel])
+        self.plainTextEdit_cv_summary.setPlainText(self.plainTextEdit_cv_summary.toPlainText() + '\n\n' + plainText)
+
         self._format_axis(ax_tafel)
         self._format_axis(ax_order)
         #set item tag e) and f) for tafel and order
@@ -1055,8 +1082,12 @@ class MyMainWindow(QMainWindow):
 
     def plot_cv_data(self):
         self.widget_cv_view.canvas.figure.clear()
-        col_num = 2
-        row_num = len(self.cv_tool.cv_info)
+        if self.checkBox_default.isChecked():
+            col_num = 2
+            row_num = len(self.cv_tool.cv_info)
+        else:
+            col_num = max([2,self.spinBox_cols.value()])
+            row_num = max([len(self.cv_tool.cv_info),self.spinBox_rows.value()])
         if not self.checkBox_use_all.isChecked():
             row_num = len(self.cv_tool.info['selected_scan'])
         gs_left = plt.GridSpec(row_num,col_num,hspace=self.cv_tool.info['hspace'][0],wspace=self.cv_tool.info['wspace'][0])
@@ -1147,10 +1178,29 @@ class MyMainWindow(QMainWindow):
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:2,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[2:,1])]
         self.plot_reaction_order_and_tafel(axs = axs_2)
         '''
-        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
+        tafel_row_lf = [eval(self.lineEdit_row_tafel.text())[0],0][int(self.checkBox_default.isChecked())]
+        tafel_row_rt = [eval(self.lineEdit_row_tafel.text())[1],1][int(self.checkBox_default.isChecked())]
+        tafel_col_lf = [eval(self.lineEdit_col_tafel.text())[0],1][int(self.checkBox_default.isChecked())]
+        tafel_col_rt = [eval(self.lineEdit_col_tafel.text())[1],2][int(self.checkBox_default.isChecked())]
+        # tafel_col = [int(self.lineEdit_col_tafel.text()),1][int(self.checkBox_default.isChecked())]
+
+        order_row_lf = [eval(self.lineEdit_row_rxn_order.text())[0],1][int(self.checkBox_default.isChecked())]
+        order_row_rt = [eval(self.lineEdit_row_rxn_order.text())[1],3][int(self.checkBox_default.isChecked())]
+        order_col_lf = [eval(self.lineEdit_col_rxn_order.text())[0],1][int(self.checkBox_default.isChecked())]
+        order_col_rt = [eval(self.lineEdit_col_rxn_order.text())[1],2][int(self.checkBox_default.isChecked())]
+        # order_col = [int(self.lineEdit_col_rxn_order.text()),1][int(self.checkBox_default.isChecked())]
+
+        charge_row_lf = [eval(self.lineEdit_row_charge.text())[0],3][int(self.checkBox_default.isChecked())]
+        charge_row_rt = [eval(self.lineEdit_row_charge.text())[1],4][int(self.checkBox_default.isChecked())]
+        charge_col_lf = [eval(self.lineEdit_col_charge.text())[0],1][int(self.checkBox_default.isChecked())]
+        charge_col_rt = [eval(self.lineEdit_col_charge.text())[1],2][int(self.checkBox_default.isChecked())]
+        #charge_col = [int(self.lineEdit_col_charge.text()),1][int(self.checkBox_default.isChecked())]
+        # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
+        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[tafel_row_lf:tafel_row_rt,tafel_col_lf:tafel_col_rt]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[order_row_lf:order_row_rt,order_col_lf:order_col_rt])]
         try:
             self.plot_reaction_order_and_tafel(axs = axs_2)
-            ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
+            # ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
+            ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[charge_row_lf:charge_row_rt,charge_col_lf:charge_col_rt])
             bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
             ax_3.set_ylabel(r'q / mCcm$^{-2}$')
             #ax_3.set_title('Comparison of charge')
@@ -1169,6 +1219,7 @@ class MyMainWindow(QMainWindow):
 
     #plot the master figure
     def plot_figure_xrv(self):
+        self.make_plot_lib()
         self.reset_meta_data()
         self.extract_tick_label_settings()
 
@@ -1211,10 +1262,23 @@ class MyMainWindow(QMainWindow):
             self.pot_range = pot_range_
         #count the times of dataset for pH 13
         count_pH13_temp = 1
+        '''
+        y_offset = {24000:{'current':0,\
+                           'strain_ip':self.strain_ip_offset_24000,\
+                           'strain_oop':self.strain_oop_offset_24000,\
+                           'grain_size_ip':self.grain_size_ip_offset_24000,\
+                           'grain_size_oop':self.grain_size_oop_offset_24000},
+                    24001: {'current':0,\
+                            'strain_ip':self.strain_ip_offset_24001,\
+                           'strain_oop':self.strain_oop_offset_24001,\
+                           'grain_size_ip':self.grain_size_ip_offset_24001,\
+                           'grain_size_oop':self.grain_size_oop_offset_24001}
+                    }
+        '''
         for scan in self.scans:
             self.cal_potential_ranges(scan)
             self.data_summary[scan] = {}
-            if 'potential' in self.plot_labels_y and self.plot_label_x == 'potential':
+            if 'potential' in self.plot_labels_y and self.plot_label_x[self.scans.index(scan)] == 'potential':
                 plot_labels_y = [each for each in self.plot_labels_y if each!='potential']
             else:
                 plot_labels_y = self.plot_labels_y
@@ -1226,10 +1290,14 @@ class MyMainWindow(QMainWindow):
                 except:
                     fmt = 'b-'
                 y = self.data_to_plot[scan][plot_labels_y[i]]
+                y_offset = 0
+                if hasattr(self, f'{plot_labels_y[i]}_offset_{scan}'):
+                    y_offset = getattr(self, f'{plot_labels_y[i]}_offset_{scan}')
+                y = np.array([each + y_offset for each in y])
                 # if scan==807 and each=='grain_size_ip':
                     # y = np.array(y) + 1
                 y_smooth_temp = signal.savgol_filter(self.data_to_plot[scan][plot_labels_y[i]],41,2)
-                std_val = np.sum(np.abs(y_smooth_temp - y))/len(self.data_to_plot[scan][self.plot_label_x])
+                std_val = np.sum(np.abs(y_smooth_temp - y))/len(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])
                 marker_index_container = []
                 for ii in range(len(self.pot_range)):
                     #if len(self.pot_range[ii])==1:
@@ -1256,9 +1324,12 @@ class MyMainWindow(QMainWindow):
                     fmt = fmt[int('size' in each)]
                 else:
                     fmt = fmt[0]
-                if self.plot_label_x == 'image_no':
+                if self.plot_label_x[self.scans.index(scan)] == 'image_no':
                     offset_ = 0
+                    if hasattr(self,f'image_no_offset_{scan}'):
+                        offset_ = getattr(self, f'image_no_offset_{scan}')
                     #####temporary setting!###
+                    '''
                     color_map = {749:'mediumblue',746:'blue',744:'royalblue',742:'cornflowerblue'}
                     if scan in color_map:
                         color = color_map[scan]
@@ -1267,48 +1338,62 @@ class MyMainWindow(QMainWindow):
                     offset_point = {742:3,744:2,746:5}
                     if scan in offset_point:
                         offset_ = offset_point[scan]
+                    '''
                     ###########################
                     if each not in ['current']:
-                        marker_custom = ''
-                        if 'strain' in each:
-                            marker_custom ='.'
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y,fmt,color=color,marker = marker_custom,markersize = 3)
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y,fmt,markersize = self.spinBox_marker_size.value())
                         if self.checkBox_merge.isChecked():
                             if scan!=self.scans[0]:
-                                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y,fmt,color=color,marker = marker_custom,markersize = 3)
-                        if self.checkBox_show_smoothed_curve.isChecked():
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y_smooth_temp,'-')
+                                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y,fmt,markersize = self.spinBox_marker_size.value())
+                        if self.checkBox_show_smoothed_curve.isChecked() and ('strain' not in each) and (each!='potential'):#not show smooth line for strain datasets
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y_smooth_temp, fmt, color = 'red', lw=2.5, marker = None, ls='-')
                         if self.checkBox_show_marker.isChecked():
                             getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
+                            for iii in marker_index_container:
+                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii]]*2,[-100,100],':k')
                     else:
                         if self.checkBox_use_external_cv.isChecked():
-                            self.plot_pot_step_current_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,each)
-                            if self.checkBox_merge.isChecked():
-                                if scan!=self.scans[0]:
-                                    self.plot_pot_step_current_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan,each)
-                            if self.checkBox_use_internal_cv.isChecked():
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y*8,fmt,color=color,marker='',ls='-',markersize = 3)
+                            try:
+                                self.plot_pot_step_current_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,each)
                                 if self.checkBox_merge.isChecked():
                                     if scan!=self.scans[0]:
-                                        getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y)),y*8,fmt,color=color,marker='',ls='-',markersize = 3)
+                                        self.plot_pot_step_current_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan,each)
+                                if self.checkBox_use_internal_cv.isChecked():
+                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y*8,fmt,markersize = self.spinBox_marker_size.value())
+                                    if self.checkBox_merge.isChecked():
+                                        if scan!=self.scans[0]:
+                                            getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y)),y*8,fmt,markersize = self.spinBox_marker_size.value())
+                                    if self.checkBox_show_marker.isChecked():
+                                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([np.arange(len(y))[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
+                            except:
+                                print('someting is wrong with external cv file, use internal cv data instead!')
+                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y*8,fmt,marker = None,markersize = self.spinBox_marker_size.value())
+                                if self.checkBox_merge.isChecked():
+                                    if scan!=self.scans[0]:
+                                        getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y*8,fmt,markersize = self.spinBox_marker_size.value())
                                 if self.checkBox_show_marker.isChecked():
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([np.arange(len(y))[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
+                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                         else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y*8,fmt,color=color,marker='',ls='-',markersize = 3)
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y*8,fmt,marker = None,markersize = self.spinBox_marker_size.value())
                             if self.checkBox_merge.isChecked():
                                 if scan!=self.scans[0]:
-                                    getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y*8,fmt,color=color,marker='',ls='-',markersize = 3)
+                                    getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y*8,fmt,markersize = self.spinBox_marker_size.value())
                             if self.checkBox_show_marker.isChecked():
                                 getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
+                                for iii in marker_index_container:
+                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii]]*2,[-100,100],':k')
                 else:
                     if self.checkBox_use_external_slope.isChecked():
                         seperators = self.return_seperator_values(scan)
                     else:
                         seperators = list(set(marker_index_container))
                     if each!='current':
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y,fmt,markersize = 2)
+                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y,fmt,markersize = self.spinBox_marker_size.value())
+                        if self.checkBox_merge.isChecked():
+                            if scan!=self.scans[0]:
+                                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y,fmt,markersize = self.spinBox_marker_size.value())
                         if self.checkBox_show_smoothed_curve.isChecked():
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y_smooth_temp,'-')
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_smooth_temp,'-')
                         if self.checkBox_plot_slope.isChecked() and self.checkBox_use_external_slope.isChecked():
                             if slope_info_temp[scan][each]!=None:
                                 p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
@@ -1344,28 +1429,34 @@ class MyMainWindow(QMainWindow):
                                 pass
                         else:
                             if self.checkBox_show_marker.isChecked():
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
+                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
                                 for each_index in seperators:
-                                    pot = self.data_to_plot[scan][self.plot_label_x][each_index]
+                                    pot = self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]
                                     getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                     else:
                         if self.checkBox_use_external_cv.isChecked():
                             if self.checkBox_use_external_slope.isChecked():
                                 lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
+                                if self.checkBox_merge.isChecked():
+                                    if scan!=self.scans[0]:
+                                        _ = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan,seperators[scan][each])
                             else:
                                 pots_ = []
                                 for each_index in seperators:
-                                    pots_.append([self.data_to_plot[scan][self.plot_label_x][each_index]])
+                                    pots_.append([self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]])
                                 lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,pots_)
+                                if self.checkBox_merge.isChecked():
+                                    if scan!=self.scans[0]:
+                                        _ = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan, pots_)
                             if self.checkBox_use_internal_cv.isChecked(): 
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
+                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y*8,fmt,markersize = self.spinBox_marker_size.value())
                         else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x],y*8,fmt,markersize = 3)
+                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y*8,fmt,markersize = self.spinBox_marker_size.value())
                             #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
                             if not self.checkBox_use_external_slope.isChecked():
                                 if self.checkBox_show_marker.isChecked():
                                     for each_index in seperators:
-                                        pot = self.data_to_plot[scan][self.plot_label_x][each_index]
+                                        pot = self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]
                                         getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
                             else:
                                 for each_item in seperators[scan][each]:
@@ -1380,7 +1471,7 @@ class MyMainWindow(QMainWindow):
                         temp_max, temp_min = max(list(self.data_to_plot[scan][plot_labels_y[i]]*8)),min(list(self.data_to_plot[scan][plot_labels_y[i]]*8))
                 else:
                     temp_max, temp_min = max(list(self.data_to_plot[scan][plot_labels_y[i]])),min(list(self.data_to_plot[scan][plot_labels_y[i]]))
-                temp_max_x, temp_min_x = max(list(self.data_to_plot[scan][self.plot_label_x])), min(list(self.data_to_plot[scan][self.plot_label_x]))
+                temp_max_x, temp_min_x = max(list(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])), min(list(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]]))
                 if temp_max_x > x_max_value:
                     x_max_value = temp_max_x
                 if temp_min_x < x_min_value:
@@ -1394,7 +1485,7 @@ class MyMainWindow(QMainWindow):
                     ax.set_xticklabels([])
                 else:
                     ax = getattr(self,'plot_axis_scan{}'.format(scan))[i]
-                    x_label = [r'Time (s)','E / V$_{RHE}$'][self.plot_label_x=='potential']
+                    x_label = [r'Time (s)','E / V$_{RHE}$'][self.plot_label_x[self.scans.index(scan)]=='potential']
                     ax.set_xlabel(x_label, fontsize = 13)
                 if scan!=self.scans[0]:
                     getattr(self,'plot_axis_scan{}'.format(scan))[i].set_yticklabels([])
@@ -1447,21 +1538,20 @@ class MyMainWindow(QMainWindow):
                     try:
                         _,_,_,_,_,color, _, _ = self.plot_lib[scan]
                     except:
-                        color = 'b'
+                        color = self.comboBox_color.currentText()
                     text = r'pH {}'.format(self.phs[self.scans.index(scan)])
                     tag = ''
-                    '''
-                    if scan == 732:
-                        tag = r' $(Co_3O_4)$'
-                    elif scan == 807:
-                        tag = r' (CoOOH)'
-                    '''
-                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*1.2,text+tag,color = color,fontsize=11)
-                    if self.phs[self.scans.index(scan)]==13:
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp),color = color,fontsize=11)
-                        count_pH13_temp+=1
+                    if self.radioButton_pH.isChecked():
+                        if self.phs[self.scans.index(scan)]==13:
+                            text = r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp)
+                            count_pH13_temp += 1
+                        else:
+                            text = r'pH {}'.format(self.phs[self.scans.index(scan)])
+                    elif self.radioButton_scan.isChecked():
+                        text = f'scan{scan}'
                     else:
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,r'pH {}'.format(self.phs[self.scans.index(scan)]),color = color,fontsize=11)
+                        text = ''
+                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,text,color = color,fontsize=11)
                 if 'current' not in self.plot_labels_y:
                     pass
                 else:
@@ -1472,7 +1562,7 @@ class MyMainWindow(QMainWindow):
                     else:
                         pass
                 ####The following lines are customized for a specific dataset, it is subject to change depending on the dataset you are using
-                if self.plot_label_x == 'potential':
+                if self.plot_label_x[self.scans.index(scan)] == 'potential':
                     if 'master' in self.tick_label_settings:
                         if 'potential' in self.tick_label_settings['master']:
                             if self.checkBox_use.isChecked():
@@ -1531,6 +1621,9 @@ class MyMainWindow(QMainWindow):
     def _format_ax_tick_labels(self,ax,fun_set_bounds = 'set_ylim', bounds = [0,1], bound_padding = 0, major_tick_location = [], show_major_tick_label = True, num_of_minor_tick_marks=5, fmt_str = '{: 4.2f}'):
         mapping = {'set_ylim':'yaxis','set_xlim':'xaxis'}
         which_axis = mapping[fun_set_bounds]
+        #redefine the bounds using major tick locations
+        major_tick_values = [float(each) for each in major_tick_location]
+        bounds = [min(major_tick_values), max(major_tick_values)]
         bounds_after_add_padding = bounds[0]-bound_padding, bounds[1]+bound_padding
         major_tick_labels = []
         for each in major_tick_location:
@@ -1610,6 +1703,8 @@ class MyMainWindow(QMainWindow):
                 if each in ['peak_intensity','peak_intensity_error','strain_ip','strain_oop','grain_size_ip','grain_size_oop']:
                     temp_data = np.array(self.data[condition][each])[l:r]
                     y_smooth_temp = signal.savgol_filter(temp_data,41,2)
+                    # if scan_number==24000:
+                        # y_smooth_temp = temp_data
                     # self.data_to_plot[scan_number][each] = list(temp_data-max(temp_data))
                     #if time_scan, then target_pots are actually image_no
                     target_pots = [float(each) for each in self.lineEdit_reference_potential.text().rstrip().rsplit(',')]
@@ -1641,16 +1736,26 @@ class MyMainWindow(QMainWindow):
             self.prepare_data_to_plot_xrv(plot_labels,scan)
             print('Prepare data for scan {} now!'.format(scan))
         self.scans = scans
+        self._init_meta_data_for_scans(scans)
         self.phs = [self.phs_all[self.scans_all.index(each)] for each in scans]
-        self.plot_label_x = self.lineEdit_x.text()
+
+        #self.plot_label_x = self.lineEdit_x.text()
+        self.plot_label_x = self.lineEdit_x.text().rstrip().rsplit(',')
+        if len(self.plot_label_x)==1:
+            self.plot_label_x = self.plot_label_x*len(scans)
+        else:
+            if len(self.plot_label_x)<len(scans):
+                self.plot_label_x = self.plot_label_x + [self.plot_label_x[-1]]*(len(scans) - len(self.plot_label_x))
         self.plot_labels_y = self.lineEdit_y.text().rstrip().rsplit(',')
         self.comboBox_scans.clear()
         self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
+        self.comboBox_scans_2.clear()
+        self.comboBox_scans_2.addItems([str(each) for each in sorted(scans)])
 
 if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
-    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())

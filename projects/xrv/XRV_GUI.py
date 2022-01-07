@@ -571,13 +571,14 @@ class MyMainWindow(QMainWindow):
                 cut_values_hoz=[self.app_ctr.peak_fitting_instance.peak_center[0]-self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1],self.app_ctr.peak_fitting_instance.peak_center[0]+self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1]]
                 cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center[1]-self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1],self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1]]
                 self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
+                # cut_values_hoz, cut_values_ver = cut_values_ver, cut_values_hoz
                 self.region_cut_hor.setRegion(cut_values_hoz)
                 self.region_cut_ver.setRegion(cut_values_ver)
                 # tp.add_timer('place 3')
 
                 #set roi
                 size_of_roi = self.roi.size()
-                self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
+                # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
                 # tp.add_timer('place 4')
                 # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
                 #self.p1.plot([0,400],[200,200])
@@ -635,3 +636,4 @@ if __name__ == "__main__":
     app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())
+    
