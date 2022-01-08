@@ -3,6 +3,7 @@ from PyQt5.QtWidgets import QApplication, QMainWindow, QFileDialog, QMessageBox
 from matplotlib.backends.backend_qt5agg import FigureCanvas
 from matplotlib.figure import Figure
 from PyQt5 import uic
+import PyQt5
 import random
 import numpy as np
 import matplotlib.pyplot as plt
@@ -16,6 +17,7 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
+from UtilityFunctions import PandasModel
 from cv_tool import cvAnalysis
 from charge_calculation import calculate_charge
 from PlotSetup import data_viewer_plot_cv, RHE, plot_tafel_from_formatted_cv_info
@@ -124,6 +126,23 @@ class MyMainWindow(QMainWindow):
         self.cv_info = {}
         self.tick_label_settings = {}
         self.plot_tafel = plot_tafel_from_formatted_cv_info
+        self.init_pandas_model_ax_format()
+        self.init_pandas_model_cv_setting()
+
+    def init_pandas_model_ax_format(self):
+        data_ = {}
+        data_['use'] = [True]*6
+        data_['type'] = ['master']*6
+        data_['channel'] = ['potential','current','strain_ip','strain_oop','grain_size_ip','grain_size_oop']
+        data_['tick_locs'] = ['[0,1,2,3]']*6
+        data_['padding'] = ['0.1']*6
+        data_['#minor_tick'] = ['4']*6
+        data_['fmt_str'] = ["{: 4.2f}"]*6
+        data_['func'] = ['set_xlim'] + ['set_ylim']*5
+        self.pandas_model_in_ax_format = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_ax_format, main_gui = self, check_columns = [0])
+        self.tableView_ax_format.setModel(self.pandas_model_in_ax_format)
+        self.tableView_ax_format.resizeColumnsToContents()
+        self.tableView_ax_format.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
 
     def _init_meta_data_for_scans(self, scans):
         for each in scans:
@@ -160,8 +179,17 @@ class MyMainWindow(QMainWindow):
                     else:
                         self.tick_label_settings[key] = {}
                         self.tick_label_settings[key][item] = {'locator':locator,'padding':float(padding),'tick_num':int(tick_num),'fmt':fmt,'func':func}
-        else:
-            pass
+        elif hasattr(self, 'tableView_ax_format'):
+            cols = self.pandas_model_in_ax_format._data.shape[0]
+            for i in range(cols):
+                if self.pandas_model_in_ax_format._data.iloc[0,0]:
+                    key,item,locator,padding,tick_num,fmt,func = self.pandas_model_in_ax_format._data.iloc[0,1:].tolist()
+                    locator = eval(locator)
+                    if key in self.tick_label_settings:
+                        self.tick_label_settings[key][item] = {'locator':locator,'padding':float(padding),'tick_num':int(tick_num),'fmt':fmt,'func':func}
+                    else:
+                        self.tick_label_settings[key] = {}
+                        self.tick_label_settings[key][item] = {'locator':locator,'padding':float(padding),'tick_num':int(tick_num),'fmt':fmt,'func':func}
 
     def calculate_charge_2(self):
         output = self.cv_tool.calc_charge_all()
@@ -191,18 +219,69 @@ class MyMainWindow(QMainWindow):
         self.append_scans_xrv()
         self.plot_figure_xrv()
 
+    def init_pandas_model_cv_setting(self):
+        data_ = {}
+        rows = self.spinBox_cv_rows.value()
+        data_['use'] = [True] * rows
+        data_['scan'] = [''] * rows
+        data_['cv_name'] = [''] * rows
+        data_['cycle'] = ['0'] * rows
+        data_['scaling'] = ['30'] * rows
+        data_['smooth_len'] = ['15'] * rows
+        data_['smooth_order'] = ['1'] * rows
+        data_['color'] = ['r'] * rows
+        data_['pH'] = ['13'] * rows
+        data_['extract_func'] = ['extract_cv_file_fouad'] * rows
+        self.pandas_model_cv_setting = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_cv_setting, main_gui = self, check_columns = [0])
+        self.tableView_cv_setting.setModel(self.pandas_model_cv_setting)
+        self.tableView_cv_setting.resizeColumnsToContents()
+        self.tableView_cv_setting.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+
+    def update_pandas_model_cv_setting(self, reset = False, data = {}):
+        if not reset:
+            rows = self.spinBox_cv_rows.value() - self.pandas_model_cv_setting._data.shape[0]
+            data_ = self.pandas_model_cv_setting._data.to_dict()
+            data_new = {} 
+            if rows<=0:
+                return
+            else:
+                for each in data_:
+                    data_new[each] = [data_[each][self.pandas_model_cv_setting._data.shape[0]-1]]*rows
+                self.pandas_model_cv_setting._data = pd.concat([self.pandas_model_cv_setting._data,pd.DataFrame(data_new, index = np.arange(self.pandas_model_cv_setting._data.shape[0],self.pandas_model_cv_setting._data.shape[0]+rows))])
+                self.pandas_model_cv_setting = PandasModel(data = self.pandas_model_cv_setting._data, tableviewer = self.tableView_cv_setting, main_gui = self, check_columns = [0])
+                self.tableView_cv_setting.setModel(self.pandas_model_cv_setting)
+                self.tableView_cv_setting.resizeColumnsToContents()
+                self.tableView_cv_setting.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+        else:
+            self.pandas_model_cv_setting._data = pd.DataFrame(data)
+            self.pandas_model_cv_setting = PandasModel(data = self.pandas_model_cv_setting._data, tableviewer = self.tableView_cv_setting, main_gui = self, check_columns = [0])
+            self.tableView_cv_setting.setModel(self.pandas_model_cv_setting)
+            self.tableView_cv_setting.resizeColumnsToContents()
+            self.tableView_cv_setting.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
+
     def make_plot_lib(self):
         self.plot_lib = {}
-        info = self.textEdit_plot_lib.toPlainText().rsplit('\n')
-        folder = self.lineEdit_cv_folder.text()
-        if info==[''] or folder=='':
-            return
-        for each in info:
-            if not each.startswith('#'):
-                # scan, cv, cycle, cutoff,scale,color, ph, func = each.replace(" ","").rstrip().rsplit(',')
-                scan, cv, cycle, scale, length, order, color, ph, func = each.replace(" ","").rstrip().rsplit(',')
-                cv_name = os.path.join(folder,cv)
-                self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
+        if hasattr(self, 'textEdit_plot_lib'):
+            info = self.textEdit_plot_lib.toPlainText().rsplit('\n')
+            folder = self.lineEdit_cv_folder.text()
+            if info==[''] or folder=='':
+                return
+            for each in info:
+                if not each.startswith('#'):
+                    # scan, cv, cycle, cutoff,scale,color, ph, func = each.replace(" ","").rstrip().rsplit(',')
+                    scan, cv, cycle, scale, length, order, color, ph, func = each.replace(" ","").rstrip().rsplit(',')
+                    cv_name = os.path.join(folder,cv)
+                    self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
+        if hasattr(self,'tableView_cv_setting'):
+            folder = self.lineEdit_cv_folder.text()
+            if folder=='':
+                return
+            for each in range(self.pandas_model_cv_setting._data.shape[0]):
+                if self.pandas_model_cv_setting._data.iloc[each,0]:
+                    scan, cv, cycle, scale, length, order, color, ph, func = self.pandas_model_cv_setting._data.iloc[each,1:].to_list()
+                    cv_name = os.path.join(folder,cv)
+                    self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
+
 
     #data format based on the output of IVIUM potentiostat
     def extract_ids_file(self,file_path,which_cycle=3):
@@ -631,6 +710,11 @@ class MyMainWindow(QMainWindow):
                                     self.image_range_info[int(a)] = eval(b)
                         elif channel == 'plainTextEdit_tick_label_settings':
                             getattr(self,channel).setPlainText(value.replace(";","\n"))
+                        elif channel == 'tableView_ax_format':
+                            self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
+                        elif channel == 'tableView_cv_setting':
+                            self.update_pandas_model_cv_setting(reset = True, data = eval(value))
+
         self._load_file()
         self.append_scans_xrv()
         self.update_pot_offset()
@@ -655,7 +739,11 @@ class MyMainWindow(QMainWindow):
             f.write("textEdit_plot_lib:"+self.textEdit_plot_lib.toPlainText().replace("\n",";")+'\n')
             if hasattr(self,'plainTextEdit_tick_label_settings'):
                 f.write("plainTextEdit_tick_label_settings:"+self.plainTextEdit_tick_label_settings.toPlainText().replace("\n",";")+'\n')
-            
+            if hasattr(self, 'tableView_ax_format'):
+                f.write("tableView_ax_format:"+str(self.pandas_model_in_ax_format._data.to_dict())+'\n')
+            if hasattr(self,'tableView_cv_setting'):
+                f.write("tableView_cv_setting:"+str(self.pandas_model_cv_setting._data.to_dict())+'\n')
+
     def set_plot_channels(self):
         time_scan = self.checkBox_time_scan.isChecked()
         if time_scan:
@@ -1756,6 +1844,6 @@ if __name__ == "__main__":
     QApplication.setStyle("windows")
     app = QApplication(sys.argv)
     myWin = MyMainWindow()
-    # app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
+    app.setStyleSheet(qdarkstyle.load_stylesheet_pyqt5())
     myWin.show()
     sys.exit(app.exec_())
