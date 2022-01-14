@@ -21,15 +21,18 @@ sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
 #from UtilityFunctions import extract_vars_from_config
 
-def extract_vars_from_config(config_file, section_var):
+def extract_vars_from_config(config_file, section_var = None):
     config = configparser.ConfigParser()
     config.read(config_file)
+    if section_var == None:
+        section_var = config.sections()
     kwarg = {}
-    for each in config.items(section_var):
-        try:
-            kwarg[each[0]] = eval(each[1])
-        except:
-            kwarg[each[0]] = each[1]
+    for item in section_var:
+        for each in config.items((item)):
+            try:
+                kwarg[each[0]] = eval(each[1])
+            except:
+                kwarg[each[0]] = each[1]
     return kwarg
 
 def RHE(E_AgAgCl, pH=13):
@@ -49,7 +52,7 @@ class cvAnalysis(object):
         else:
             self.info = info_lib
 
-    def _extract_parameter_from_config(self,config_file, sections = ['Global']):
+    def _extract_parameter_from_config(self,config_file, sections = [None]):
         #in Global section you should have the following items (all in list type)
         #ph = [], color =, fmt = , path = , method =, pot_range = , sequence_id =, cv_scale_factor =, cv_spike_cut=, cv_scan_rate=
         self.info = {}

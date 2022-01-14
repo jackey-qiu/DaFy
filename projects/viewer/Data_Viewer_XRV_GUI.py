@@ -99,6 +99,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_update.clicked.connect(self.update_plot_range)
         self.pushButton_update.clicked.connect(self.append_scans_xrv)
         self.pushButton_update_info.clicked.connect(self.make_plot_lib)
+        self.pushButton_append_rows.clicked.connect(lambda:self.update_pandas_model_cv_setting())
         self.pushButton_apply.clicked.connect(self.update_pot_offset)
         self.pushButton_tweak.clicked.connect(self.tweak_one_channel)
         self.pushButton_load_cv_config.clicked.connect(self.load_cv_config_file)
@@ -182,8 +183,8 @@ class MyMainWindow(QMainWindow):
         elif hasattr(self, 'tableView_ax_format'):
             cols = self.pandas_model_in_ax_format._data.shape[0]
             for i in range(cols):
-                if self.pandas_model_in_ax_format._data.iloc[0,0]:
-                    key,item,locator,padding,tick_num,fmt,func = self.pandas_model_in_ax_format._data.iloc[0,1:].tolist()
+                if self.pandas_model_in_ax_format._data.iloc[i,0]:
+                    key,item,locator,padding,tick_num,fmt,func = self.pandas_model_in_ax_format._data.iloc[i,1:].tolist()
                     locator = eval(locator)
                     if key in self.tick_label_settings:
                         self.tick_label_settings[key][item] = {'locator':locator,'padding':float(padding),'tick_num':int(tick_num),'fmt':fmt,'func':func}
@@ -222,7 +223,7 @@ class MyMainWindow(QMainWindow):
     def init_pandas_model_cv_setting(self):
         data_ = {}
         rows = self.spinBox_cv_rows.value()
-        data_['use'] = [True] * rows
+        data_['use'] = [False] * rows
         data_['scan'] = [''] * rows
         data_['cv_name'] = [''] * rows
         data_['cycle'] = ['0'] * rows
@@ -659,15 +660,19 @@ class MyMainWindow(QMainWindow):
         fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","CV config Files (*.ini);;All Files (*.txt)", options=options)
         if fileName:
             self.lineEdit_cv_config_path.setText(fileName)
+            self.widget_par_tree.update_parameter(fileName)
+            '''
             with open(fileName,'r') as f:
                 lines = f.readlines()
                 self.plainTextEdit_cv_config.setPlainText(''.join(lines))
+            '''
 
     #update the config file after edition in the plainText block
     def update_cv_config_file(self):
-        with open(self.lineEdit_cv_config_path.text(),'w') as f:
-            f.write(self.plainTextEdit_cv_config.toPlainText())
-        missed_items = self.cv_tool._extract_parameter_from_config(self.lineEdit_cv_config_path.text(), sections = ['Global'])
+        # with open(self.lineEdit_cv_config_path.text(),'w') as f:
+            # f.write(self.plainTextEdit_cv_config.toPlainText())
+        self.widget_par_tree.save_parameter(self.lineEdit_cv_config_path.text())
+        missed_items = self.cv_tool._extract_parameter_from_config(self.lineEdit_cv_config_path.text())
         if len(missed_items)==0:
             self.cv_tool.extract_cv_info()
             error_pop_up('The config file is overwritten!','Information')
@@ -736,7 +741,8 @@ class MyMainWindow(QMainWindow):
                 except:
                     f.write(channel+':'+getattr(self,channel).text()+'\n')
             f.write("plainTextEdit_img_range:"+self.plainTextEdit_img_range.toPlainText().replace("\n",";")+'\n')
-            f.write("textEdit_plot_lib:"+self.textEdit_plot_lib.toPlainText().replace("\n",";")+'\n')
+            
+            #f.write("textEdit_plot_lib:"+self.textEdit_plot_lib.toPlainText().replace("\n",";")+'\n')
             if hasattr(self,'plainTextEdit_tick_label_settings'):
                 f.write("plainTextEdit_tick_label_settings:"+self.plainTextEdit_tick_label_settings.toPlainText().replace("\n",";")+'\n')
             if hasattr(self, 'tableView_ax_format'):
@@ -947,9 +953,9 @@ class MyMainWindow(QMainWindow):
             for each_pot in self.pot_range:
                 #if pot_range = [1,1] for eg, the bar value is actually the associated absolute value at pot = 1
                 #if pot_range = [1,1.5] for eg, the bar value is the value difference between 1 and 1.5 V
-                #use_absolute_value = each_pot[0] == each_pot[1]
+                use_absolute_value = each_pot[0] == each_pot[1]
                 #force using the absolute value
-                use_absolute_value = True
+                # use_absolute_value = True
                 for each in lim_y_temp.keys():
                     for each_scan in self.scans:
                         if use_absolute_value:
@@ -967,7 +973,7 @@ class MyMainWindow(QMainWindow):
             for each_pot in self.pot_range:
                 output_data = []
                 #use_absolute_value = each_pot[0] == each_pot[1]
-                use_absolute_value = True
+                # use_absolute_value = True
                 for each in plot_y_labels:
                     plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2],self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
@@ -1065,6 +1071,7 @@ class MyMainWindow(QMainWindow):
             self.pot_ranges[scan] = [f(each) for each in self.pot_range]
         else:
             _,p1,*_ = slope_info_temp[scan]["strain_ip"]#p1 y1 is the cross point, thus should be the same for all structural pars
+            #NOTE: this could be buggy, the text inside the lineEdit has to be like this "1.2,1.5"
             pot_range_specified = eval("({})".format(self.lineEdit_pot_range.text().rstrip()))
             if p1>pot_range_specified[1]:
                 p1 = sum(pot_range_specified)/2
@@ -1072,8 +1079,6 @@ class MyMainWindow(QMainWindow):
             pot_range2 = (p1, pot_range_specified[1])
             pot_range3 = pot_range_specified
             self.pot_ranges[scan] = [f(pot_range1),f(pot_range2),f(pot_range3)]
-        # print('now update potential range')
-        # print(self.pot_ranges)
 
     def plot_reaction_order_and_tafel(self,axs = []):
         if len(axs)== 0:
@@ -1305,29 +1310,17 @@ class MyMainWindow(QMainWindow):
         self.widget_cv_view.canvas.figure.set_size_inches(self.cv_tool.info['figsize'])
         self.widget_cv_view.canvas.draw()
 
-    #plot the master figure
-    def plot_figure_xrv(self):
-        self.make_plot_lib()
-        self.reset_meta_data()
-        self.extract_tick_label_settings()
-
-        if self.checkBox_use_external_slope.isChecked():
-            slope_info_temp = self.return_slope_values()
-        else:
-            slope_info_temp = None
-
+    def _setup_matplotlib_fig(self,plot_dim):
         self.mplwidget.fig.clear()
-        plot_dim = [len(self.plot_labels_y), len(self.scans)]
+        # #[rows, columns]
         for scan in self.scans:
             setattr(self,'plot_axis_scan{}'.format(scan),[])
             j = self.scans.index(scan) + 1
             for i in range(plot_dim[0]):
                 getattr(self,'plot_axis_scan{}'.format(scan)).append(self.mplwidget.canvas.figure.add_subplot(plot_dim[0], plot_dim[1],j+plot_dim[1]*i))
                 self._format_axis(getattr(self,'plot_axis_scan{}'.format(scan))[-1])
-        y_max_values,y_min_values = [-100000000]*len(self.plot_labels_y),[100000000]*len(self.plot_labels_y)
-        x_min_value, x_max_value = [1000000000,-10000000000]
 
-        #prepare ranges for viewing datasummary
+    def _prepare_data_range_and_pot_range(self):
         data_range = self.lineEdit_data_range.text().rsplit(',')
         if len(data_range) == 1:
             data_range = [list(map(int,data_range[0].rsplit('-')))]*len(self.scans)
@@ -1336,6 +1329,8 @@ class MyMainWindow(QMainWindow):
             data_range = [list(map(int,each.rsplit('-'))) for each in data_range]
         self.data_range = data_range
 
+        # pot_range is a partial set from the specified data_ranges
+        # which this, it is more intuitive to pick the data points for variantion calculation (bar chart)
         pot_range = self.lineEdit_potential_range.text().rsplit(',')
         if pot_range == ['']:
             self.pot_range = []
@@ -1348,337 +1343,365 @@ class MyMainWindow(QMainWindow):
                 elif len(each)==2:
                     pot_range_.append(each)
             self.pot_range = pot_range_
-        #count the times of dataset for pH 13
-        count_pH13_temp = 1
-        '''
-        y_offset = {24000:{'current':0,\
-                           'strain_ip':self.strain_ip_offset_24000,\
-                           'strain_oop':self.strain_oop_offset_24000,\
-                           'grain_size_ip':self.grain_size_ip_offset_24000,\
-                           'grain_size_oop':self.grain_size_oop_offset_24000},
-                    24001: {'current':0,\
-                            'strain_ip':self.strain_ip_offset_24001,\
-                           'strain_oop':self.strain_oop_offset_24001,\
-                           'grain_size_ip':self.grain_size_ip_offset_24001,\
-                           'grain_size_oop':self.grain_size_oop_offset_24001}
-                    }
-        '''
+
+    def _cal_structural_change_rate(self,scan, channel,y_values, std_val, data_range, pot_range, marker_index_container):
+        assert 'potential' in list(self.data_to_plot[scan].keys())
+        index_left = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[0])) + data_range[0]
+        index_right = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[1])) + data_range[0]
+        marker_index_container.append(index_left)
+        marker_index_container.append(index_right)
+        pot_offset = abs(self.data_to_plot[scan]['potential'][index_left]-self.data_to_plot[scan]['potential'][index_right])
+        if pot_offset==0:
+            self.data_summary[scan][channel].append((y_values[index_left]))
+            self.data_summary[scan][channel].append(std_val)
+        else:#calculate the slope here
+            self.data_summary[scan][channel].append((y_values[index_left] - y_values[index_right])/pot_offset)
+            self.data_summary[scan][channel].append(std_val/pot_offset)
+        return marker_index_container
+
+    def _plot_one_panel_x_is_potential(self, scan, channel, channel_index, y_values, y_values_smooth, fmt, marker_index_container, slope_info):
+        if self.checkBox_use_external_slope.isChecked():
+            seperators = self.return_seperator_values(scan)
+        else:
+            seperators = list(set(marker_index_container))
+        if channel!='current':
+            #plot the channel values now
+            getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values,fmt,markersize = self.spinBox_marker_size.value())
+            if self.checkBox_merge.isChecked():
+                if scan!=self.scans[0]:
+                    getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values,fmt,markersize = self.spinBox_marker_size.value())
+            if self.checkBox_show_smoothed_curve.isChecked():
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values_smooth,'-')
+            #plot the slope line segments
+            cases = self._plot_slope_segment(scan = scan, channel = channel, channel_index = channel_index, y_values_smooth = y_values_smooth, 
+                                        slope_info = slope_info, seperators = seperators,  marker_index_container = marker_index_container)
+            #store the calculated strain/size change
+            if 'ip' in channel and len(cases)!=0:
+                if 'grain' in channel:
+                    self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_ranges[scan],'horizontal',cases)
+                elif 'strain' in channel:
+                    self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_ranges[scan],'horizontal',cases)
+            elif 'oop' in channel and len(cases)!=0:
+                if 'grain' in channel:
+                    self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_ranges[scan],'vertical',cases)
+                elif 'strain' in channel:
+                    self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_ranges[scan],'vertical',cases)
+        #now plot current channel
+        else:
+            #extract seperators for displaying vertical line segments
+            _seperators = []
+            if self.checkBox_use_external_slope.isChecked():
+                _seperators = seperators[scan][channel] 
+            else:
+                _seperators = [[self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]] for each_index in seperators]
+            if self.checkBox_use_external_cv.isChecked():
+                #plot cv profile from external files
+                lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[channel_index],scan,_seperators)
+                if self.checkBox_merge.isChecked() and scan!=self.scans[0]:
+                    self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[channel_index],scan,_seperators)
+                #overplot the internal cv data if you want
+                #here y is already scaled by 8 considerring the current density to be shown
+                if self.checkBox_use_internal_cv.isChecked(): 
+                    getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values,fmt, ls = '-', marker = None)
+            else:
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values,fmt,ls = '-', marker = None)
+                #show marker and vert line segments
+                for each_seperator in _seperators:
+                    getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(each_seperator,[-100,100],'k:')
+
+    def _plot_one_panel(self, scan, channel, channel_index, y_values, y_values_smooth, x_values, fmt, marker_index_container):
+        current_channel = channel == 'current'
+        if current_channel:
+            getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(x_values,y_values,fmt, lw=2.5, marker = None, ls='-')
+            if self.checkBox_merge.isChecked() and scan!=self.scans[0]: 
+                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[channel_index].plot(x_values,y_values,fmt, lw=2.5, marker = None, ls='-')
+        else:
+            getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(x_values,y_values,fmt,markersize = self.spinBox_marker_size.value())
+            if self.checkBox_merge.isChecked() and scan!=self.scans[0]: 
+                #if merged than plot the profile also at column 0 corresponding to self.scans[0]
+                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[channel_index].plot(x_values,y_values,fmt,markersize = self.spinBox_marker_size.value())
+            if self.checkBox_show_smoothed_curve.isChecked() and ('strain' not in channel) and (channel!='potential'):#not show smooth line for grain size channels
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(x_values,y_values_smooth, fmt, color = 'red', lw=2.5, marker = None, ls='-')
+            if self.checkBox_show_marker.isChecked():#also display the bounds for specified pot_ranges
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([x_values[iii] for iii in marker_index_container],[y_values_smooth[iii] for iii in marker_index_container],'k*')
+                for iii in marker_index_container:
+                    getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([x_values[iii]]*2,[-100,100],':k')
+
+    def _plot_slope_segment(self, scan, channel, channel_index, y_values_smooth, slope_info, seperators, marker_index_container):
+        if self.checkBox_plot_slope.isChecked() and self.checkBox_use_external_slope.isChecked():
+            cases = []
+            if slope_info[scan][channel]!=None:
+                #one known point coords (the cross point): (p1, y1)
+                #slopes are: a1 and a2
+                #the other two points coords are: (p0,y0) and (p2, y2)
+                p0,p1,p2,y1,a1,a2 = slope_info[scan][channel]
+                y0 = a1*(p0-p1)+y1
+                y2 = a2*(p2-p1)+y1
+                cases = [self.calculate_size_strain_change(p0,p1,p2,y1,a1,a2,pot_range = each_pot) for each_pot in self.pot_ranges[scan]]
+                #slope line segments
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][channel+"_max"],'k--')
+                #vertical line segments
+                for pot in seperators[scan][channel]:
+                    getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([pot,pot],[-100,100],'k:')
+        else:
+            cases = [self.calculate_size_strain_change_from_plot_data(scan, channel, self.data_range[self.scans.index(scan)], each_pot) for each_pot in self.pot_range]
+            #vertical line segments only
+            if self.checkBox_show_marker.isChecked():
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][iii] for iii in marker_index_container],[y_values_smooth[iii] for iii in marker_index_container],'k*')
+                for each_index in seperators:
+                    pot = self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]
+                    getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([pot,pot],[-100,100],'k:')
+        return cases
+
+    def _extract_y_values(self, scan, channel):
+        y = self.data_to_plot[scan][channel]
+        if channel == 'current':#current --> current density
+            y = y*8
+        #apply offset, very useful if you want to slightly tweak the channel values for setting a common 0 reference point
+        #the offset can be specified from GUI
+        y_offset = 0
+        if hasattr(self, f'{channel}_offset_{scan}'):
+            y_offset = getattr(self, f'{channel}_offset_{scan}')
+        #apply the offset to y channel
+        y = np.array([each + y_offset for each in y])
+        y_smooth_temp = signal.savgol_filter(y,41,2)
+        #std is calculated this way for estimation of error bar values
+        std_val = np.sum(np.abs(y_smooth_temp - y))/len(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])
+        return y, y_smooth_temp, std_val
+
+    def _get_fmt_style(self, scan, channel):
+        #fmt here is a list of one or two format strings (eg. -b;-r,-b;-r will destructure to ['-b','-r'] and ['-b', '-r'])
+        #you may want to show lines only for strain channels, but only show symbols for grain size channels due to the large error bar
+        #if two items: second one is for grain size channels, first is for the other channels
+        #if only one item: all channel share the same fmt style
+        try:
+            fmt = self.lineEdit_fmt.text().rsplit(',')[self.scans.index(scan)].rsplit(";")
+        except:
+            fmt = ['b-']
+        #extract the fmt tag
+        if len(fmt)==2:
+            fmt = fmt[int('size' in channel)]
+        else:
+            fmt = fmt[0]
+        return fmt
+
+    def _update_bounds_xy(self, scan, y_values, channel_index, x_min_value, x_max_value, y_min_values, y_max_values):
+        temp_max, temp_min = max(y_values), min(y_values)
+        temp_max_x, temp_min_x = max(list(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])), min(list(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]]))
+        if temp_max_x > x_max_value:
+            x_max_value = temp_max_x
+        if temp_min_x < x_min_value:
+            x_min_value = temp_min_x
+        if y_max_values[channel_index]<temp_max:
+            y_max_values[channel_index] = temp_max
+        if y_min_values[channel_index]>temp_min:
+            y_min_values[channel_index] = temp_min
+        return x_min_value, x_max_value, y_min_values, y_max_values
+
+    def _set_xy_tick_labels(self, scan, channel, channel_index, channel_length):
+        ##set x tick labels
+        #the x tick lable only shown for the last panel, will be hidden for the others
+        if channel_index!=(channel_length-1):
+            ax = getattr(self,'plot_axis_scan{}'.format(scan))[channel_index]
+            ax.set_xticklabels([])
+        else:#show x tick label for last panel, either potential or image_no
+            ax = getattr(self,'plot_axis_scan{}'.format(scan))[channel_index]
+            x_label = [r'Time (s)','E / V$_{RHE}$'][self.plot_label_x[self.scans.index(scan)]=='potential']
+            ax.set_xlabel(x_label, fontsize = 13)
+        ##set y tick labels
+        #the y tick label only shown for the first column panel
+        if scan!=self.scans[0]:
+            getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].set_yticklabels([])
+        else:
+            #according to relative scale
+            y_label_map = {'potential':'E / V$_{RHE}$',
+                            'current':r'j / mAcm$^{-2}$',
+                            'strain_ip':r'$\Delta\varepsilon_\parallel$  (%)',
+                            'strain_oop':r'$\Delta\varepsilon_\perp$  (%)',
+                            'grain_size_oop':r'$\Delta d_\perp$ / nm',
+                            'grain_size_ip':r'$\Delta d_\parallel$ / nm',
+                            'peak_intensity':r'Intensity / a.u.'}
+            #based on absolute values
+            y_label_map_abs = {'potential':'E / V$_{RHE}$',
+                                'current':r'j / mAcm$^{-2}$',
+                                'strain_ip':r'$\varepsilon_\parallel$  (%)',
+                                'strain_oop':r'$\varepsilon_\perp$  (%)',
+                                'grain_size_oop':r'$ d_\perp$ / nm',
+                                'grain_size_ip':r'$ d_\parallel$ / nm',
+                                'peak_intensity':r'Intensity / a.u.'}
+            if not self.checkBox_max.isChecked():
+                y_label_map = y_label_map_abs
+            if channel in y_label_map:
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].set_ylabel(y_label_map[channel], fontsize = 13)
+
+    def _cal_pseudcap_charge(self, scan):
+        for each_pot_range in self.pot_ranges[scan]:
+            try:
+                horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
+                vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
+                q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
+                if scan not in self.charge_info:
+                    self.charge_info[scan] = {}
+                    self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
+                else:
+                    self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
+                    self.charge_info[scan][each_pot_range]['film_charge'] = q_film
+            except:
+                print('Fail to cal charge info. Check!')
+
+    def _do_text_label(self, scan, count_pH13, x_min_value, y_max_values):
+        #extract color
+        try:#from cv settings
+            _,_,_,_,_,color, _, _ = self.plot_lib[scan]
+        except:#specified in gui
+            color = self.comboBox_color.currentText()
+        
+        # pH labeling
+        text = r'pH {}'.format(self.phs[self.scans.index(scan)])
+        tag = ''
+        if self.radioButton_pH.isChecked():
+            if self.phs[self.scans.index(scan)]==13:
+                text = r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13)
+                count_pH13 += 1
+            else:
+                text = r'pH {}'.format(self.phs[self.scans.index(scan)])
+        # scan number label
+        elif self.radioButton_scan.isChecked():
+            text = f'scan{scan}'
+        elif self.radioButton_custom.isChecked():
+            labels = self.lineEdit_custom_label.text().rstrip().rsplit(',')
+            index = self.scans.index(scan)
+            if len(labels)>index:
+                text = labels[index]
+            else:
+                print('The dimention of text label does not match the total number of scans!')
+                text = f'{scan}'
+        # without label
+        else:
+            text = ''
+        #set label here
+        getattr(self,'plot_axis_scan{}'.format(scan))[0].text(x_min_value, y_max_values[0]*0.8,text,color = color,fontsize=11)
+        return count_pH13
+
+    def _decorate_axis_tick_labels(self, scan, channel, channel_index, x_min_value, x_max_value, y_min_values, y_max_values):
+        if self.plot_label_x[self.scans.index(scan)] == 'potential':
+            if 'master' in self.tick_label_settings:
+                if 'potential' in self.tick_label_settings['master']:
+                    if self.checkBox_use.isChecked():
+                        self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[channel_index],
+                                                    fun_set_bounds = self.tick_label_settings['master']['potential']['func'],#'set_xlim', 
+                                                    bounds = [x_min_value,x_max_value],#[0.4,2.1],#[0.95,1.95], 
+                                                    bound_padding = float(self.tick_label_settings['master']['potential']['padding']), 
+                                                    major_tick_location = self.tick_label_settings['master']['potential']['locator'], #x_locator
+                                                    show_major_tick_label = (len(self.plot_labels_y)-1)==channel_index, #show major tick label for the first scan
+                                                    num_of_minor_tick_marks=self.tick_label_settings['master']['potential']['tick_num'], #4
+                                                    fmt_str = self.tick_label_settings['master']['potential']['fmt'])#'{:3.1f}'
+
+        #y axis
+        if 'master' in self.tick_label_settings:
+            if channel in self.tick_label_settings['master']:
+                if self.checkBox_use.isChecked():
+                    self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[channel_index],
+                                                fun_set_bounds = self.tick_label_settings['master'][channel]['func'],#'set_xlim', 
+                                                bounds = [y_min_values[channel_index],y_max_values[channel_index]],#[0.4,2.1],#[0.95,1.95], 
+                                                bound_padding = float(self.tick_label_settings['master'][channel]['padding']), 
+                                                major_tick_location = self.tick_label_settings['master'][channel]['locator'], #x_locator
+                                                show_major_tick_label = self.scans.index(scan)==0, #show major tick label for the first scan
+                                                num_of_minor_tick_marks=self.tick_label_settings['master'][channel]['tick_num'], #4
+                                                fmt_str = self.tick_label_settings['master'][channel]['fmt'])#'{:3.1f}'
+
+    #plot the master figure
+    def plot_figure_xrv(self):
+        #update state and reset meta data
+        self.make_plot_lib()#external cv files
+        self.reset_meta_data()#calculated values (eg strain and grain size) and tick label setting reset to empty {}
+        self.extract_tick_label_settings()#extract the latest tick label setting
+
+        #extract slope info if any
+        slope_info_temp = None
+        if self.checkBox_use_external_slope.isChecked():
+            slope_info_temp = self.return_slope_values()
+
+        #init plot settings, create figure axis, and init the bounds of x and y axis
+        self._setup_matplotlib_fig(plot_dim = [len(self.plot_labels_y), len(self.scans)])
+        #these are extreme values, these values will be updated
+        y_max_values,y_min_values = [-100000000]*len(self.plot_labels_y),[100000000]*len(self.plot_labels_y) #multiple sets of ylim
+        x_min_value, x_max_value = [1000000000,-10000000000] # one set of xlim
+
+        #prepare ranges for viewing datasummary, which summarize the variance of structural pars in each specified range
+        #this is a way to remove duplicate data points if there are multiple cycles
+        self._prepare_data_range_and_pot_range()
+
+        #the main loop starts from here
         for scan in self.scans:
             self.cal_potential_ranges(scan)
+            #data_summary, summarizing values of structural changes, is used to plot bar char afterwards
             self.data_summary[scan] = {}
             if 'potential' in self.plot_labels_y and self.plot_label_x[self.scans.index(scan)] == 'potential':
-                plot_labels_y = [each for each in self.plot_labels_y if each!='potential']
+                plot_labels_y = [each for each in self.plot_labels_y if each!='potential'] # remove potential in y lables if potential is set as x channel already
             else:
                 plot_labels_y = self.plot_labels_y
+            #plot each y channel from here
             for each in plot_labels_y:
+                #each is the y channel string tag
                 self.data_summary[scan][each] = []
+                #i is the channel index
                 i = plot_labels_y.index(each)
-                try:
-                    fmt = self.lineEdit_fmt.text().rsplit(',')[self.scans.index(scan)].rsplit(";")
-                except:
-                    fmt = 'b-'
-                y = self.data_to_plot[scan][plot_labels_y[i]]
-                y_offset = 0
-                if hasattr(self, f'{plot_labels_y[i]}_offset_{scan}'):
-                    y_offset = getattr(self, f'{plot_labels_y[i]}_offset_{scan}')
-                y = np.array([each + y_offset for each in y])
-                # if scan==807 and each=='grain_size_ip':
-                    # y = np.array(y) + 1
-                y_smooth_temp = signal.savgol_filter(self.data_to_plot[scan][plot_labels_y[i]],41,2)
-                std_val = np.sum(np.abs(y_smooth_temp - y))/len(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])
+                #is this the current channel
+                current_channel = each == 'current'
+                #y vs image_no?
+                x_is_frame_no = self.plot_label_x[self.scans.index(scan)] == 'image_no'
+                #extract fmt style
+                fmt = self._get_fmt_style(scan = scan, channel = each)
+                #extract the channel values
+                y, y_smooth_temp, std_val = self._extract_y_values(scan = scan, channel = each)
+                #this marker container will contain the positions of potentials bounds according to the specified potential ranges
                 marker_index_container = []
                 for ii in range(len(self.pot_range)):
-                    #if len(self.pot_range[ii])==1:
-                    pot_range_temp = self.pot_range[ii]
-                    data_range_temp = self.data_range[self.scans.index(scan)]
-                    #print(list(self.data_to_plot.keys()))
-                    assert 'potential' in list(self.data_to_plot[scan].keys())
-                    index_left = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range_temp[0]:data_range_temp[1]] - pot_range_temp[0])) + data_range_temp[0]
-                    index_right = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range_temp[0]:data_range_temp[1]] - pot_range_temp[1])) + data_range_temp[0]
-                    marker_index_container.append(index_left)
-                    marker_index_container.append(index_right)
-
-                    pot_offset = abs(self.data_to_plot[scan]['potential'][index_left]-self.data_to_plot[scan]['potential'][index_right])
-                    #data_temp = [(y_smooth_temp[index_left] - y_smooth_temp[index_right])/pot_offset,std_val/pot_offset]
-                    if pot_offset==0:
-                        self.data_summary[scan][each].append((y_smooth_temp[index_left]))
-                        self.data_summary[scan][each].append(std_val)
-                    else:
-                        self.data_summary[scan][each].append((y_smooth_temp[index_left] - y_smooth_temp[index_right])/pot_offset)
-                        self.data_summary[scan][each].append(std_val/pot_offset)
-                
-                #plot the results
-                if len(fmt)==2:
-                    fmt = fmt[int('size' in each)]
-                else:
-                    fmt = fmt[0]
-                if self.plot_label_x[self.scans.index(scan)] == 'image_no':
+                    marker_index_container = self._cal_structural_change_rate(scan = scan, channel =each,
+                                                                              y_values = y_smooth_temp, 
+                                                                              std_val = std_val, 
+                                                                              data_range = self.data_range[self.scans.index(scan)], 
+                                                                              pot_range = self.pot_range[ii], 
+                                                                              marker_index_container = marker_index_container)
+                # if the plot channel is versus time (image_no)
+                if x_is_frame_no:
+                    #x offset
                     offset_ = 0
                     if hasattr(self,f'image_no_offset_{scan}'):
                         offset_ = getattr(self, f'image_no_offset_{scan}')
-                    #####temporary setting!###
-                    '''
-                    color_map = {749:'mediumblue',746:'blue',744:'royalblue',742:'cornflowerblue'}
-                    if scan in color_map:
-                        color = color_map[scan]
-                    else:
-                        color = 'blue'
-                    offset_point = {742:3,744:2,746:5}
-                    if scan in offset_point:
-                        offset_ = offset_point[scan]
-                    '''
-                    ###########################
-                    if each not in ['current']:
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y,fmt,markersize = self.spinBox_marker_size.value())
-                        if self.checkBox_merge.isChecked():
-                            if scan!=self.scans[0]:
-                                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y,fmt,markersize = self.spinBox_marker_size.value())
-                        if self.checkBox_show_smoothed_curve.isChecked() and ('strain' not in each) and (each!='potential'):#not show smooth line for strain datasets
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y_smooth_temp, fmt, color = 'red', lw=2.5, marker = None, ls='-')
-                        if self.checkBox_show_marker.isChecked():
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
-                            for iii in marker_index_container:
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii]]*2,[-100,100],':k')
-                    else:
-                        if self.checkBox_use_external_cv.isChecked():
-                            try:
-                                self.plot_pot_step_current_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,each)
-                                if self.checkBox_merge.isChecked():
-                                    if scan!=self.scans[0]:
-                                        self.plot_pot_step_current_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan,each)
-                                if self.checkBox_use_internal_cv.isChecked():
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y)),y*8,fmt,markersize = self.spinBox_marker_size.value())
-                                    if self.checkBox_merge.isChecked():
-                                        if scan!=self.scans[0]:
-                                            getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y)),y*8,fmt,markersize = self.spinBox_marker_size.value())
-                                    if self.checkBox_show_marker.isChecked():
-                                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([np.arange(len(y))[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
-                            except:
-                                print('someting is wrong with external cv file, use internal cv data instead!')
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y*8,fmt,marker = None,markersize = self.spinBox_marker_size.value())
-                                if self.checkBox_merge.isChecked():
-                                    if scan!=self.scans[0]:
-                                        getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y*8,fmt,markersize = self.spinBox_marker_size.value())
-                                if self.checkBox_show_marker.isChecked():
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
-                        else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(np.arange(len(y))+offset_,y*8,fmt,marker = None,markersize = self.spinBox_marker_size.value())
-                            if self.checkBox_merge.isChecked():
-                                if scan!=self.scans[0]:
-                                    getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(np.arange(len(y))+offset_,y*8,fmt,markersize = self.spinBox_marker_size.value())
-                            if self.checkBox_show_marker.isChecked():
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
-                                for iii in marker_index_container:
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([(np.arange(len(y))+offset_)[iii]]*2,[-100,100],':k')
+                    #here two situations, plot current density or plot other channels
+                    #current density: you can either use internal data points or extract values from external files
+                    #NOTE: the sampling rate of internal data is way smaller than that of external files, so we don't want to use external file for plotting current
+                    self._plot_one_panel(scan = scan, channel = each, channel_index = i, y_values = y, 
+                                         y_values_smooth = y_smooth_temp, x_values = np.arange(len(y))+offset_, 
+                                         fmt = fmt, marker_index_container = marker_index_container)
+                #if the plot channel is versus potential
                 else:
-                    if self.checkBox_use_external_slope.isChecked():
-                        seperators = self.return_seperator_values(scan)
-                    else:
-                        seperators = list(set(marker_index_container))
-                    if each!='current':
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y,fmt,markersize = self.spinBox_marker_size.value())
-                        if self.checkBox_merge.isChecked():
-                            if scan!=self.scans[0]:
-                                getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y,fmt,markersize = self.spinBox_marker_size.value())
-                        if self.checkBox_show_smoothed_curve.isChecked():
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_smooth_temp,'-')
-                        if self.checkBox_plot_slope.isChecked() and self.checkBox_use_external_slope.isChecked():
-                            if slope_info_temp[scan][each]!=None:
-                                p0,p1,p2,y1,a1,a2 = slope_info_temp[scan][each]
-                                y0 = a1*(p0-p1)+y1
-                                y2 = a2*(p2-p1)+y1
-                                cases = [self.calculate_size_strain_change(p0,p1,p2,y1,a1,a2,pot_range = each_pot) for each_pot in self.pot_ranges[scan]]
-                                if each=='grain_size_ip':
-                                    self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_ranges[scan],'horizontal',cases)
-                                elif each == 'grain_size_oop':
-                                    self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_ranges[scan],'vertical',cases)
-                                elif each == 'strain_ip':
-                                    self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_ranges[scan],'horizontal',cases)
-                                elif each == 'strain_oop':
-                                    self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_ranges[scan],'vertical',cases)
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
-                        else:
-                            cases = [self.calculate_size_strain_change_from_plot_data(scan, each, self.data_range[self.scans.index(scan)], each_pot) for each_pot in self.pot_range]
-                            #cases = [self.calculate_size_strain_change(p0,p1,p2,y1,a1,a2,pot_range = each) for each in self.pot_ranges[scan]]
-                            if each=='grain_size_ip':
-                                self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_range,'horizontal',cases)
-                            elif each == 'grain_size_oop':
-                                self.set_grain_info_all_scan(self.grain_size_info_all_scans,scan,self.pot_range,'vertical',cases)
-                            elif each == 'strain_ip':
-                                self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_range,'horizontal',cases)
-                            elif each == 'strain_oop':
-                                self.set_grain_info_all_scan(self.strain_info_all_scans,scan,self.pot_range,'vertical',cases)
-                            #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([p0,p1,p2],np.array([y0,y1,y2])-self.data_to_plot[scan][each+"_max"],'k--')
-                        if self.checkBox_use_external_slope.isChecked():
-                            try:
-                                for pot in seperators[scan][each]:
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
-                            except:
-                                pass
-                        else:
-                            if self.checkBox_show_marker.isChecked():
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][iii] for iii in marker_index_container],[y_smooth_temp[iii] for iii in marker_index_container],'k*')
-                                for each_index in seperators:
-                                    pot = self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]
-                                    getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
-                    else:
-                        if self.checkBox_use_external_cv.isChecked():
-                            if self.checkBox_use_external_slope.isChecked():
-                                lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,seperators[scan][each])
-                                if self.checkBox_merge.isChecked():
-                                    if scan!=self.scans[0]:
-                                        _ = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan,seperators[scan][each])
-                            else:
-                                pots_ = []
-                                for each_index in seperators:
-                                    pots_.append([self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]])
-                                lim_y = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(scan))[i],scan,pots_)
-                                if self.checkBox_merge.isChecked():
-                                    if scan!=self.scans[0]:
-                                        _ = self.plot_cv_from_external(getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[i],scan, pots_)
-                            if self.checkBox_use_internal_cv.isChecked(): 
-                                getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y*8,fmt,markersize = self.spinBox_marker_size.value())
-                        else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y*8,fmt,markersize = self.spinBox_marker_size.value())
-                            #getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([self.data_to_plot[scan][self.plot_label_x][iii] for iii in marker_index_container],[y[iii]*8 for iii in marker_index_container],'k*')
-                            if not self.checkBox_use_external_slope.isChecked():
-                                if self.checkBox_show_marker.isChecked():
-                                    for each_index in seperators:
-                                        pot = self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]][each_index]
-                                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([pot,pot],[-100,100],'k:')
-                            else:
-                                for each_item in seperators[scan][each]:
-                                    try:
-                                        getattr(self,'plot_axis_scan{}'.format(scan))[i].plot([each_item,each_item],[-100,100],':k')
-                                    except:
-                                        pass
-                if each=='current':
-                    try:
-                        temp_min,temp_max = lim_y
-                    except:
-                        temp_max, temp_min = max(list(self.data_to_plot[scan][plot_labels_y[i]]*8)),min(list(self.data_to_plot[scan][plot_labels_y[i]]*8))
-                else:
-                    temp_max, temp_min = max(list(self.data_to_plot[scan][plot_labels_y[i]])),min(list(self.data_to_plot[scan][plot_labels_y[i]]))
-                temp_max_x, temp_min_x = max(list(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])), min(list(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]]))
-                if temp_max_x > x_max_value:
-                    x_max_value = temp_max_x
-                if temp_min_x < x_min_value:
-                    x_min_value = temp_min_x
-                if y_max_values[i]<temp_max:
-                    y_max_values[i] = temp_max
-                if y_min_values[i]>temp_min:
-                    y_min_values[i] = temp_min
-                if i!=(len(plot_labels_y)-1):
-                    ax = getattr(self,'plot_axis_scan{}'.format(scan))[i]
-                    ax.set_xticklabels([])
-                else:
-                    ax = getattr(self,'plot_axis_scan{}'.format(scan))[i]
-                    x_label = [r'Time (s)','E / V$_{RHE}$'][self.plot_label_x[self.scans.index(scan)]=='potential']
-                    ax.set_xlabel(x_label, fontsize = 13)
-                if scan!=self.scans[0]:
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_yticklabels([])
-                else:
-                    #according to relative scale
-                    y_label_map = {'potential':'E / V$_{RHE}$',
-                                   'current':r'j / mAcm$^{-2}$',
-                                   'strain_ip':r'$\Delta\varepsilon_\parallel$  (%)',
-                                   'strain_oop':r'$\Delta\varepsilon_\perp$  (%)',
-                                   'grain_size_oop':r'$\Delta d_\perp$ / nm',
-                                   'grain_size_ip':r'$\Delta d_\parallel$ / nm',
-                                   'peak_intensity':r'Intensity / a.u.'}
-                    #based on absolute values
-                    y_label_map_abs = {'potential':'E / V$_{RHE}$',
-                                       'current':r'j / mAcm$^{-2}$',
-                                       'strain_ip':r'$\varepsilon_\parallel$  (%)',
-                                       'strain_oop':r'$\varepsilon_\perp$  (%)',
-                                       'grain_size_oop':r'$ d_\perp$ / nm',
-                                       'grain_size_ip':r'$ d_\parallel$ / nm',
-                                       'peak_intensity':r'Intensity / a.u.'}
-                    if not self.checkBox_max.isChecked():
-                        y_label_map = y_label_map_abs
-                    if each in y_label_map:
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylabel(y_label_map[each], fontsize = 13)
-                    else:
-                        pass
-
-            for each_pot_range in self.pot_ranges[scan]:
-                try:
-                    horizontal = self.grain_size_info_all_scans[scan][each_pot_range]['horizontal']
-                    vertical = self.grain_size_info_all_scans[scan][each_pot_range]['vertical']
-                    q_skin,q_film = self.estimate_charge_from_skin_layer_thickness_philippe_algorithm({"horizontal":horizontal,"vertical":vertical})
-                    print("potential range:",each_pot_range)
-                    print({"horizontal":horizontal,"vertical":vertical})
-                    print('Skin charge calculated for scan{} using philippe algorithm is:{} mC/m2'.format(scan, q_skin))
-                    if scan not in self.charge_info:
-                        self.charge_info[scan] = {}
-                        self.charge_info[scan][each_pot_range] = {'skin_charge':q_skin,'film_charge':q_film,'total_charge':0}
-                    else:
-                        self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
-                        self.charge_info[scan][each_pot_range]['film_charge'] = q_film
-                except:
-                    print('Fail to cal charge info. Check!')
-
+                    self._plot_one_panel_x_is_potential(scan = scan, channel = each, channel_index = i, y_values = y, 
+                                                        y_values_smooth = y_smooth_temp, fmt = fmt, marker_index_container = marker_index_container, 
+                                                        slope_info = slope_info_temp)
+                #update the x and y bounds
+                x_min_value, x_max_value, y_min_values, y_max_values  = self._update_bounds_xy(scan = scan, y_values = y, channel_index = i, 
+                                                                                              x_min_value = x_min_value, x_max_value = x_max_value, 
+                                                                                              y_min_values = y_min_values, y_max_values = y_max_values)
+                #set xy tick labels
+                self._set_xy_tick_labels(scan = scan, channel = each, channel_index = i, channel_length = len(plot_labels_y))
+            #now calculate the pseudocapacitative charge values
+            self._cal_pseudcap_charge(scan = scan)
+        count_pH13_temp = 1#count the times of dataset for pH 13
+        #text labeling on the master figure
         for scan in self.scans:
+            # label display only on the first row
+            count_pH13_temp = self._do_text_label(scan = scan, count_pH13 = count_pH13_temp, x_min_value = x_min_value, y_max_values = y_max_values)
             for each in self.plot_labels_y:
                 i = self.plot_labels_y.index(each)
-                if i==0:
-                    # getattr(self,'plot_axis_scan{}'.format(scan))[i].set_title(r'pH {}'.format(self.phs[self.scans.index(scan)]),fontsize=11)
-                    try:
-                        _,_,_,_,_,color, _, _ = self.plot_lib[scan]
-                    except:
-                        color = self.comboBox_color.currentText()
-                    text = r'pH {}'.format(self.phs[self.scans.index(scan)])
-                    tag = ''
-                    if self.radioButton_pH.isChecked():
-                        if self.phs[self.scans.index(scan)]==13:
-                            text = r'pH {} ({})'.format(self.phs[self.scans.index(scan)],count_pH13_temp)
-                            count_pH13_temp += 1
-                        else:
-                            text = r'pH {}'.format(self.phs[self.scans.index(scan)])
-                    elif self.radioButton_scan.isChecked():
-                        text = f'scan{scan}'
-                    else:
-                        text = ''
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].text(x_min_value, y_max_values[i]*0.8,text,color = color,fontsize=11)
-                if 'current' not in self.plot_labels_y:
-                    pass
-                else:
-                    j = self.plot_labels_y.index('current')
-                    if each != 'current':#synchronize the x_lim of all non-current to that for CV
-                        x_lim = getattr(self,'plot_axis_scan{}'.format(scan))[j].get_xlim()
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
-                    else:
-                        pass
-                ####The following lines are customized for a specific dataset, it is subject to change depending on the dataset you are using
-                if self.plot_label_x[self.scans.index(scan)] == 'potential':
-                    if 'master' in self.tick_label_settings:
-                        if 'potential' in self.tick_label_settings['master']:
-                            if self.checkBox_use.isChecked():
-                                self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
-                                                            fun_set_bounds = self.tick_label_settings['master']['potential']['func'],#'set_xlim', 
-                                                            bounds = [x_min_value,x_max_value],#[0.4,2.1],#[0.95,1.95], 
-                                                            bound_padding = float(self.tick_label_settings['master']['potential']['padding']), 
-                                                            major_tick_location = self.tick_label_settings['master']['potential']['locator'], #x_locator
-                                                            show_major_tick_label = (len(self.plot_labels_y)-1)==i, #show major tick label for the first scan
-                                                            num_of_minor_tick_marks=self.tick_label_settings['master']['potential']['tick_num'], #4
-                                                            fmt_str = self.tick_label_settings['master']['potential']['fmt'])#'{:3.1f}'
-                        else:
-                            getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(*x_lim)
-                if 'master' in self.tick_label_settings:
-                    if each in self.tick_label_settings['master']:
-                        if self.checkBox_use.isChecked():
-                            self._format_ax_tick_labels(ax = getattr(self,'plot_axis_scan{}'.format(scan))[i],
-                                                        fun_set_bounds = self.tick_label_settings['master'][each]['func'],#'set_xlim', 
-                                                        bounds = [y_min_values[i],y_max_values[i]],#[0.4,2.1],#[0.95,1.95], 
-                                                        bound_padding = float(self.tick_label_settings['master'][each]['padding']), 
-                                                        major_tick_location = self.tick_label_settings['master'][each]['locator'], #x_locator
-                                                        show_major_tick_label = self.scans.index(scan)==0, #show major tick label for the first scan
-                                                        num_of_minor_tick_marks=self.tick_label_settings['master'][each]['tick_num'], #4
-                                                        fmt_str = self.tick_label_settings['master'][each]['fmt'])#'{:3.1f}'
-                    else:
-                        getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(*[y_min_values[i],y_max_values[i]])
-                if not self.checkBox_use.isChecked():
-                    getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(*[y_min_values[i],y_max_values[i]])
+                getattr(self,'plot_axis_scan{}'.format(scan))[i].set_xlim(x_min_value, x_max_value)
+                getattr(self,'plot_axis_scan{}'.format(scan))[i].set_ylim(*[y_min_values[i],y_max_values[i]])
+                ####The following lines are customized for axis formating (tick locations, padding, ax bounds)
+                #decorate axis tick labels
+                self._decorate_axis_tick_labels(scan = scan, channel = each, channel_index = i, x_min_value = x_min_value, x_max_value = x_max_value, 
+                                                y_min_values = y_min_values, y_max_values = y_max_values)
         self.mplwidget.fig.tight_layout()
         self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
         self.mplwidget.canvas.draw()
