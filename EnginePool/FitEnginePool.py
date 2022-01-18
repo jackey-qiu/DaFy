@@ -623,13 +623,15 @@ class bond_valence_constraint_old(object):
         return self.panelty_factor_total
 
 class XRD_Peak_Fitting(object):
-    def __init__(self, img, cen, kwarg, model = model):
+    def __init__(self, img, cen, kwarg, model = model, use_q_mapping = True, rsp_mapping = None):
         self.img = img
+        self.use_q_mapping = use_q_mapping
         #self.mask = mask
         self.peak_center = cen
         self.previous_peak_center = cen
         self.prim_beam_pot = cen
         self.model = model
+        self.rsp_mapping = rsp_mapping
         self.first_frame = True
         self.q_ip = None #note this is gridded q
         self.q_oop = None# note this is gridded q
@@ -642,6 +644,25 @@ class XRD_Peak_Fitting(object):
         self.fit_status = False
         self.recenter = False
         #self.fit()
+
+    def _recal_q_from_pixel_index(self):
+        if self.use_q_mapping:
+            return
+        else:
+            cen_ip_pixel_index = self.fit_results['hor'][0][0]
+            cen_oop_pixel_index = self.fit_results['ver'][0][0]
+            FWHM_ip = self.fit_results['hor'][0][1]
+            FWHM_oop = self.fit_results['ver'][0][1]
+            peak_center_q_basis = self.rsp_mapping.get_q_at_pos([cen_oop_pixel_index, cen_ip_pixel_index])
+            self.fit_results['ver'][0][0],self.fit_results['hor'][0][0] = peak_center_q_basis
+            peak_center_q_basis_left = self.rsp_mapping.get_q_at_pos([cen_oop_pixel_index, cen_ip_pixel_index - FWHM_ip/2])
+            peak_center_q_basis_right = self.rsp_mapping.get_q_at_pos([cen_oop_pixel_index, cen_ip_pixel_index + FWHM_ip/2])
+            peak_center_q_basis_up = self.rsp_mapping.get_q_at_pos([cen_oop_pixel_index + FWHM_oop/2, cen_ip_pixel_index])
+            peak_center_q_basis_down = self.rsp_mapping.get_q_at_pos([cen_oop_pixel_index - FWHM_oop/2, cen_ip_pixel_index])
+            FWHM_ip_q_basis = abs(peak_center_q_basis_left[1]-peak_center_q_basis_right[1])
+            FWHM_oop_q_basis = abs(peak_center_q_basis_up[0]-peak_center_q_basis_down[0])
+            self.fit_results['hor'][0][1] = FWHM_ip_q_basis 
+            self.fit_results['ver'][0][1] = FWHM_oop_q_basis 
 
     @property
     def grid_q_ip(self):
@@ -674,22 +695,32 @@ class XRD_Peak_Fitting(object):
         self.first_frame = first_frame
         self.img = img
         check_result = self.fit(check, level)
+        self._recal_q_from_pixel_index()
         return check_result
 
-    def initiat_p0_and_bounds(self):
-        try:
-            ip_q_cen= self.q_ip[0,self.peak_center[1]]
-            oop_q_cen=self.q_oop[self.peak_center[0],0]
+    def initiat_p0_and_bounds(self, use_q_mapping = True):
+        ip_q_cen= self.q_ip[0,self.peak_center[1]]
+        oop_q_cen=self.q_oop[self.peak_center[0],0]
+        if use_q_mapping:#with q unit
             self.fit_bounds['hor'][0][0] = ip_q_cen - 0.2
             self.fit_bounds['hor'][1][0] = ip_q_cen + 0.2
             self.fit_bounds['ver'][0][0] = oop_q_cen - 0.2
             self.fit_bounds['ver'][1][0] = oop_q_cen + 0.2
-            self.fit_p0['hor'][0] = ip_q_cen
-            self.fit_p0['ver'][0] = oop_q_cen
-            self.fit_p0_2['hor'][0] = ip_q_cen
-            self.fit_p0_2['ver'][0] = oop_q_cen
-        except:
-            pass
+        else:#with pixel unit            
+            ip_q_cen= self.q_ip[0,self.peak_center[1]]
+            oop_q_cen=self.q_oop[self.peak_center[0],0]
+            #x0
+            self.fit_bounds['hor'][0][0] = ip_q_cen - 10
+            self.fit_bounds['hor'][1][0] = ip_q_cen + 10
+            self.fit_bounds['ver'][0][0] = oop_q_cen - 10
+            self.fit_bounds['ver'][1][0] = oop_q_cen + 10
+            #FWHM 
+            self.fit_bounds['hor'][1][1] = 100
+            self.fit_bounds['ver'][1][1] = 100
+        self.fit_p0['hor'][0] = ip_q_cen
+        self.fit_p0['ver'][0] = oop_q_cen
+        self.fit_p0_2['hor'][0] = ip_q_cen
+        self.fit_p0_2['ver'][0] = oop_q_cen
 
     def update_bounds(self, cen_oop, cen_ip):
         if cen_oop>self.fit_bounds['ver'][1][0]:
@@ -1070,6 +1101,35 @@ class Reciprocal_Space_Mapping():
         K = HKL[1,:].reshape(shape)
         L = HKL[2,:].reshape(shape)
         self.HKL = {'H':H, 'K':K, 'L':L}
+
+    def get_q_at_pos(self, pos):
+        #pos = [ver_index, hor_index]
+        th_= self.motor_angles['mu']
+        gam_= self.motor_angles['delta']
+        del_= self.motor_angles['gamma']
+        #the chi and phi values are arbitrary in the fio file, should be set to the same values as the ones that are usd to cal UB matrix(all 0 so far)
+        #chi and phi have to be 0 to work, otherwise the mapping will be wrong
+        #so here force this condition
+        phi_= self.motor_angles['phi']*0
+        chi_= self.motor_angles['chi']*0
+        mu_= self.motor_angles['omega_t']
+        # print del_,gam_
+        #first item is the incident angle (mu_ here)
+        del_,gam_=np.rad2deg(vliegDiffracAngles(np.deg2rad([mu_,del_,gam_,mu_,0,0]))[1:3])
+        # print del_,gam_
+        #detector dimension is (516,1556)
+        #You may need to put a negative sign in front, check the rotation sense of delta and gamma motors at P23
+        #single value
+        delta_range = np.arctan(np.array([pos[1]-self.cen[1]])*self.pixelsize[0]/self.sdd)*180/ np.pi + del_
+        #the minus sign here because the column index increase towards bottom, then 0 index(top most) will give a negative gam offset
+        #a minus sign in front correct this.
+        gamma_range =-np.arctan(np.array([pos[0]-self.cen[0]])*self.pixelsize[1]/self.sdd)*180/ np.pi + gam_ 
+        d = SixCircle.SixCircle()
+        d.setEnergy(self.e_kev)
+        d.setUB(self.ub)
+        Q = d.getQSurface(theta=th_, chi=chi_, phi=phi_, mu=mu_, delta=delta_range, gamma=gamma_range, gamma_first=False)
+        qx, qy, qz = Q[0,0], Q[1,0], Q[2,0]
+        return qz,(qx**2 + qy**2)**0.5
 
     def get_grid_q(self):
         for each in ['gamma_range','delta_range', 'th_', 'mu_', 'chi_', 'phi_']:

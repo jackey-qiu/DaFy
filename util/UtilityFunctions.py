@@ -364,18 +364,25 @@ def scan_generator(scans):
     for scan in _scans:
         yield scan
 
-def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_creator):
+def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_creator, use_q_mapping = True):
     for scan in scans:
         img_loader.update_scan_info(scan)
         current_image_no = 0
         for image in img_loader.load_frame(frame_number=0, flip=True):
             rsp_instance.update_img(image,motor_angles = img_loader.motor_angles, update_q = current_image_no == 0)
             if current_image_no == 0:
-                peak_fitting_instance.q_ip = rsp_instance.q['grid_q_par']
-                peak_fitting_instance.q_oop = rsp_instance.q['grid_q_perp']
-                peak_fitting_instance.initiat_p0_and_bounds()
-            yield gaussian_filter(mask_creator.create_mask_new(img = rsp_instance.grid_intensity, img_q_ver = rsp_instance.q['grid_q_perp'],
-                                  img_q_par = rsp_instance.q['grid_q_par'], mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 3)
+                if use_q_mapping:
+                    peak_fitting_instance.q_ip = rsp_instance.q['grid_q_par']
+                    peak_fitting_instance.q_oop = rsp_instance.q['grid_q_perp']
+                else:
+                    peak_fitting_instance.q_oop, peak_fitting_instance.q_ip = np.mgrid[0:image.shape[0]:1, 0:image.shape[1]:1]
+                peak_fitting_instance.initiat_p0_and_bounds(use_q_mapping)
+            if use_q_mapping:
+                yield gaussian_filter(mask_creator.create_mask_new(img = rsp_instance.grid_intensity, img_q_ver = rsp_instance.q['grid_q_perp'],
+                                      img_q_par = rsp_instance.q['grid_q_par'], mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 3)
+            else:
+                yield gaussian_filter(mask_creator.create_mask_new(img = image, img_q_ver = peak_fitting_instance.q_oop,
+                                      img_q_par = peak_fitting_instance.q_ip, mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 3)
             current_image_no +=1
 
 def image_generator_bkg(scans,img_loader,mask_creator):

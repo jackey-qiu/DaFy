@@ -1406,8 +1406,8 @@ class MyMainWindow(QMainWindow):
             else:
                 getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values,fmt,ls = '-', marker = None)
                 #show marker and vert line segments
-                for each_seperator in _seperators:
-                    getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(each_seperator,[-100,100],'k:')
+                if self.checkBox_show_marker.isChecked():
+                    [getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([each_seperator, each_seperator],[-100,100],'k:') for each_seperator in _seperators]
 
     def _plot_one_panel(self, scan, channel, channel_index, y_values, y_values_smooth, x_values, fmt, marker_index_container):
         current_channel = channel == 'current'
@@ -1664,6 +1664,7 @@ class MyMainWindow(QMainWindow):
                                                                               data_range = self.data_range[self.scans.index(scan)], 
                                                                               pot_range = self.pot_range[ii], 
                                                                               marker_index_container = marker_index_container)
+                # print(marker_index_container)
                 # if the plot channel is versus time (image_no)
                 if x_is_frame_no:
                     #x offset

@@ -33,12 +33,13 @@ from util.UtilityFunctions import get_console_size
 from functools import wraps
 
 class run_app(object):
-    def __init__(self):
+    def __init__(self, use_q_mapping = True):
         self.stop = True
         self.conf_file = None
         self.data = {}
         self.model = model
         self.data_path = os.path.join(DaFy_path, 'dump_files')
+        self.use_q_mapping = use_q_mapping
 
 
     def run(self, config):
@@ -78,8 +79,8 @@ class run_app(object):
 
         #init peak fit, bkg subtraction and reciprocal space and image loader instance
         self.bkg_sub = background_subtraction_single_img(self.cen_clip, self.conf_file, sections = ['Background_Subtraction'])
-        self.peak_fitting_instance = XRD_Peak_Fitting(img = None, cen=self.cen_clip, kwarg = self.kwarg_peak_fit)
         self.rsp_instance = Reciprocal_Space_Mapping(img =None, cen=self.cen_clip, kwarg = self.kwarg_rsp)
+        self.peak_fitting_instance = XRD_Peak_Fitting(img = None, cen=self.cen_clip, kwarg = self.kwarg_peak_fit, use_q_mapping = self.use_q_mapping, rsp_mapping = self.rsp_instance)
         self.img_loader = nexus_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image)
         self.create_mask_new = create_mask(kwarg = self.kwarg_mask)
         self.lattice_skin = rsp.lattice.from_cif(os.path.join(DaFy_path, 'util','cif',"{}".format(self.kwarg_film['film_material_cif'])),
@@ -89,7 +90,7 @@ class run_app(object):
 
         #build generator funcs
         self._scans = scan_generator(scans = self.scan_nos)
-        self._images = image_generator(self._scans,self.img_loader,self.rsp_instance,self.peak_fitting_instance,self.create_mask_new)
+        self._images = image_generator(self._scans,self.img_loader,self.rsp_instance,self.peak_fitting_instance,self.create_mask_new, use_q_mapping = self.use_q_mapping)
 
     def run_script(self, bkg_intensity = 0):
         # tp = timer_placer()

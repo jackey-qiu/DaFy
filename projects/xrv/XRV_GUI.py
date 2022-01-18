@@ -57,7 +57,8 @@ class MyMainWindow(QMainWindow):
         #load ui script
         uic.loadUi(os.path.join(DaFy_path,'projects','xrv','XRV_GUI.ui'),self)
         self.setWindowTitle('Data analysis factory: XRV data analasis')
-        self.app_ctr=run_app()
+        self.use_q_mapping = True
+        self.app_ctr=run_app(self.use_q_mapping)
         self.current_image_no = 0
         self.current_scan_number = None
         self.bkg_intensity = 0
@@ -190,6 +191,7 @@ class MyMainWindow(QMainWindow):
         p1.addItem(img)
         self.hist.setImageItem(img)
 
+        
         # Custom ROI for selecting an image region
         roi = pg.ROI([100, 100], [200, 200])
         self.roi = roi
@@ -224,6 +226,10 @@ class MyMainWindow(QMainWindow):
         self.region_cut_ver.setRegion([180,220])
         p1.addItem(self.region_cut_hor, ignoreBounds = True)
         p1.addItem(self.region_cut_ver, ignoreBounds = True)
+
+        # txt_item = pg.TextItem('o', color=(0,0,0))
+        # p1.addItem(txt_item)
+        # self.txt_item = txt_item
 
         # double-y axis plot for structure data (strain and size)
         p2 = win.addPlot(row=1,col=1,colspan=3,rowspan=1, title = 'film structure parameters')
@@ -585,12 +591,16 @@ class MyMainWindow(QMainWindow):
                 if self.app_ctr.img_loader.frame_number == 0:
                     self.p1.autoRange() 
                     #relabel the axis
-                    q_par = self.app_ctr.rsp_instance.q['grid_q_par'][0]
-                    q_ver = self.app_ctr.rsp_instance.q['grid_q_perp'][:,0]
-                    scale_ver = (max(q_ver)-min(q_ver))/(len(q_ver)-1)
-                    shift_ver = min(q_ver)
-                    scale_hor = (max(q_par)-min(q_par))/(len(q_par)-1)
-                    shift_hor = min(q_par)
+                    if self.use_q_mapping:
+                        q_par = self.app_ctr.rsp_instance.q['grid_q_par'][0]
+                        q_ver = self.app_ctr.rsp_instance.q['grid_q_perp'][:,0]
+                        scale_ver = (max(q_ver)-min(q_ver))/(len(q_ver)-1)
+                        shift_ver = min(q_ver)
+                        scale_hor = (max(q_par)-min(q_par))/(len(q_par)-1)
+                        shift_hor = min(q_par)
+                    else:
+                        scale_hor, shift_hor = 1, 0
+                        scale_ver, shift_ver = 1, 0
                     ax_item_img_hor = pixel_to_q(scale = scale_hor, shift = shift_hor, orientation = 'bottom')
                     ax_item_img_ver = pixel_to_q(scale = scale_ver, shift = shift_ver, orientation = 'left')
                     ax_item_img_hor.attachToPlotItem(self.p1)
