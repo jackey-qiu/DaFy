@@ -364,7 +364,7 @@ def scan_generator(scans):
     for scan in _scans:
         yield scan
 
-def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_creator, use_q_mapping = True):
+def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_creator, use_q_mapping = True, filter_order_object = None):
     for scan in scans:
         img_loader.update_scan_info(scan)
         current_image_no = 0
@@ -379,10 +379,10 @@ def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_cre
                 peak_fitting_instance.initiat_p0_and_bounds(use_q_mapping)
             if use_q_mapping:
                 yield gaussian_filter(mask_creator.create_mask_new(img = rsp_instance.grid_intensity, img_q_ver = rsp_instance.q['grid_q_perp'],
-                                      img_q_par = rsp_instance.q['grid_q_par'], mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 3)
+                                      img_q_par = rsp_instance.q['grid_q_par'], mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = filter_order_object.value())
             else:
                 yield gaussian_filter(mask_creator.create_mask_new(img = image, img_q_ver = peak_fitting_instance.q_oop,
-                                      img_q_par = peak_fitting_instance.q_ip, mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = 3)
+                                      img_q_par = peak_fitting_instance.q_ip, mon = img_loader.motor_angles['mon']*img_loader.motor_angles['transm']),sigma = filter_order_object.value())
             current_image_no +=1
 
 def image_generator_bkg(scans,img_loader,mask_creator):

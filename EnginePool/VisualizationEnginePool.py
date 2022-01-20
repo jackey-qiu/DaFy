@@ -242,7 +242,7 @@ def replot_bkg_profile(ax_profile, data, fit_bkg_object, plot_final = False):
     ax_profile.plot([peak_l,peak_l],[z[peak_l],y.max()],pen = 'g')
     ax_profile.plot([peak_r,peak_r],[z[peak_r],y.max()],pen = 'g')
 
-def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potential = False):
+def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potential = False, plot_small_cut_result = True):
     p2,p2_r = p2
     p3,p3_r = p3
     p4,p4_r = p4
@@ -333,9 +333,21 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potenti
     p4_r.addItem(pg.PlotCurveItem(img_number, np.array(data['current'])[index_list], pen='g',clear = True))
     # elif app_ctr.p4_data_source == 'potential':
         # p4.plot(img_number,np.array(data['potential'])[index_list],clear = True)
-    
-    p5.plot(app_ctr.peak_fitting_instance.fit_data['hor']['x'][-1],app_ctr.peak_fitting_instance.fit_data['hor']['y'][-1], clear = True)
-    p5.plot(app_ctr.peak_fitting_instance.fit_data['hor']['x'][0],app_ctr.model(app_ctr.peak_fitting_instance.fit_data['hor']['x'][0],*app_ctr.peak_fitting_instance.fit_results_plot['hor'][0]),pen = 'y')
+    index_to_plot = None
+    _peak_fit_values = {'hor':None, 'ver':None}
+    if plot_small_cut_result:
+        index_to_plot = 1
+        _peak_fit_values['hor'] = app_ctr.peak_fitting_instance.fit_results_plot['hor'][0] 
+        _peak_fit_values['ver'] = app_ctr.peak_fitting_instance.fit_results_plot['ver'][0] 
+    else:
+        index_to_plot = 0
+        _peak_fit_values['hor'] = app_ctr.peak_fitting_instance.fit_results_plot_0['hor'][0]
+        _peak_fit_values['ver'] = app_ctr.peak_fitting_instance.fit_results_plot_0['ver'][0]
+    # p5.plot(app_ctr.peak_fitting_instance.fit_data['hor']['x'][-1],app_ctr.peak_fitting_instance.fit_data['hor']['y'][-1], clear = True)
+    # p5.plot(app_ctr.peak_fitting_instance.fit_data['hor']['x'][0],app_ctr.model(app_ctr.peak_fitting_instance.fit_data['hor']['x'][0],*app_ctr.peak_fitting_instance.fit_results_plot['hor'][0]),pen = 'y')
+
+    p5.plot(app_ctr.peak_fitting_instance.fit_data['hor']['x'][index_to_plot],app_ctr.peak_fitting_instance.fit_data['hor']['y'][index_to_plot], clear = True)
+    p5.plot(app_ctr.peak_fitting_instance.fit_data['hor']['x'][index_to_plot],app_ctr.model(app_ctr.peak_fitting_instance.fit_data['hor']['x'][index_to_plot],*_peak_fit_values['hor']),pen = 'y')
     q_boundary_ip = [app_ctr.peak_fitting_instance.fit_data['hor']['x'][0].min(), app_ctr.peak_fitting_instance.fit_data['hor']['x'][0].max(),app_ctr.peak_fitting_instance.fit_data['hor']['x'][-1].min(), app_ctr.peak_fitting_instance.fit_data['hor']['x'][-1].max()]
     intensity_boundary_ip = [app_ctr.peak_fitting_instance.fit_data['hor']['y'][-1].min(), app_ctr.peak_fitting_instance.fit_data['hor']['y'][-1].max()]
     for i in range(len(q_boundary_ip)):
@@ -344,9 +356,11 @@ def plot_xrv_gui_pyqtgraph(p1,p2, p3, p4, p5, p6, p7, app_ctr, x_channel_potenti
         else:
             color = 'r'
         p5.plot([q_boundary_ip[i],q_boundary_ip[i]],intensity_boundary_ip,pen = color)
+    # p6.plot(app_ctr.peak_fitting_instance.fit_data['ver']['x'][-1],app_ctr.peak_fitting_instance.fit_data['ver']['y'][-1], clear = True)
+    # p6.plot(app_ctr.peak_fitting_instance.fit_data['ver']['x'][0],app_ctr.model(app_ctr.peak_fitting_instance.fit_data['ver']['x'][0],*app_ctr.peak_fitting_instance.fit_results_plot['ver'][0]),pen = 'y')
 
-    p6.plot(app_ctr.peak_fitting_instance.fit_data['ver']['x'][-1],app_ctr.peak_fitting_instance.fit_data['ver']['y'][-1], clear = True)
-    p6.plot(app_ctr.peak_fitting_instance.fit_data['ver']['x'][0],app_ctr.model(app_ctr.peak_fitting_instance.fit_data['ver']['x'][0],*app_ctr.peak_fitting_instance.fit_results_plot['ver'][0]),pen = 'y')
+    p6.plot(app_ctr.peak_fitting_instance.fit_data['ver']['x'][index_to_plot],app_ctr.peak_fitting_instance.fit_data['ver']['y'][index_to_plot], clear = True)
+    p6.plot(app_ctr.peak_fitting_instance.fit_data['ver']['x'][index_to_plot],app_ctr.model(app_ctr.peak_fitting_instance.fit_data['ver']['x'][index_to_plot],*_peak_fit_values['ver']),pen = 'y')
     q_boundary_oop = [app_ctr.peak_fitting_instance.fit_data['ver']['x'][0].min(), app_ctr.peak_fitting_instance.fit_data['ver']['x'][0].max(),app_ctr.peak_fitting_instance.fit_data['ver']['x'][-1].min(), app_ctr.peak_fitting_instance.fit_data['ver']['x'][-1].max()]
     intensity_boundary_oop = [app_ctr.peak_fitting_instance.fit_data['ver']['y'][-1].min(), app_ctr.peak_fitting_instance.fit_data['ver']['y'][-1].max()]
     for i in range(len(q_boundary_oop)):

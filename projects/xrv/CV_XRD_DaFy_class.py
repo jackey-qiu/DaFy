@@ -1,6 +1,7 @@
 import sys,os,itertools
 import numpy as np
 import pandas as pd
+from PyQt5.QtWidgets import QMessageBox
 try:
     from . import locate_path_xrv
 except:
@@ -33,13 +34,14 @@ from util.UtilityFunctions import get_console_size
 from functools import wraps
 
 class run_app(object):
-    def __init__(self, use_q_mapping = True):
+    def __init__(self, use_q_mapping = True, filter_order_object = None):
         self.stop = True
         self.conf_file = None
         self.data = {}
         self.model = model
         self.data_path = os.path.join(DaFy_path, 'dump_files')
         self.use_q_mapping = use_q_mapping
+        self.filter_order_object = filter_order_object
 
 
     def run(self, config):
@@ -90,7 +92,7 @@ class run_app(object):
 
         #build generator funcs
         self._scans = scan_generator(scans = self.scan_nos)
-        self._images = image_generator(self._scans,self.img_loader,self.rsp_instance,self.peak_fitting_instance,self.create_mask_new, use_q_mapping = self.use_q_mapping)
+        self._images = image_generator(self._scans,self.img_loader,self.rsp_instance,self.peak_fitting_instance,self.create_mask_new, use_q_mapping = self.use_q_mapping, filter_order_object = self.filter_order_object)
 
     def run_script(self, bkg_intensity = 0):
         # tp = timer_placer()
@@ -108,13 +110,15 @@ class run_app(object):
             self.img = img
             good_check = self.peak_fitting_instance.reset_fit(img, check = True, first_frame = self.current_frame==0)
             # tp.add_timer('after peak fitting')
-            if good_check:
+            if good_check[0]:
                 self.bkg_sub.fit_background(None, img, plot_live = False, freeze_sf = True)
                 # tp.add_timer('after bkg fit')
                 self.data = merge_data(self.data, self.img_loader, self.peak_fitting_instance, self.bkg_sub, self.kwarg_global, tweak = False)
                 self.data = cal_strain_and_grain(self.data,HKL = self.kwarg_film['film_hkl_bragg_peak'][0], lattice = self.lattice_skin)
                 self.data['bkg'].append(bkg_intensity)
                 # tp.add_timer('after merge data')
+            else:
+                error_pop_up(good_check[1]+'\nPress recenter to continue!!')
             # tp.report()
             return True
         except StopIteration:
@@ -146,6 +150,19 @@ class run_app(object):
                             kwarg = self.kwarg_data
                             )
         """
+def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warning'][0]):
+    msg = QMessageBox()
+    if window_title == 'Error':
+        msg.setIcon(QMessageBox.Critical)
+    elif window_title == 'Warning':
+        msg.setIcon(QMessageBox.Warning)
+    else:
+        msg.setIcon(QMessageBox.Information)
+
+    msg.setText(msg_text)
+    # msg.setInformativeText('More information')
+    msg.setWindowTitle(window_title)
+    msg.exec_()
 
 if __name__ == "__main__":
     run_app()

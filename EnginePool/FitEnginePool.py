@@ -1,3 +1,4 @@
+from numpy.core.defchararray import center
 import scipy.optimize as opt
 from scipy import signal
 try:
@@ -629,6 +630,7 @@ class XRD_Peak_Fitting(object):
         #self.mask = mask
         self.peak_center = cen
         self.previous_peak_center = cen
+        self.peak_center_0 = cen # peak center for first fit (larger cut)
         self.prim_beam_pot = cen
         self.model = model
         self.rsp_mapping = rsp_mapping
@@ -639,11 +641,24 @@ class XRD_Peak_Fitting(object):
             setattr(self, key, kwarg[key])
         self.fit_data = {'hor':{'x':[],'y':[]},'ver':{'x':[],'y':[]}}
         self.fit_results = {'hor':[],'ver':[]}
-        self.fit_results_plot = {'hor':[],'ver':[]}
+        self.fit_results_plot = {'hor':[],'ver':[]}#final fit results
+        self.fit_results_plot_0 = {'hor':[],'ver':[]}#first fit results (larger cut)
         self.peak_intensity = 0
         self.fit_status = False
         self.recenter = False
+        self.cut_width_offset = {'hor':0, 'ver':0}
+        self.cen_offset = [0,0]
+        self.use_avg_FWHM = False
         #self.fit()
+
+
+    def set_cut_width_offset(self, cut_width_offset):
+        if ('hor' in cut_width_offset) and ('ver' in cut_width_offset):
+            self.cut_width_offset = cut_width_offset
+
+    def set_center_offset(self, center_offset):
+        if len(center_offset) == 2 and type(center_offset) == list:
+            self.cen_offset = center_offset
 
     def _recal_q_from_pixel_index(self):
         if self.use_q_mapping:
@@ -733,8 +748,10 @@ class XRD_Peak_Fitting(object):
         elif cen_ip<self.fit_bounds['hor'][0][0]:
             self.fit_bounds['hor'][0][0]=cen_ip-0.1
 
-    def cut_profile_from_2D_img_around_center(self, img, cut_offset = {'hor':10, 'ver':20}, data_range_offset = {'hor':50, 'ver':50}, center_index = None, sum_result = True):
-
+    def cut_profile_from_2D_img_around_center(self, img, cut_offset = {'hor':10, 'ver':20}, data_range_offset = {'hor':50, 'ver':50}, center_index = None, sum_result = True, apply_offset = True):
+        if apply_offset:
+            cut_offset['hor'] = cut_offset['hor'] + self.cut_width_offset['hor']
+            cut_offset['ver'] = cut_offset['ver'] + self.cut_width_offset['ver']
         def _cut_profile_from_2D_img(img, cut_range, cut_direction, sum_result=True):
             if cut_direction=='horizontal':
                 if sum_result:
@@ -757,6 +774,8 @@ class XRD_Peak_Fitting(object):
                 pass
         except:
             pass
+        if apply_offset:
+            center_index = list(np.array(center_index) + np.array(self.cen_offset))
         data_range = {'hor':f(center_index[1],data_range_offset['hor']),'ver':f(center_index[0], data_range_offset['ver'])}
         cut_range = {'hor': f(center_index[0],cut_offset['hor']),'ver': f(center_index[1], cut_offset['ver'])}
         # print(data_range['hor'])
@@ -856,14 +875,20 @@ class XRD_Peak_Fitting(object):
         self.fit_data = {'hor':{'x':[],'y':[]},'ver':{'x':[],'y':[]}}
         fit_ip_0, fom_ip_0 = None, None
         fit_oop_0, fom_oop_0 = None, None
+        FWHM_ip_sum, FWHM_oop_sum = 0, 0
+        j_sum = 0
         peak_locating_step = True
         center_far_off_test = True
+        return_tag = ''
         #first cut with large window
         for i in range(len(self.cut_offset['hor'])):
             if i==0:
                 cycles = 1
             elif i==1:
-                cycles = 2
+                if self.use_avg_FWHM:
+                    cycles = 4
+                else:
+                    cycles = 2
             for j in range(cycles):
                 fit_p0 = {0:self.fit_p0,1:self.fit_p0_2}
                 # if self.first_frame:
@@ -871,12 +896,19 @@ class XRD_Peak_Fitting(object):
                 # else:
                 center_index = {0:self.peak_center, 1:self.peak_center}
                 cut_offset_temp =dict([(key,value[i]) for key, value in self.cut_offset.items()])
+                _apply_offset = (i==1) and (j==1)
+                if self.use_avg_FWHM:
+                    _apply_offset = (i==1) and (j>1)
+                    scale_factor = {0:0, 1:0, 2:-1, 3:1}[j]
+                    # self.cut_width_offset = {'hor':self.cut_offset['hor'][-1]*scale_factor,'ver':self.cut_offset['ver'][-1]*scale_factor}
+                    self.cut_width_offset = {'hor':3*scale_factor,'ver':3*scale_factor}
+                    self.cen_offset = [0,0]
                 data_range_offset_temp =dict([(key,value[i]) for key, value in self.data_range_offset.items()])
-                cut = self.cut_profile_from_2D_img_around_center(self.img,cut_offset_temp,data_range_offset_temp, center_index[i], sum_result = True)
+                cut = self.cut_profile_from_2D_img_around_center(self.img,cut_offset_temp,data_range_offset_temp, center_index[i], sum_result = True, apply_offset = _apply_offset)
                 #cut_mask = self.cut_profile_from_2D_img_around_center(self.mask,cut_offset_temp,data_range_offset_temp, center_index[i], sum_result = False)
                 cut_mask = {'hor':1,'ver':1}
-                cut_ip_q = self.cut_profile_from_2D_img_around_center(self.q_ip,cut_offset_temp, data_range_offset_temp, center_index[i], sum_result = False)['hor']
-                cut_oop_q = self.cut_profile_from_2D_img_around_center(self.q_oop,cut_offset_temp, data_range_offset_temp, center_index[i], sum_result = False)['ver']
+                cut_ip_q = self.cut_profile_from_2D_img_around_center(self.q_ip,cut_offset_temp, data_range_offset_temp, center_index[i], sum_result = False, apply_offset = _apply_offset)['hor']
+                cut_oop_q = self.cut_profile_from_2D_img_around_center(self.q_oop,cut_offset_temp, data_range_offset_temp, center_index[i], sum_result = False, apply_offset = _apply_offset)['ver']
                 #normalize the dead pixel contribution
                 cut = {'hor':cut['hor']/cut_mask['hor'],'ver':cut['ver']/cut_mask['ver']}
                 #print(cut['hor'])
@@ -885,9 +917,25 @@ class XRD_Peak_Fitting(object):
                 index_used = {'hor':~(np.isnan(cut['hor'])|np.isinf(cut['hor'])), 'ver':~(np.isnan(cut['ver'])|np.isinf(cut['ver']))}
                 #peak fit engine
                 try:
-                    fit_ip,fom_ip = opt.curve_fit(f=self.model, xdata=cut_ip_q[index_used['hor']], ydata=cut['hor'][index_used['hor']], p0 = fit_p0[i]['hor'], bounds = self.fit_bounds['hor'], max_nfev = 10000)
-                    fit_oop,fom_oop = opt.curve_fit(f=self.model, xdata=cut_oop_q[index_used['ver']], ydata=cut['ver'][index_used['ver']], p0 = fit_p0[i]['ver'], bounds = self.fit_bounds['ver'], max_nfev = 10000)
+                    _fit_ip,_fom_ip = opt.curve_fit(f=self.model, xdata=cut_ip_q[index_used['hor']], ydata=cut['hor'][index_used['hor']], p0 = fit_p0[i]['hor'], bounds = self.fit_bounds['hor'], max_nfev = 10000)
+                    _fit_oop,_fom_oop = opt.curve_fit(f=self.model, xdata=cut_oop_q[index_used['ver']], ydata=cut['ver'][index_used['ver']], p0 = fit_p0[i]['ver'], bounds = self.fit_bounds['ver'], max_nfev = 10000)
                     self.fit_status = True
+                    if j<=1:
+                        fit_ip, fom_ip = _fit_ip,_fom_ip 
+                        fit_oop, fom_oop = _fit_oop, _fom_oop
+                        if j==1 and i==1 and self.use_avg_FWHM:
+                            FWHM_ip_sum += _fit_ip[1]
+                            FWHM_oop_sum += _fit_oop[1]
+                            j_sum += 1
+                            #print(j_sum, _fit_ip[1], FWHM_ip_sum)
+                            #print(j_sum, _fit_oop[1], FWHM_oop_sum)
+                    else:
+                        if self.use_avg_FWHM:
+                            FWHM_ip_sum += _fit_ip[1]
+                            FWHM_oop_sum += _fit_oop[1]
+                            j_sum += 1
+                            #print(j_sum, _fit_ip[1], FWHM_ip_sum)
+                            #print(j_sum, _fit_oop[1], FWHM_oop_sum)
                 except:
                     self.fit_status = False
                     fit_ip, fom_ip = [0,0,0,0,0,0],[0]
@@ -907,6 +955,8 @@ class XRD_Peak_Fitting(object):
                     peak_center_ = [np.argmin(np.abs(self.q_oop[:,0]-fit_oop[0])),np.argmin(np.abs(self.q_ip[0,:]-fit_ip[0]))]
                 else:
                     peak_center_ = self.peak_center
+                if i ==0:
+                    self.peak_center_0 = peak_center_
                 #updaate peak center and previous peak center
                 if self.recenter:
                     self.previous_peak_center = peak_center_
@@ -922,6 +972,7 @@ class XRD_Peak_Fitting(object):
                 elif (i==1 and j==1):#in second where run j=1 and j=0, the peakcenter should be very close to each other, if not peak is not located correctly! Note 10 pixel away is only arbitrary value, which may be changed accordingly!
                     if ((not self.pot_step_scan) and np.abs(np.array(self.previous_peak_center)-np.array(peak_center_)).sum()>10 and (not self.first_frame)) or (not self.fit_status):
                         center_far_off_test = False
+                        return_tag = 'Two successive fit results is far off!! CHECK frame!! \nCurrent peak center:{},previous peak center:{}'.format(peak_center_,self.previous_peak_center)
                         print('Two successive fit results is far off!! CHECK frame!!')
                         print('current peak center:{},previous peak center:{}'.format(peak_center_,self.previous_peak_center))
                     else:#CV scan without large offset of peak center or pot_step_scan
@@ -940,11 +991,23 @@ class XRD_Peak_Fitting(object):
 
         #finish the fit and update the fit par values
         # self.update_bounds(fit_oop[0],fit_ip[0])
+        #this store the latest fit results for plotting
         self.fit_results_plot['hor'] = [copy.deepcopy(fit_ip), copy.deepcopy(fom_ip)]
         self.fit_results_plot['ver'] = [copy.deepcopy(fit_oop), copy.deepcopy(fom_oop)]
+        #also store the fit results for larger cut
+        self.fit_results_plot_0['hor'] = [fit_ip_0, fom_ip_0]
+        self.fit_results_plot_0['ver'] = [fit_oop_0, fom_oop_0]
+
+        #now merge both result if necessary to be stored in fit_results
         if self.use_first_fit_for_pos and peak_locating_step:
             fit_ip[0], fom_ip[0] = fit_ip_0[0], fom_ip_0[0]
             fit_oop[0], fom_oop[0] = fit_oop_0[0], fom_oop_0[0]
+
+        #now use the average FWHM as the final value
+        if self.use_avg_FWHM:
+            fit_ip[1] = FWHM_ip_sum / j_sum
+            fit_oop[1] = FWHM_oop_sum / j_sum
+
         '''
         def _check(old, new, level = level):
             check_result = bool((abs((np.array(old)[0:2] - np.array(new)[0:2])/np.array(old)[0:2])>level).sum())
@@ -954,15 +1017,15 @@ class XRD_Peak_Fitting(object):
             if center_far_off_test:
                 self.fit_results['hor'] = [fit_ip, fom_ip]
                 self.fit_results['ver'] = [fit_oop, fom_oop]
-                return True
+                return True, return_tag
             else:
                 self.peak_center = self.previous_peak_center
                 #print(self.fit_results['hor'],self.fit_results['ver'])
-                return False
+                return False, return_tag
         else:
             self.fit_results['hor'] = [fit_ip, fom_ip]
             self.fit_results['ver'] = [fit_oop, fom_oop]
-            return True
+            return True, return_tag
         # print fit_ip,fit_oop
 
     def save_data(self,data):

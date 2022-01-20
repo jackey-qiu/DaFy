@@ -22,7 +22,7 @@ import matplotlib
 matplotlib.use("TkAgg")
 import pyqtgraph as pg
 from PyQt5 import QtCore
-from PyQt5.QtWidgets import QCheckBox, QRadioButton
+from PyQt5.QtWidgets import QCheckBox, QRadioButton, QMessageBox
 from pyqtgraph.Qt import QtGui
 
 #customize the label of image axis (q basis instead of index basis)
@@ -57,8 +57,8 @@ class MyMainWindow(QMainWindow):
         #load ui script
         uic.loadUi(os.path.join(DaFy_path,'projects','xrv','XRV_GUI.ui'),self)
         self.setWindowTitle('Data analysis factory: XRV data analasis')
-        self.use_q_mapping = True
-        self.app_ctr=run_app(self.use_q_mapping)
+        self.use_q_mapping = self.radioButton_q.isChecked()
+        self.app_ctr=run_app(self.use_q_mapping, self.spinBox_order)
         self.current_image_no = 0
         self.current_scan_number = None
         self.bkg_intensity = 0
@@ -93,6 +93,7 @@ class MyMainWindow(QMainWindow):
             each.toggled.connect(self.update_cost_func)
         '''
         self.pushButton_remove_current_point.clicked.connect(self.remove_data_point)
+        self.pushButton_remove_single_point.clicked.connect(self.remove_current_data_point)
         self.pushButton_recenter.clicked.connect(self.recenter)
         #self.doubleSpinBox_ss_factor.valueChanged.connect(self.update_ss_factor)
         self.comboBox_p2.activated.connect(self.select_source_for_plot_p2)
@@ -105,7 +106,18 @@ class MyMainWindow(QMainWindow):
         setattr(self.app_ctr,'p2_data_source',self.comboBox_p2.currentText())
         self.timer_save_data = QtCore.QTimer(self)
         self.timer_save_data.timeout.connect(self.save_data)
+        #apply offset
+        self.pushButton_apply_cut_width_offset.clicked.connect(self.apply_cut_width_offset)
+        self.pushButton_apply_center_offset.clicked.connect(self.apply_center_offset)
         
+    def apply_cut_width_offset(self):
+        self.app_ctr.peak_fitting_instance.set_cut_width_offset({'hor':self.spinBox_cut_width_offset_hor.value(),'ver':self.spinBox_cut_width_offset_ver.value()})
+        self.recenter()
+
+    def apply_center_offset(self):
+        self.app_ctr.peak_fitting_instance.set_center_offset([self.spinBox_cen_offset_hor.value(), self.spinBox_cen_offset_ver.value()])
+        self.recenter()
+
     #to fold or unfold the config file editor
     def fold_or_unfold(self):
         text = self.pushButton_fold_or_unfold.text()
@@ -134,6 +146,15 @@ class MyMainWindow(QMainWindow):
         for each_index in range(first_index_for_current_scan+left,first_index_for_current_scan+right+1):
             self.app_ctr.data['mask_cv_xrd'][each_index] = False
             self.app_ctr.data['mask_ctr'][each_index] = False
+        self.updatePlot()
+
+    def remove_current_data_point(self):
+        #left,right = [int(each) for each in self.region_abnormal.getRegion()]
+        #self.lineEdit_abnormal_points.setText('Frame {} to Frame {}'.format(left,right))
+        first_index_for_current_scan = np.where(np.array(self.app_ctr.data['scan_no'])==self.app_ctr.img_loader.scan_number)[0][0]
+        index = int(first_index_for_current_scan + self.app_ctr.img_loader.frame_number)
+        self.app_ctr.data['mask_cv_xrd'][index] = False
+        self.app_ctr.data['mask_ctr'][index] = False
         self.updatePlot()
 
     def select_source_for_plot_p2(self):
@@ -371,14 +392,15 @@ class MyMainWindow(QMainWindow):
             else:
                 pass
             '''
+            # self._remake_img()
             ##update iso curves
             x, y = [int(each) for each in self.roi.pos()]
             w, h = [int(each) for each in self.roi.size()]
             self.iso.setData(pg.gaussianFilter(self.app_ctr.bkg_sub.img[y:(y+h),x:(x+w)], (2, 2)))
             self.iso.setPos(x,y)
             #update bkg roi
-            self.roi_bkg.setSize([w,h])
-            self.roi_bkg.setPos([x-w,y])
+            # self.roi_bkg.setSize([w,h])
+            # self.roi_bkg.setPos([x-w,y])
 
             if self.app_ctr.img_loader.frame_number ==0:
                 isoLine.setValue(self.app_ctr.bkg_sub.img[y:(y+h),x:(x+w)].mean())
@@ -386,7 +408,7 @@ class MyMainWindow(QMainWindow):
                 pass
 
             #plot others
-            handles = plot_xrv_gui_pyqtgraph(self.p1,[self.p2,self.p2_r], [self.p3,self.p3_r], [self.p4,self.p4_r],self.p5, self.p6, self.p7,self.app_ctr, self.checkBox_x_channel.isChecked())
+            handles = plot_xrv_gui_pyqtgraph(self.p1,[self.p2,self.p2_r], [self.p3,self.p3_r], [self.p4,self.p4_r],self.p5, self.p6, self.p7,self.app_ctr, self.checkBox_x_channel.isChecked(), plot_small_cut_result = self.checkBox_small_cut.isChecked())
             if len(handles) == 2:
                 self.single_point_strain_ax_handle, self.single_point_size_ax_handle = handles
             elif len(handles) == 4:
@@ -408,8 +430,12 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_peak_center.setText(str(self.app_ctr.peak_fitting_instance.peak_center))
             self.lineEdit_previous_center.setText(str(self.app_ctr.peak_fitting_instance.previous_peak_center))
             self.lcdNumber_iso.display(isoLine.value())
+            self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
+            self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
+
 
         roi.sigRegionChanged.connect(updatePlot)
+        roi_bkg.sigRegionChanged.connect(updatePlot)
         self.updatePlot = updatePlot
 
         def updateIsocurve():
@@ -465,6 +491,7 @@ class MyMainWindow(QMainWindow):
         #self.app_ctr.peak_fitting_instance.previous_peak_center = self.app_ctr.peak_fitting_instance.peak_center
         self.app_ctr.peak_fitting_instance.recenter = True
         self.updatePlot()
+        self._remake_img(self.checkBox_small_cut.isChecked())
 
     def stop_func(self):
         if not self.stop:
@@ -497,6 +524,7 @@ class MyMainWindow(QMainWindow):
         self.save_file() 
         #update the path to save data
         data_file = os.path.join(self.lineEdit_data_file_path.text(),self.lineEdit_data_file_name.text())
+        self.app_ctr.use_q_mapping = self.radioButton_q.isChecked()
         self.app_ctr.data_path = data_file
         self.app_ctr.run(self.lineEdit.text())
         self.update_poly_order(init_step=True)
@@ -556,6 +584,44 @@ class MyMainWindow(QMainWindow):
         self.timer.timeout.connect(self.plot_)
         self.timer.start(50)
 
+    def _remake_img(self, plot_small_cut = False):
+        #set image and cut on the image (NOTE:row-major index)
+        if plot_small_cut:
+            cut_values_hoz=[self.app_ctr.peak_fitting_instance.peak_center[0]+self.app_ctr.peak_fitting_instance.cen_offset[0]-(self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1] +self.app_ctr.peak_fitting_instance.cut_width_offset['hor']),self.app_ctr.peak_fitting_instance.peak_center[0]+self.app_ctr.peak_fitting_instance.cen_offset[0]+(self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1] +self.app_ctr.peak_fitting_instance.cut_width_offset['hor'])]
+            cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cen_offset[1]-(self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1] +self.app_ctr.peak_fitting_instance.cut_width_offset['ver']),self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cen_offset[1]+(self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1] +self.app_ctr.peak_fitting_instance.cut_width_offset['ver'])]
+            # cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center[1]-self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1],self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1]]
+        else:
+            cut_values_hoz=[self.app_ctr.peak_fitting_instance.peak_center_0[0]-self.app_ctr.peak_fitting_instance.cut_offset['hor'][0],self.app_ctr.peak_fitting_instance.peak_center_0[0]+self.app_ctr.peak_fitting_instance.cut_offset['hor'][0]]
+            cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center_0[1]-self.app_ctr.peak_fitting_instance.cut_offset['ver'][0],self.app_ctr.peak_fitting_instance.peak_center_0[1]+self.app_ctr.peak_fitting_instance.cut_offset['ver'][0]]
+        self.img_pyqtgraph.setImage(self.app_ctr.bkg_sub.img)
+        # cut_values_hoz, cut_values_ver = cut_values_ver, cut_values_hoz
+        self.region_cut_hor.setRegion(cut_values_hoz)
+        self.region_cut_ver.setRegion(cut_values_ver)
+        # tp.add_timer('place 3')
+
+        #set roi
+        size_of_roi = self.roi.size()
+        self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
+
+        if self.app_ctr.img_loader.frame_number == 0:
+            self.p1.autoRange() 
+            #relabel the axis
+            if self.radioButton_q.isChecked():
+                q_par = self.app_ctr.rsp_instance.q['grid_q_par'][0]
+                q_ver = self.app_ctr.rsp_instance.q['grid_q_perp'][:,0]
+                scale_ver = (max(q_ver)-min(q_ver))/(len(q_ver)-1)
+                shift_ver = min(q_ver)
+                scale_hor = (max(q_par)-min(q_par))/(len(q_par)-1)
+                shift_hor = min(q_par)
+            else:
+                scale_hor, shift_hor = 1, 0
+                scale_ver, shift_ver = 1, 0
+            ax_item_img_hor = pixel_to_q(scale = scale_hor, shift = shift_hor, orientation = 'bottom')
+            ax_item_img_ver = pixel_to_q(scale = scale_ver, shift = shift_ver, orientation = 'left')
+            ax_item_img_hor.attachToPlotItem(self.p1)
+            ax_item_img_ver.attachToPlotItem(self.p1)
+        self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
+
     def plot_(self):
         #self.app_ctr.set_fig(self.MplWidget.canvas.figure)
         # tp = timer_placer()
@@ -566,13 +632,15 @@ class MyMainWindow(QMainWindow):
         else:
             return_value = self.app_ctr.run_script()
             # tp.add_timer('place 1')
-            self.update_bkg_signal()
-            self.app_ctr.data['bkg'][-1] = self.bkg_intensity
+            # self.update_bkg_signal()
+            # self.app_ctr.data['bkg'][-1] = self.bkg_intensity
             # tp.add_timer('place 2')
             if self.app_ctr.bkg_sub.img is not None:
                 #if self.current_scan_number == None:
                 #    self.current_scan_number = self.app_ctr.img_loader.scan_number
-                self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
+                # self.lcdNumber_scan_number.display(self.app_ctr.img_loader.scan_number)
+                self._remake_img(self.checkBox_small_cut.isChecked())
+                '''
                 #set image and cut on the image (NOTE:row-major index)
                 cut_values_hoz=[self.app_ctr.peak_fitting_instance.peak_center[0]-self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1],self.app_ctr.peak_fitting_instance.peak_center[0]+self.app_ctr.peak_fitting_instance.cut_offset['hor'][-1]]
                 cut_values_ver=[self.app_ctr.peak_fitting_instance.peak_center[1]-self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1],self.app_ctr.peak_fitting_instance.peak_center[1]+self.app_ctr.peak_fitting_instance.cut_offset['ver'][-1]]
@@ -584,10 +652,8 @@ class MyMainWindow(QMainWindow):
 
                 #set roi
                 size_of_roi = self.roi.size()
-                # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
-                # tp.add_timer('place 4')
-                # self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
-                #self.p1.plot([0,400],[200,200])
+                self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.])
+
                 if self.app_ctr.img_loader.frame_number == 0:
                     self.p1.autoRange() 
                     #relabel the axis
@@ -606,6 +672,7 @@ class MyMainWindow(QMainWindow):
                     ax_item_img_hor.attachToPlotItem(self.p1)
                     ax_item_img_ver.attachToPlotItem(self.p1)
                 self.hist.setLevels(self.app_ctr.bkg_sub.img.min(), self.app_ctr.bkg_sub.img.mean()*10)
+                '''
                 # tp.add_timer('place 4.1')
                 self.updatePlot(fit = False)
                 # tp.add_timer('place 5')
@@ -614,7 +681,7 @@ class MyMainWindow(QMainWindow):
                 self.statusbar.clearMessage()
                 self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1,self.app_ctr.img_loader.total_frame_number))
                 self.progressBar.setValue((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100)
-                self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
+                # self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
                 # tp.add_timer('place 6')
                 #self.app_ctr.img_loader.frame_number
                 #self.current_image_no += 1
@@ -638,6 +705,20 @@ class MyMainWindow(QMainWindow):
         self.app_ctr.bkg_sub.center_pix = new_center
         self.app_ctr.bkg_sub.row_width = roi_size[1]
         self.app_ctr.bkg_sub.col_width = roi_size[0]
+
+def error_pop_up(msg_text = 'error', window_title = ['Error','Information','Warning'][0]):
+    msg = QMessageBox()
+    if window_title == 'Error':
+        msg.setIcon(QMessageBox.Critical)
+    elif window_title == 'Warning':
+        msg.setIcon(QMessageBox.Warning)
+    else:
+        msg.setIcon(QMessageBox.Information)
+
+    msg.setText(msg_text)
+    # msg.setInformativeText('More information')
+    msg.setWindowTitle(window_title)
+    msg.exec_()
 
 if __name__ == "__main__":
     QApplication.setStyle("windows")
