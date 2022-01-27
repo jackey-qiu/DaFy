@@ -69,6 +69,8 @@ params = [
     ]},
     {'name': 'Image_Loader', 'type': 'group', 'children': [
         {"name":"check_abnormality","type":"str","value":'False'},
+        {"name":"transpose","type":"str","value":'True'},
+        {"name":"flip","type":"str","value":'True'},
         {"name":"left_offset","type":"str","value":'10'},
         {"name":"right_offset","type":"str","value":'100'},
         {'name': 'frame_prefix', 'type': 'str', 'value': 'i20180678_2'},

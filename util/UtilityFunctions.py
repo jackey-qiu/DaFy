@@ -368,7 +368,7 @@ def image_generator(scans,img_loader,rsp_instance,peak_fitting_instance,mask_cre
     for scan in scans:
         img_loader.update_scan_info(scan)
         current_image_no = 0
-        for image in img_loader.load_frame(frame_number=0, flip=True):
+        for image in img_loader.load_frame(frame_number=0):
             rsp_instance.update_img(image,motor_angles = img_loader.motor_angles, update_q = current_image_no == 0)
             if current_image_no == 0:
                 if use_q_mapping:
@@ -390,7 +390,7 @@ def image_generator_bkg(scans,img_loader,mask_creator):
         img_loader.update_scan_info(scan)
         current_image_no = 0
         img_index_ver, img_index_hor = None, None
-        for image in img_loader.load_frame(frame_number=0, flip=True):
+        for image in img_loader.load_frame(frame_number=0):
             if current_image_no==0:
                 img_index_hor, img_index_ver = np.meshgrid(range(image.shape[1]),range(image.shape[0]))
             else:
@@ -1068,6 +1068,10 @@ class nexus_image_loader(object):
         #self.nexus_data = nxload(img_path)
         #self.get_frame_number()
 
+    def set_flip_transpose(self, flip, transpose):
+        self.flip = flip
+        self.transpose = transpose
+
     def update_scan_info_old(self,scan_number):
         self.scan_number = scan_number
         print('\nRunning scan {} now...'.format(scan_number))
@@ -1126,7 +1130,7 @@ class nexus_image_loader(object):
         self.total_frame_number = total_img_number
         return total_img_number
 
-    def load_frame_old(self,scan_number,frame_number,flip=True):
+    def load_frame_old(self,scan_number,frame_number):
         try:
             #if one frame one nxs file
             img_name='{}_{:0>5}_{:0>5}.nxs'.format(self.frame_prefix,scan_number,frame_number)
@@ -1139,24 +1143,32 @@ class nexus_image_loader(object):
             img_path=os.path.join(self.nexus_path,img_name)
             data=nxload(img_path)
             img=np.array(data.entry.instrument.detector.data[frame_number])
-        if flip:
+        if self.flip and self.transpose:
             return np.flip(img.T,1)
+        elif self.flip and (not self.transpose):
+            return np.flip(img, 1)
+        elif (not self.flip) and self.transpose:
+            return img.T
         else:
             return img
 
-    def load_frame_new(self,frame_number,flip=True, clip_boundary = {'ver':[0,10000],'hor':[0,10000]}):
+    def load_frame_new(self,frame_number,clip_boundary = {'ver':[0,10000],'hor':[0,10000]}):
         #if one frame one nxs file
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
         #img_path=os.path.join(self.nexus_path,img_name)
         #data=nxload(img_path)
         #img=np.array(data.entry.instrument.detector.data.nxdata[0])
         img=np.array(self.nexus_data.scan.data.lmbd)[frame_number]
-        if flip:
+        if self.flip and self.transpose:
             img = np.flip(img.T,1)
+        elif self.flip and (not self.transpose):
+            img = np.flip(img, 1)
+        elif (not self.flip) and self.transpose:
+            img = img.T
         img = img[clip_boundary['ver'][0]:clip_boundary['ver'][1],clip_boundary['hor'][0]:clip_boundary['hor'][1]]
         return img
 
-    def load_one_frame(self,frame_number,flip = True):
+    def load_one_frame(self,frame_number):
         #if one frame one nxs file
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
         #img_path=os.path.join(self.nexus_path,img_name)
@@ -1169,8 +1181,12 @@ class nexus_image_loader(object):
                 #print(img)
                 if img is None:
                     img=self.nexus_data_1.entry.instrument.detector.data._get_filedata(frame_number-1)
-                if flip:
+                if self.flip and self.transpose:
                     img = np.flip(img.T,1)
+                elif self.flip and (not self.transpose):
+                    img = np.flip(img, 1)
+                elif (not self.flip) and self.transpose:
+                    img = img.T
                 img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                         self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
                 #normalized the intensity by the monitor and trams counters
@@ -1187,9 +1203,12 @@ class nexus_image_loader(object):
                 img_path_1=os.path.join(self.nexus_path,img_name.replace(".nxs",""),'lmbd',img_name_1)
                 self.nexus_data_1 = nxload(img_path_1)
                 img=self.nexus_data_1.entry.instrument.detector.data._get_filedata(0)
-                
-                if flip:
+                if self.flip and self.transpose:
                     img = np.flip(img.T,1)
+                elif self.flip and (not self.transpose):
+                    img = np.flip(img, 1)
+                elif (not self.flip) and self.transpose:
+                    img = img.T
                 img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                         self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
                 #normalized the intensity by the monitor and trams counters
@@ -1198,7 +1217,7 @@ class nexus_image_loader(object):
                 self.extract_HKL(frame_number)
                 return img/self.extract_transm_and_mon(frame_number)
 
-    def load_frame(self,frame_number,flip=True):
+    def load_frame(self,frame_number):
         #if one frame one nxs file
         #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
         #img_path=os.path.join(self.nexus_path,img_name)
@@ -1215,8 +1234,12 @@ class nexus_image_loader(object):
                 self.extract_pot_current(frame_number)
                 self.extract_HKL(frame_number)
                 self.frame_number = frame_number
-                if flip:
+                if self.flip and self.transpose:
                     img = np.flip(img.T,1)
+                elif self.flip and (not self.transpose):
+                    img = np.flip(img, 1)
+                elif (not self.flip) and self.transpose:
+                    img = img.T
                 img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                         self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
                 #normalized the intensity by the monitor and trams counters
@@ -1240,9 +1263,12 @@ class nexus_image_loader(object):
                 self.extract_pot_current(frame_number)
                 self.extract_HKL(frame_number)
                 self.frame_number = frame_number
-                
-                if flip:
+                if self.flip and self.transpose:
                     img = np.flip(img.T,1)
+                elif self.flip and (not self.transpose):
+                    img = np.flip(img, 1)
+                elif (not self.flip) and self.transpose:
+                    img = img.T
                 img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
                         self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
                 #normalized the intensity by the monitor and trams counters
@@ -1364,16 +1390,20 @@ class nexus_image_loader(object):
             #if all frames in one nxs file
             data=nxload(img_path)
             img=np.array(data.entry.instrument.detector.data[frame_number])
-        if flip:
+        if self.flip and self.transpose:
             return np.flip(img.T,1)
+        elif self.flip and (not self.transpose):
+            return np.flip(img, 1)
+        elif (not self.flip) and self.transpose:
+            return img.T
         else:
             return img
 
-    def show_frame(self,scan_number,frame_number,one_frame_in_one_nxs=True,flip=True):
+    def show_frame(self,scan_number,frame_number,one_frame_in_one_nxs=True):
         img=self.load_frame(scan_number,frame_number,one_frame_in_one_nxs,flip)
         fig,ax=pyplot.subplots()
         pyplot.imshow(img,cmap='jet')
-        if flip:
+        if self.flip:
             pyplot.colorbar(extend='both',orientation='vertical')
         else:
             pyplot.colorbar(extend='both',orientation='horizontal')

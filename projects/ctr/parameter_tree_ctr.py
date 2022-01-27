@@ -46,6 +46,8 @@ params_petra3 = [
     ]},
     {'name': 'Image_Loader', 'type': 'group', 'children': [
         {"name":"check_abnormality","type":"str","value":'False'},
+        {"name":"flip","type":"str","value":'True'},
+        {"name":"transpose","type":"str","value":'True'},
         {'name': 'frame_prefix', 'type': 'str', 'value': 'i20180678_2'},
         {'name':'nexus_path','type':'str','value':'F://P23_I20180678/raw'},
         {'name':'constant_motors','type':'str','value':"{}"},

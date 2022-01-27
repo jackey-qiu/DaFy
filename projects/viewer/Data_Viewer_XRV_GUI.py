@@ -129,7 +129,31 @@ class MyMainWindow(QMainWindow):
         self.plot_tafel = plot_tafel_from_formatted_cv_info
         self.init_pandas_model_ax_format()
         self.init_pandas_model_cv_setting()
+        self.pushButton_bkg_fit.clicked.connect(self.perform_bkg_fitting)
+        self.pushButton_extract_cv.clicked.connect(self.extract_cv_data)
 
+    def perform_bkg_fitting(self):
+        order = 0
+        if self.checkBox_order1.isChecked():
+            order+=1
+        if self.checkBox_order2.isChecked():
+            order+=2
+        if self.checkBox_order3.isChecked():
+            order+=3
+        if self.checkBox_order4.isChecked():
+            order+=4
+        fct = 'atq'
+        if self.radioButton_stq.isChecked():
+            fct = 'stq'
+        if self.radioButton_sh.isChecked():
+            fct = 'sh'
+        if self.radioButton_ah.isChecked():
+            fct = 'ah'
+        s = self.doubleSpinBox_ss_factor.value()
+        scan_rate = float(self.lineEdit_scan_rate.text())
+        charge = self.widget.perform_bkg_fitting(order, s, fct, scan_rate)
+        self.lineEdit_charge.setText(f'{charge} mC/cm2')
+        
     def init_pandas_model_ax_format(self):
         data_ = {}
         data_['use'] = [True]*6
@@ -349,6 +373,19 @@ class MyMainWindow(QMainWindow):
         elif plot_channel == 'potential':
             ax.plot(range(len(current)),RHE(pot,pH=ph),label='',color = color)
 
+    def extract_cv_data(self):
+        scan_no = int(self.comboBox_scans_3.currentText())
+        file_name,which_cycle,cv_scale_factor, smooth_length, smooth_order, color, ph, func_name= self.plot_lib[scan_no]
+        func = eval('self.cv_tool.{}'.format(func_name))
+        results = func(file_name, which_cycle)
+        pot,current = results
+        pot_filtered, current_filtered = pot, current
+        pot_filtered = RHE(pot_filtered,pH=ph)
+        # print(file_name,func_name,pot,current)
+        #smooth the current due to beam-induced spikes
+        pot_filtered, current_filtered = self.cv_tool.filter_current(pot_filtered, current_filtered*8, smooth_length, smooth_order)
+        self.widget.set_data(pot_filtered, current_filtered)
+        #return pot_filtered, current_filtered
 
     def plot_cv_from_external(self,ax,scan_no,marker_pos):
         file_name,which_cycle,cv_scale_factor, smooth_length, smooth_order, color, ph, func_name= self.plot_lib[scan_no]
@@ -360,7 +397,12 @@ class MyMainWindow(QMainWindow):
         # print(file_name,func_name,pot,current)
         #smooth the current due to beam-induced spikes
         pot_filtered, current_filtered = self.cv_tool.filter_current(pot_filtered, current_filtered*cv_scale_factor, smooth_length, smooth_order)
-
+        '''
+        if scan_no == 23999:
+            self.ax_test = ax
+            self.pot_test = pot_filtered
+            self.current_test = current_filtered*8
+        '''
         ax.plot(pot_filtered,current_filtered*8,label='',color = color)
         ax.plot(RHE(pot,pH=ph),current*8,ls=':',label='',color = color)
         #get the position to show the scaling text on the plot
@@ -790,6 +832,8 @@ class MyMainWindow(QMainWindow):
         self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
         self.comboBox_scans_2.clear()
         self.comboBox_scans_2.addItems([str(each) for each in sorted(scans)])
+        self.comboBox_scans_3.clear()
+        self.comboBox_scans_3.addItems([str(each) for each in sorted(scans)])
         self.image_range_info = {}
         self.plainTextEdit_img_range.setPlainText("")
         scans.sort()
@@ -1863,6 +1907,8 @@ class MyMainWindow(QMainWindow):
         self.comboBox_scans.addItems([str(each) for each in sorted(scans)])
         self.comboBox_scans_2.clear()
         self.comboBox_scans_2.addItems([str(each) for each in sorted(scans)])
+        self.comboBox_scans_3.clear()
+        self.comboBox_scans_3.addItems([str(each) for each in sorted(scans)])
 
 if __name__ == "__main__":
     QApplication.setStyle("windows")

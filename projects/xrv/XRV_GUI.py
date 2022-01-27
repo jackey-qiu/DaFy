@@ -680,7 +680,7 @@ class MyMainWindow(QMainWindow):
             if return_value:
                 self.statusbar.clearMessage()
                 self.statusbar.showMessage('Working on scan{}: we are now at frame{} of {} frames in total!'.format(self.app_ctr.img_loader.scan_number,self.app_ctr.img_loader.frame_number+1,self.app_ctr.img_loader.total_frame_number))
-                self.progressBar.setValue((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100)
+                self.progressBar.setValue(int((self.app_ctr.img_loader.frame_number+1)/float(self.app_ctr.img_loader.total_frame_number)*100))
                 # self.lcdNumber_frame_number.display(self.app_ctr.img_loader.frame_number+1)
                 # tp.add_timer('place 6')
                 #self.app_ctr.img_loader.frame_number
