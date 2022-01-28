@@ -601,7 +601,7 @@ class MyMainWindow(QMainWindow):
 
         #set roi
         size_of_roi = self.roi.size()
-        self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[1]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[0]/2.])
+        self.roi.setPos([self.app_ctr.peak_fitting_instance.peak_center[1]-size_of_roi[0]/2.,self.app_ctr.peak_fitting_instance.peak_center[0]-size_of_roi[1]/2.])
 
         if self.app_ctr.img_loader.frame_number == 0:
             self.p1.autoRange() 
