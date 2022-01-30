@@ -131,6 +131,7 @@ class MyMainWindow(QMainWindow):
         self.init_pandas_model_cv_setting()
         self.pushButton_bkg_fit.clicked.connect(self.perform_bkg_fitting)
         self.pushButton_extract_cv.clicked.connect(self.extract_cv_data)
+        self.pushButton_project.clicked.connect(self.project_to_master)
 
     def perform_bkg_fitting(self):
         order = 0
@@ -153,7 +154,18 @@ class MyMainWindow(QMainWindow):
         scan_rate = float(self.lineEdit_scan_rate.text())
         charge = self.widget.perform_bkg_fitting(order, s, fct, scan_rate)
         self.lineEdit_charge.setText(f'{charge} mC/cm2')
-        
+
+    def project_to_master(self):
+        scan_no = int(self.comboBox_scans_3.currentText())
+        index_lf, index_rg = list(map(int,list(self.widget.region.getRegion())))
+        pot = self.widget.p3_handle.getData()[1][index_lf:index_rg]
+        current_bkg = self.widget.p1_bkg_handle.getData()[1][index_lf:index_rg]
+        cv_scale_factor= self.plot_lib[scan_no][2]
+        getattr(self,'plot_axis_scan{}'.format(scan_no))[0].plot(pot, current_bkg * cv_scale_factor, '--k')
+        self.mplwidget.fig.tight_layout()
+        self.mplwidget.fig.subplots_adjust(wspace=0.04,hspace=0.04)
+        self.mplwidget.canvas.draw()
+
     def init_pandas_model_ax_format(self):
         data_ = {}
         data_['use'] = [True]*6
@@ -1594,6 +1606,11 @@ class MyMainWindow(QMainWindow):
                 print('Fail to cal charge info. Check!')
 
     def _do_text_label(self, scan, count_pH13, x_min_value, y_max_values):
+        #overwrite max_y using the format setting
+        if 'master' in self.tick_label_settings:
+            if 'current' in self.tick_label_settings['master']:
+                y_max_values[0] = self.tick_label_settings['master']['current']['locator'][-1] + float(self.tick_label_settings['master']['current']['padding'])
+
         #extract color
         try:#from cv settings
             _,_,_,_,_,color, _, _ = self.plot_lib[scan]
@@ -1624,10 +1641,12 @@ class MyMainWindow(QMainWindow):
         else:
             text = ''
         #set label here
-        getattr(self,'plot_axis_scan{}'.format(scan))[0].text(x_min_value, y_max_values[0]*0.8,text,color = color,fontsize=11)
+        text_obj = getattr(self,'plot_axis_scan{}'.format(scan))[0].text(x_min_value, y_max_values[0]*0.8,text,color = color,fontsize=11)
+        setattr(self, f'text_obj_{scan}', text_obj)
         return count_pH13
 
     def _decorate_axis_tick_labels(self, scan, channel, channel_index, x_min_value, x_max_value, y_min_values, y_max_values):
+
         if self.plot_label_x[self.scans.index(scan)] == 'potential':
             if 'master' in self.tick_label_settings:
                 if 'potential' in self.tick_label_settings['master']:

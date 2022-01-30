@@ -408,7 +408,7 @@ class create_mask():
         remove_q_range = {'par':remove_q_par,'ver':remove_q_ver}
         remove_partial_range = {'point_couple':line_strike_segments, 'pixel_width':line_strike_width}
 
-        def _find_pixel_index_from_q(grid_q_par, grid_q_ver, point):
+        def _find_pixel_index_from_q(grid_q_ver, grid_q_par, point):
             q_par_one_row = grid_q_par[0,:]
             q_ver_one_col = grid_q_ver[:,0]
             qx,qy = point

@@ -564,9 +564,8 @@ class MyMainWindow(QMainWindow):
 
     def save_file_as(self):
         path, _ = QFileDialog.getSaveFileName(self, "Save file", "", "Text documents (*.txt);All files (*.*)")
-        text = self.textEdit.toPlainText()
-        with open(path, 'w') as f:
-            f.write(text)
+        # text = self.textEdit.toPlainText()
+        self.widget_config.save_parameter(path)
         self.statusbar.showMessage('Config file is saved as {}!'.format(path))
 
     def save_file(self):
