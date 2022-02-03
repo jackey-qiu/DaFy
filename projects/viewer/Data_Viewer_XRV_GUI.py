@@ -108,6 +108,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_cal_charge_2.clicked.connect(self.calculate_charge_2)
         # self.pushButton_plot_reaction_order.clicked.connect(self.cv_tool.plot_reaction_order_with_pH)
         self.pushButton_plot_reaction_order.clicked.connect(self.plot_reaction_order_and_tafel)
+        self.pushButton_get_pars.clicked.connect(self.project_cv_settings)
         
         #self.pushButton_save_data.clicked.connect(self.save_data_method)
         #self.pushButton_save_xrv_data.clicked.connect(self.save_xrv_data)
@@ -296,6 +297,52 @@ class MyMainWindow(QMainWindow):
             self.tableView_cv_setting.resizeColumnsToContents()
             self.tableView_cv_setting.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
 
+    def project_cv_settings(self):
+        num_items = self.pandas_model_cv_setting._data.shape[0]
+        pot_padding = eval(self.pandas_model_in_ax_format._data.iloc[0,4])
+        pot_min = eval(self.pandas_model_in_ax_format._data.iloc[0,3])[0]-pot_padding
+        pot_max = eval(self.pandas_model_in_ax_format._data.iloc[0,3])[-1]+pot_padding
+        pot_bounds = f'[{pot_min},{pot_max}]'
+
+        current_padding = eval(self.pandas_model_in_ax_format._data.iloc[1,4])
+        current_min = eval(self.pandas_model_in_ax_format._data.iloc[1,3])[0]-current_padding
+        current_max = eval(self.pandas_model_in_ax_format._data.iloc[1,3])[-1]+current_padding
+        current_bounds = f'[{current_min},{current_max}]'
+
+        key_value_map = {'Data_Info': 
+                                    {'sequence_id':str(list(map(eval,self.pandas_model_cv_setting._data['scan'].to_list()))),
+                                     'selected_scan':str(list(map(eval,self.pandas_model_cv_setting._data['scan'].to_list()))),
+                                     'cv_folder':self.lineEdit_cv_folder.text(),
+                                     'path':str(self.pandas_model_cv_setting._data['cv_name'].to_list()),
+                                     'ph':str(list(map(eval, self.pandas_model_cv_setting._data['pH'].to_list())))},
+                          'General_Format_Settings':
+                                     {'fmt':"['-']*{}".format(num_items),
+                                      'color':str(self.pandas_model_cv_setting._data['color'].to_list())},
+                          'Axis_Format_Settings':
+                                      {'cv_bounds_pot':pot_bounds+'+'+'+'.join(self.pandas_model_in_ax_format._data.iloc[0,3:].to_list()),
+                                       'cv_bounds_current':current_bounds+'+'+'+'.join(self.pandas_model_in_ax_format._data.iloc[1,3:].to_list()),
+                                       'cv_show_tick_label_x':str([False]*(num_items-1) + [True]),
+                                       'cv_show_tick_label_y':str([True]*num_items)
+                                      },
+                          'Data_Analysis_settings':
+                                      {'cv_scale_factor':str([30]*num_items),
+                                       'scale_factor_text_pos':str([(1.35,2.0)]*num_items),
+                                       'cv_spike_cut':str([0.002]*num_items),
+                                       'scan_rate':str([0.005]*num_items),
+                                       'resistance':str([100]*num_items),
+                                       'which_cycle':str([1]*num_items),
+                                       'method':"['extract_cv_file_fouad']*{}".format(num_items),
+                                       'pot_range':str([[1.2,1.6]]*num_items),
+                                       'pot_starts_tafel':str([1.68]*num_items),
+                                       'pot_ends_tafel':str([1.72]*num_items),
+                                      }
+                        }
+
+        for each_section in key_value_map:
+            for each_item in key_value_map[each_section]:
+                print(each_section, each_item)
+                self.widget_par_tree.set_field(each_section, each_item, key_value_map[each_section][each_item])
+
     def make_plot_lib(self):
         self.plot_lib = {}
         if hasattr(self, 'textEdit_plot_lib'):
@@ -308,7 +355,7 @@ class MyMainWindow(QMainWindow):
                     # scan, cv, cycle, cutoff,scale,color, ph, func = each.replace(" ","").rstrip().rsplit(',')
                     scan, cv, cycle, scale, length, order, color, ph, func = each.replace(" ","").rstrip().rsplit(',')
                     cv_name = os.path.join(folder,cv)
-                    self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
+                    self.plot_lib[int(scan)] = [cv_name,eval(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
         if hasattr(self,'tableView_cv_setting'):
             folder = self.lineEdit_cv_folder.text()
             if folder=='':
@@ -317,7 +364,7 @@ class MyMainWindow(QMainWindow):
                 if self.pandas_model_cv_setting._data.iloc[each,0]:
                     scan, cv, cycle, scale, length, order, color, ph, func = self.pandas_model_cv_setting._data.iloc[each,1:].to_list()
                     cv_name = os.path.join(folder,cv)
-                    self.plot_lib[int(scan)] = [cv_name,int(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
+                    self.plot_lib[int(scan)] = [cv_name,eval(cycle),eval(scale),eval(length), eval(order),color,eval(ph),func]
 
 
     #data format based on the output of IVIUM potentiostat
@@ -402,8 +449,18 @@ class MyMainWindow(QMainWindow):
     def plot_cv_from_external(self,ax,scan_no,marker_pos):
         file_name,which_cycle,cv_scale_factor, smooth_length, smooth_order, color, ph, func_name= self.plot_lib[scan_no]
         func = eval('self.cv_tool.{}'.format(func_name))
-        results = func(file_name, which_cycle)
-        pot,current = results
+        pot, current = [], []
+        if type(which_cycle)==list:
+            for each in which_cycle:
+                _pot, _current = func(file_name, each)
+                pot = pot + list(_pot)
+                current = current + list(_current)
+            pot, current = np.array(pot), np.array(current)
+        elif type(which_cycle)==int:
+            results = func(file_name, which_cycle)
+            pot,current = results
+        else:
+            print('unsupported cycle index:', which_cycle)
         pot_filtered, current_filtered = pot, current
         pot_filtered = RHE(pot_filtered,pH=ph)
         # print(file_name,func_name,pot,current)
@@ -435,7 +492,10 @@ class MyMainWindow(QMainWindow):
         if scan_no not in self.charge_info:
             self.charge_info[scan_no] = {}
         for pot_range in pot_ranges:
-            charge_cv, output = self.cv_tool.calculate_pseudocap_charge_stand_alone(pot_filtered, current_filtered/cv_scale_factor*8, scan_rate = scan_rate, pot_range = pot_range)
+            try:
+                charge_cv, output = self.cv_tool.calculate_pseudocap_charge_stand_alone(pot_filtered, current_filtered/cv_scale_factor*8, scan_rate = scan_rate, pot_range = pot_range)
+            except:
+                charge_cv = 0
             if pot_range not in self.charge_info[scan_no]:
                 self.charge_info[scan_no][pot_range] = {'skin_charge':0,'film_charge':0,'total_charge':charge_cv}
             else:
@@ -1285,7 +1345,7 @@ class MyMainWindow(QMainWindow):
             coord_top_left = np.array([eval(bounds_pot)[0]-float(padding_pot),eval(bounds_current)[1]+float(padding_current)])
             offset = np.array(self.cv_tool.info['index_header_pos_offset_cv'])
             coord_top_index_marker = coord_top_left+offset
-            label_map = dict(zip(range(10),list('abcdefghij')))
+            label_map = dict(zip(range(26),list('abcdefghijklmnopqrstuvwxyz')))
             each.text(*coord_top_index_marker, '{})'.format(label_map[i]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
             #set pH label as title
             pH_text = 'pH {}'.format(self.cv_tool.info['ph'][i_full])

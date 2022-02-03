@@ -1,0 +1,10 @@
+pyqtgraph==0.11.1
+QDarkStyle==2.8.1
+matplotlib==3.3.0
+pandas==1.0.5
+bitmex_ws==0.4.0
+scipy==1.5.2
+mpi4py==3.0.3
+numpy==1.19.0
+PyQt5==5.15.6
+util==0.0.1

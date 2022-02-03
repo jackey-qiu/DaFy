@@ -1,0 +1,17 @@
+QDarkStyle==2.8.1
+scipy==1.5.2
+pyqtgraph==0.11.1
+traitsui==7.0.1
+matplotlib==3.3.0
+bitmex_ws==0.4.0
+opencv_python_headless==4.5.5.62
+pyface==7.0.1
+periodictable==1.5.2
+traits==6.1.0
+pandas==1.0.5
+numpy==1.19.0
+imageio==2.9.0
+mayavi==4.7.2.dev0
+PyOpenGL==3.1.5
+PyQt5==5.15.6
+util==0.0.1

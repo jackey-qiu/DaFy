@@ -14,6 +14,6 @@ matplotlib: pip3 install matplotlib
 numpy:pip3 install numpy
 scipy:pip3 install scipy
 imageio: pip3 install imageio==2.9.0
-cv2: pip3 install opencv-python==4.1.2.30
+cv2: pip3 install opencv-python-headless
 
 

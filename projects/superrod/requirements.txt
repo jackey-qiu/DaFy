@@ -1,13 +1,10 @@
 openpyxl==3.0.4
+scipy==1.5.2
 pyqtgraph==0.11.1
 numpy==1.19.0
-QDarkStyle==2.8.1
-ray==1.1.0
-scipy==1.5.2
 psutil==5.8.0
 pandas==1.0.5
 matplotlib==3.3.0
-asposestorage==1.0.2
-chemlab==1.1
-parameters==0.2.1
-PyQt5==5.15.4
+QDarkStyle==2.8.1
+ray==1.1.0
+PyQt5==5.15.6

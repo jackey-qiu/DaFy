@@ -102,6 +102,9 @@ class Parameters(ParameterTree):
         with open(config_file,'w') as config_file:
             config.write(config_file)
 
+    def set_field(self, section_name, field_name, value):
+        self.par.param(section_name).param(field_name).setValue(str(value))
+
     def update_parameter_in_solver(self,parent):
         diffev_solver = parent.run_fit.solver.optimizer
         diffev_solver.set_km(self.par.param('Diff.Ev.').param('k_m').value())
