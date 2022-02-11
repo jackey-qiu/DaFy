@@ -382,6 +382,9 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.texts = [[0,0,0,'o']]
         self.text_selected_rod = []
         self.text_item_selected_rod = None
+        self.text_item_sym_rods = None
+        self.text_sym_rods = []
+
         self.items_subject_to_transformation = []
         self.items_subject_to_recreation = []
 
@@ -840,6 +843,19 @@ class GLViewWidget_cum(gl.GLViewWidget):
         self.text_item_selected_rod = self.items[-1]
         self.update()
 
+    def update_text_item_sym_rods(self):
+        texts = [CustomTextItem(*each, font_size = 20) for each in self.text_sym_rods]
+        for text in texts:
+            text.setGLViewWidget(self)
+            self.addItem(text)
+        if self.text_item_sym_rods!=None:
+            for each in self.text_item_sym_rods:
+                try:
+                    self.removeItem(each) 
+                except:
+                    pass
+        self.text_item_sym_rods = self.items[-len(texts):]
+        self.update()
 
     def update_structure(self, xyz_dir = True):
         self.apply_xyz_rotation()

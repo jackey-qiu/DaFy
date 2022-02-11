@@ -17,7 +17,7 @@ sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'EnginePool'))
 sys.path.append(os.path.join(DaFy_path,'FilterPool'))
 sys.path.append(os.path.join(DaFy_path,'util'))
-from UtilityFunctions import PandasModel
+from UtilityFunctions import PandasModel, colorline
 from cv_tool import cvAnalysis
 from charge_calculation import calculate_charge
 from PlotSetup import data_viewer_plot_cv, RHE, plot_tafel_from_formatted_cv_info
@@ -1487,7 +1487,11 @@ class MyMainWindow(QMainWindow):
                 if scan!=self.scans[0]:
                     getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values,fmt,markersize = self.spinBox_marker_size.value())
             if self.checkBox_show_smoothed_curve.isChecked():
-                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values_smooth,'-')
+                # x, y = self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]], y_values_smooth
+                # z = np.linspace(0, 1, len(x))
+                # line_segment = colorline(x, y, z, cmap=plt.get_cmap('binary'), linewidth=3)
+                # getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].add_collection(line_segment)
+                getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]],y_values_smooth,'-', color = '0.4')
             #plot the slope line segments
             cases = self._plot_slope_segment(scan = scan, channel = channel, channel_index = channel_index, y_values_smooth = y_values_smooth, 
                                         slope_info = slope_info, seperators = seperators,  marker_index_container = marker_index_container)
@@ -1536,7 +1540,7 @@ class MyMainWindow(QMainWindow):
             if self.checkBox_merge.isChecked() and scan!=self.scans[0]: 
                 #if merged than plot the profile also at column 0 corresponding to self.scans[0]
                 getattr(self,'plot_axis_scan{}'.format(self.scans[0]))[channel_index].plot(x_values,y_values,fmt,markersize = self.spinBox_marker_size.value())
-            if self.checkBox_show_smoothed_curve.isChecked() and ('strain' not in channel) and (channel!='potential'):#not show smooth line for grain size channels
+            if self.checkBox_show_smoothed_curve.isChecked() and (channel!='potential'):#not show smooth line for grain size channels
                 getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot(x_values,y_values_smooth, fmt, color = 'red', lw=2.5, marker = None, ls='-')
             if self.checkBox_show_marker.isChecked():#also display the bounds for specified pot_ranges
                 getattr(self,'plot_axis_scan{}'.format(scan))[channel_index].plot([x_values[iii] for iii in marker_index_container],[y_values_smooth[iii] for iii in marker_index_container],'k*')

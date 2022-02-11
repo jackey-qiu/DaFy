@@ -217,6 +217,7 @@ class MyMainWindow(QMainWindow):
         # self.pushButton_convert_xyz.clicked.connect(self.cal_abc)
         self.pushButton_convert_hkl.clicked.connect(self.cal_qxqyqz)
         self.pushButton_convert_qs.clicked.connect(self.cal_hkl)
+        self.pushButton_extract.clicked.connect(self.extract_rod_from_a_sym_list)
         self.pushButton_calculate_hkl_reference.clicked.connect(self.cal_hkl_in_reference)
         self.pushButton_lscan.clicked.connect(lambda:self.calc_angs_in_scan(scan_type = 'l'))
         self.pushButton_escan.clicked.connect(lambda:self.calc_angs_in_scan(scan_type = 'energy'))
@@ -301,6 +302,11 @@ class MyMainWindow(QMainWindow):
         plt.rcParams['ytick.minor.width'] = 1
         plt.rcParams['mathtext.default']='regular'
         #style.use('ggplot','regular')
+
+    def extract_rod_from_a_sym_list(self):
+        self.comboBox_names.setCurrentText(self.comboBox_working_substrate.currentText())
+        self.comboBox_bragg_peak.setCurrentText(self.comboBox_sym_HKL.currentText())
+        self.extract_peaks_in_zoom_viewer(symHKLs = [self.comboBox_sym_HKL.itemText(i) for i in range(self.comboBox_sym_HKL.count())])
 
     def get_simulated_hkl(self, x, y):
             
@@ -852,6 +858,20 @@ class MyMainWindow(QMainWindow):
         self.lineEdit_qz.setText(str(round(qz,4)))
         self.lineEdit_q_par.setText(str(round((qx**2+qy**2)**0.5,4)))
         self.cal_q_and_2theta()
+        sym_hkls = self._find_sym_hkl(name, structure, round((qx**2+qy**2)**0.5,4), round(qz, 4))
+        self.comboBox_sym_HKL.clear()
+        self.comboBox_sym_HKL.addItems([str(each) for each in sym_hkls])
+
+    def _find_sym_hkl(self, substrate_tag, structure, q_par, qz):
+        all_hkls = [list(each[-2]) for each in self.peaks_dict[substrate_tag]]
+        target = []
+        for hkl in all_hkls:
+            qx, qy, qz_ = structure.lattice.q(hkl)
+            q_par_ = round((qx**2+qy**2)**0.5,4)
+            qz_ = round(qz_, 4)
+            if(abs(qz-qz_) + abs(q_par - q_par_))<0.01:
+                target.append(hkl)
+        return target
 
     def cal_hkl(self):
         if self.lineEdit_qx.text()=='' or self.lineEdit_qy.text()=='' or self.lineEdit_qz.text()=='':
@@ -1069,7 +1089,7 @@ class MyMainWindow(QMainWindow):
             for each in self.widget_glview.sphere_items_according_to_substrate_and_hkl[name]:
                 self.widget_glview.sphere_items_according_to_substrate_and_hkl[name][each].show()
 
-    def extract_peaks_in_zoom_viewer(self):
+    def extract_peaks_in_zoom_viewer(self,symHKLs = []):
         structure = None
         for each in self.structures:
             if each.name == self.comboBox_names.currentText():
@@ -1083,7 +1103,14 @@ class MyMainWindow(QMainWindow):
             sphere_key = self.extract_Bragg_peaks_along_a_rod(self.comboBox_names.currentText(), hkl)
             self._show_specified_items(name = self.comboBox_names.currentText(), sphere_key = sphere_key, line_key = [tuple(hkl)])
         #hk.append(0)
-        qx, qy,_ = each.lattice.RecTM.dot(hkl)
+        qx, qy,_ = structure.lattice.RecTM.dot(hkl)
+        qxs_sym, qys_sym = [], []
+        if type(symHKLs)==list:
+            for each in symHKLs:
+                if each!=self.comboBox_bragg_peak.currentText():
+                    qx_, qy_, _ = structure.lattice.RecTM.dot(list(eval(each)))
+                    qxs_sym.append(qx_)
+                    qys_sym.append(qy_)
         # print('HK and QX and Qy',hk,qx,qy)
         peaks_temp = []
         text_temp = []
@@ -1116,7 +1143,11 @@ class MyMainWindow(QMainWindow):
         self.widget_glview_zoomin.spheres = peaks_temp
         self.widget_glview_zoomin.texts = text_temp
         self.widget_glview.text_selected_rod = list(self.widget_glview.RM.dot([qx,qy,self.qz_lims[1]]))+['x']
+        self.widget_glview.text_sym_rods = [list(self.widget_glview.RM.dot([*each,self.qz_lims[1]]))+['S'] for each in zip(qxs_sym, qys_sym)]
+
         self.widget_glview.update_text_item_selected_rod()
+        self.widget_glview.update_text_item_sym_rods()
+
         self.widget_glview_zoomin.show_structure()
 
     def update_HKs_list(self):
