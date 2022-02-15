@@ -50,6 +50,7 @@ class MyMainWindow(QMainWindow):
     def __init__(self, parent = None):
         super(MyMainWindow, self).__init__(parent)
         uic.loadUi(os.path.join(DaFy_path,'projects','viewer','data_viewer_xrv_gui.ui'),self)
+        self.lineEdit_data_range.hide()
         # self.setupUi(self)
         # plt.style.use('ggplot')
         self.cv_tool = cvAnalysis()
@@ -655,7 +656,7 @@ class MyMainWindow(QMainWindow):
             pass
 
     def print_data_summary_(self):
-        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain"]
+        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain","skin_vol_fraction","d_skin_avg"]
         output_data = []
         for scan in self.scans:
             for pot_range in self.pot_ranges[scan]:
@@ -666,7 +667,9 @@ class MyMainWindow(QMainWindow):
                 size_ver = [round(each, 2) for each in list(self.grain_size_info_all_scans[scan][pot_range]["vertical"])]
                 strain_hor = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["horizontal"])]
                 strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
-                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver
+                skin_vol_fraction = [round((size_ver[1]/size_ver[0] + 2*size_hor[1]/size_hor[0])*100,3)]
+                d_skin_avg = [round(size_ver[1] + 2* size_ver[0]/size_hor[0] * size_hor[1], 4)] #refer to ACS catalysis paper https://doi.org/10.1021/acscatal.1c05169 SI (Section 2)
+                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver + skin_vol_fraction+ d_skin_avg
                 output_data.append(data_temp)
         data_df = pd.DataFrame(np.array(output_data),columns = header)
         self.widget_terminal.update_name_space('charge_info',self.charge_info)
@@ -687,6 +690,8 @@ class MyMainWindow(QMainWindow):
         output_text.append("*q_cv(mc/m2): charge calculated from electrochemistry data (CV data)")
         output_text.append("*(d)_hor/ver_size(nm): horizontal/vertical size or the associated change with a d_ prefix")
         output_text.append("*(d)_hor/ver_strain(%): horizontal/vertical strain or the associated change with a d_ prefix")
+        output_text.append("*skin_vol_fraction (%): The skin volume fraction wrt the total film volume")
+        output_text.append("*d_skin_avg (nm): The average thickness of the skin layer normalized to surface area of the crystal")
         for i in range(len(output_text)):
             output_text[i] = _tag_p(output_text[i])
 
@@ -1437,6 +1442,7 @@ class MyMainWindow(QMainWindow):
                 self._format_axis(getattr(self,'plot_axis_scan{}'.format(scan))[-1])
 
     def _prepare_data_range_and_pot_range(self):
+        '''
         data_range = self.lineEdit_data_range.text().rsplit(',')
         if len(data_range) == 1:
             data_range = [list(map(int,data_range[0].rsplit('-')))]*len(self.scans)
@@ -1444,7 +1450,7 @@ class MyMainWindow(QMainWindow):
             assert len(data_range) == len(self.scans)
             data_range = [list(map(int,each.rsplit('-'))) for each in data_range]
         self.data_range = data_range
-
+        '''
         # pot_range is a partial set from the specified data_ranges
         # which this, it is more intuitive to pick the data points for variantion calculation (bar chart)
         pot_range = self.lineEdit_potential_range.text().rsplit(',')
@@ -1459,6 +1465,159 @@ class MyMainWindow(QMainWindow):
                 elif len(each)==2:
                     pot_range_.append(each)
             self.pot_range = pot_range_
+
+        temp_pot = np.array(self.pot_range).flatten()
+        pot_range_min_max = [min(temp_pot), max(temp_pot)]
+        data_range = []
+        for scan in self.scans:
+            data_range_ = self._get_data_range_auto(scan = scan, 
+                                                    ref_pot_low = pot_range_min_max[0], 
+                                                    ref_pot_high = pot_range_min_max[1], 
+                                                    cycle = self.spinBox_cycle.value(), 
+                                                    sweep_direction = self.comboBox_scan_dir.currentText(), 
+                                                    threshold = 10)
+            data_range.append(sorted(data_range_))
+        self.data_range = data_range
+
+
+    #given the scan number (scan), automatically locate the data point range corresponding to potential range from 
+    #ref_pot_low to ref_pot_high at scan cycle of (cycle) with potential sweep direction defined by (sweep_direction)
+    #threshold is internally used to seperate potential groups
+    #the result could be empty sometimes, especially when the given potential range is larger than the real potential limits in the data
+    def _get_data_range_auto(self, scan, ref_pot_low, ref_pot_high,  cycle = -1, sweep_direction = 'down', threshold = 10):
+        pot = self.data_to_plot[scan]['potential']
+        def _locate_unique_index(ref_pot):
+            idxs = sorted(list(np.argpartition(abs(pot-ref_pot), 18)[0:18]))
+            sep_index = [0]
+            for i, each in enumerate(idxs):
+                if i>0 and each-idxs[i-1]>threshold:
+                    sep_index.append(i)
+            sep_index.append(len(idxs))
+            group_idx = {}
+            for i in range(len(sep_index)-1):
+                group_idx[f'group {i}'] = idxs[sep_index[i]:sep_index[i+1]]
+            group_idx_single_rep = []
+            for each in group_idx:
+                group_idx_single_rep.append(group_idx[each][int(len(group_idx[each])/2.)])
+            # print(group_idx_single_rep)
+            return group_idx_single_rep
+        max_pot_idx = _locate_unique_index(max(pot))
+        min_pot_idx = _locate_unique_index(min(pot))
+        # print(min_pot_idx, max_pot_idx)
+        if ref_pot_high>max(pot):
+            target_pot_high_idx = max_pot_idx
+        else:
+            target_pot_high_idx = _locate_unique_index(ref_pot_high)
+        if ref_pot_low<min(pot):
+            target_pot_low_idx = min_pot_idx
+        else:
+            target_pot_low_idx = _locate_unique_index(ref_pot_low)
+        
+        cases_map_low_idx = {}
+        cases_map_high_idx = {}
+        for each in target_pot_high_idx:
+            max_idx = np.argmin(abs(np.array(max_pot_idx) - each))
+            min_idx = np.argmin(abs(np.array(min_pot_idx) - each))
+            if max_pot_idx[max_idx]>=each>=min_pot_idx[min_idx]:
+                cases_map_high_idx[(min_pot_idx[min_idx],max_pot_idx[max_idx])] = each
+            elif min_pot_idx[min_idx]>=each>=max_pot_idx[max_idx]:
+                cases_map_high_idx[(max_pot_idx[max_idx],min_pot_idx[min_idx])] = each
+            if each in max_pot_idx:#need to make up the other side if each is right on one max idx
+                if min_pot_idx[min_idx]>each and (min_idx-1)>=0:
+                    cases_map_high_idx[(min_pot_idx[min_idx-1],each)] = each
+                elif min_pot_idx[min_idx]<each and (min_idx+1)<len(min_pot_idx):
+                    cases_map_high_idx[(each,min_pot_idx[min_idx+1])] = each
+
+            # if each>=min_pot_idx[min_idx] and each<=max_pot_idx[max_idx]:
+                # cases_map_high_idx[(min_pot_idx[min_idx],max_pot_idx[max_idx])] = each
+        for each in target_pot_low_idx:
+            max_idx = np.argmin(abs(np.array(max_pot_idx) - each))
+            min_idx = np.argmin(abs(np.array(min_pot_idx) - each))
+            if max_pot_idx[max_idx]>=each>=min_pot_idx[min_idx]:
+                cases_map_low_idx[(min_pot_idx[min_idx],max_pot_idx[max_idx])] = each
+            elif min_pot_idx[min_idx]>=each>=max_pot_idx[max_idx]:
+                cases_map_low_idx[(max_pot_idx[max_idx],min_pot_idx[min_idx])] = each
+            if each in min_pot_idx:#need to make up the other side
+                if max_pot_idx[max_idx]>each and (max_idx-1)>=0:
+                    cases_map_low_idx[(max_pot_idx[max_idx-1],each)] = each
+                elif max_pot_idx[max_idx]<each and (max_idx+1)<len(max_pot_idx):
+                    cases_map_low_idx[(each,max_pot_idx[max_idx+1])] = each
+        # print(cases_map_high_idx)
+        # print(cases_map_low_idx)
+        if ref_pot_low == ref_pot_high:
+            cases_map_high_idx = cases_map_low_idx
+
+        unique_keys = [each for each in cases_map_low_idx if each in cases_map_high_idx]
+        final_group = {'up':[],'down':[]}
+        for each in unique_keys:
+            temp = [cases_map_low_idx[each], cases_map_high_idx[each]]
+            if temp[0]>temp[1]:
+                final_group['down'].append(temp)
+            elif temp[0]<temp[1]:
+                final_group['up'].append(temp)
+            else:
+                final_group['down'].append(temp)
+                final_group['up'].append(temp)
+
+        # print(scan, final_group)
+        if ref_pot_low == ref_pot_high:
+            #now lets get the scan direction right, at this moment it is a inclusive list of possibility.
+            idx_unique = [each_[0] for each_ in final_group['up']]
+            #now merge this in the max and min idx container
+            full_list = sorted(idx_unique + min_pot_idx + max_pot_idx)
+            up_list = []
+            down_list = []
+            for i, each_ in enumerate(idx_unique):
+                idx_in_full_list = full_list.index(each_)
+                if idx_in_full_list==0:
+                    if each_ in min_pot_idx:
+                        up_list.append([each_]*2)
+                    elif each_ in max_pot_idx:
+                        down_list.append([each_]*2) 
+                elif idx_in_full_list==len(full_list)-1:
+                    if idx_in_full_list==0:
+                        if each_ in min_pot_idx:
+                            down_list.append([each_]*2)
+                        elif each_ in max_pot_idx:
+                            up_list.append([each_]*2)
+                else:
+                    if full_list[idx_in_full_list-1] in min_pot_idx:
+                        up_list.append([each_]*2)
+                    else:
+                        down_list.append([each_]*2)
+            final_group = {'up':up_list, 'down': down_list}
+
+        pot_ranges = final_group[sweep_direction]
+        assert len(pot_ranges)>0, print('empty list in pot_ranges')
+        return pot_ranges[cycle]
+        '''
+        index_list = None
+        if type(cycle)==int:
+            try:
+                pot_range = pot_ranges[cycle]
+            except:
+                print(f'pot_ranges could not be queried with the cycle index {cycle}, use last cycle instead')
+                pot_range = pot_ranges[-1]
+            index_list = pot_range
+            if ref_pot_low == ref_pot_high:#in this case, we extract only absolute value. And note pot_range[0] = pot_range[1]
+                total_change = y_values[pot_range[0]]
+                std_val_norm = std_val
+            else:
+                total_change = abs((y_values[pot_range[1]] - y_values[pot_range[0]])/(pot[pot_range[1]]-pot[pot_range[0]]))
+                std_val_norm = std_val/(pot[pot_range[1]]-pot[pot_range[0]])
+        else:#here we do average over all cases
+            total_change = 0
+            for i in range(len(pot_ranges)):
+                pot_range = pot_ranges[i]
+                if ref_pot_low == ref_pot_high:
+                    total_change += y_values[pot_range[0]]
+                else:
+                    total_change += abs((y_values[pot_range[1]] - y_values[pot_range[0]])/(pot[pot_range[1]]-pot[pot_range[0]]))
+            total_change = total_change/len(pot_ranges)
+            std_val_norm = std_val/(pot[pot_ranges[0][1]]-pot[pot_ranges[0][0]]) if ref_pot_low != ref_pot_high else std_val
+            index_list = pot_ranges[0]#only take the first range
+        return total_change, std_val_norm, index_list
+        '''
 
     def _cal_structural_change_rate(self,scan, channel,y_values, std_val, data_range, pot_range, marker_index_container):
         assert 'potential' in list(self.data_to_plot[scan].keys())
