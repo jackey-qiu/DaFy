@@ -28,7 +28,7 @@ from matplotlib.ticker import AutoMinorLocator
 from matplotlib.ticker import FixedLocator, FixedFormatter
 os.environ["QT_MAC_WANTS_LAYER"] = "1"
 # matplotlib.use("TkAgg")
-from scipy import signal
+from scipy import signal, stats
 # import scipy.signal.savgol_filter as savgol_filter
 
 #from matplotlib.backends.backend_qt5agg import (NavigationToolbar2QT as NavigationToolbar)
@@ -134,6 +134,28 @@ class MyMainWindow(QMainWindow):
         self.pushButton_bkg_fit.clicked.connect(self.perform_bkg_fitting)
         self.pushButton_extract_cv.clicked.connect(self.extract_cv_data)
         self.pushButton_project.clicked.connect(self.project_to_master)
+        self.pushButton_add_link.clicked.connect(self.add_one_link)
+        self.pushButton_remove_selected.clicked.connect(self.remove_one_item)
+        self.pushButton_remove_all.clicked.connect(lambda:self.comboBox_link_container.clear())
+
+    def add_one_link(self):
+        link_1 = self.comboBox_link_1.currentText()
+        link_2 = self.comboBox_link_2.currentText()
+        link_group = f"{link_1}+{link_2}"
+        current_list = [self.comboBox_link_container.itemText(i) for i in range(self.comboBox_link_container.count())]
+        if link_group in current_list:
+            return
+        if len(current_list)==4:
+            error_pop_up('You can add 4 group links at most. Remove some item and continue to add this new item.')
+        self.comboBox_link_container.clear()
+        self.comboBox_link_container.addItems(current_list + [link_group])
+
+    def remove_one_item(self):
+        current_list = [self.comboBox_link_container.itemText(i) for i in range(self.comboBox_link_container.count())]
+        current_item = self.comboBox_link_container.currentText()
+        new_list = [each for each in current_list if each!=current_item]
+        self.comboBox_link_container.clear()
+        self.comboBox_link_container.addItems(new_list)
 
     def perform_bkg_fitting(self):
         order = 0
@@ -629,13 +651,19 @@ class MyMainWindow(QMainWindow):
         return max([size_at_pot_left, size_at_pot_right]),abs(size_at_pot_left - size_at_pot_right)
 
     def calculate_size_strain_change_from_plot_data(self, scan, label, data_range, pot_range, roughness_factor = 1):
+        # pot_lf, pot_rt = pot_range
+        # pots = self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]]
+        # values = np.array(self.data_to_plot[scan][label][data_range[0]:data_range[1]])+self.data_to_plot[scan][label+'_max']
+        # values_smooth = signal.savgol_filter(values,41,2)
+        # index_lf = np.argmin(np.abs(pots - pot_lf))
+        # index_rt = np.argmin(np.abs(pots - pot_rt))
         pot_lf, pot_rt = pot_range
         pots = self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]]
-        values = np.array(self.data_to_plot[scan][label][data_range[0]:data_range[1]])+self.data_to_plot[scan][label+'_max']
+        values = np.array(self.data_to_plot[scan][label])+self.data_to_plot[scan][label+'_max']
         values_smooth = signal.savgol_filter(values,41,2)
-        index_lf = np.argmin(np.abs(pots - pot_lf))
-        index_rt = np.argmin(np.abs(pots - pot_rt))
-        return max([values_smooth[index_lf],values_smooth[index_rt]]), abs(values_smooth[index_lf]-values_smooth[index_rt])
+        index_lf = np.argmin(np.abs(pots - pot_lf)) + data_range[0]
+        index_rt = np.argmin(np.abs(pots - pot_rt)) +data_range[0]
+        return max([values_smooth[index_lf],values_smooth[index_rt]]), values_smooth[index_rt]-values_smooth[index_lf]
 
     def estimate_charge_from_skin_layer_thickness_philippe_algorithm(self, size_info, q0 = 15.15):
         #q0 : number of electron transfered per nm^3 during redox chemistry(15.15 only for Co3O4 material)
@@ -656,7 +684,7 @@ class MyMainWindow(QMainWindow):
             pass
 
     def print_data_summary_(self):
-        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain","skin_vol_fraction","d_skin_avg"]
+        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain","d_bulk_vol","skin_vol_fraction","d_skin_avg", 'OER_E', 'OER_j']
         output_data = []
         for scan in self.scans:
             for pot_range in self.pot_ranges[scan]:
@@ -667,16 +695,26 @@ class MyMainWindow(QMainWindow):
                 size_ver = [round(each, 2) for each in list(self.grain_size_info_all_scans[scan][pot_range]["vertical"])]
                 strain_hor = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["horizontal"])]
                 strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
-                skin_vol_fraction = [round((size_ver[1]/size_ver[0] + 2*size_hor[1]/size_hor[0])*100,3)]
-                d_skin_avg = [round(size_ver[1] + 2* size_ver[0]/size_hor[0] * size_hor[1], 4)] #refer to ACS catalysis paper https://doi.org/10.1021/acscatal.1c05169 SI (Section 2)
-                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver + skin_vol_fraction+ d_skin_avg
+                d_bulk_vol = [2*abs(strain_hor[1])+abs(strain_ver[1])]
+                skin_vol_fraction = [round(abs(size_ver[1]/size_ver[0] + 2*size_hor[1]/size_hor[0])*100,3)]
+                d_skin_avg = [round(abs(size_ver[1] + 2* size_ver[0]/size_hor[0] * size_hor[1]), 4)] #refer to ACS catalysis paper https://doi.org/10.1021/acscatal.1c05169 SI (Section 2)
+                try:
+                    idx_OER_E = sorted(list(np.argpartition(abs(self.cv_info[scan]['potential']-float(self.lineEdit_OER_E.text())), 18)[0:18]))[0]
+                    idx_OER_j = sorted(list(np.argpartition(abs(self.cv_info[scan]['current_density']-float(self.lineEdit_OER_j.text())), 18)[0:18]))[0]
+                except:
+                    idx_OER_E = sorted(list(np.argpartition(abs(self.data_to_plot[scan]['potential']-float(self.lineEdit_OER_E.text())), 18)[0:18]))[0]
+                    idx_OER_j = sorted(list(np.argpartition(abs(self.data_to_plot[scan]['current']*8-float(self.lineEdit_OER_j.text())), 18)[0:18]))[0]
+                OER_E = [round(self.cv_info[scan]['potential'][idx_OER_j],4)]
+                OER_j = [round(self.cv_info[scan]['current_density'][idx_OER_E],4)]
+                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver + d_bulk_vol + skin_vol_fraction+ d_skin_avg + OER_E + OER_j
                 output_data.append(data_temp)
-        data_df = pd.DataFrame(np.array(output_data),columns = header)
+        self.summary_data_df = pd.DataFrame(np.array(output_data),columns = header)
         self.widget_terminal.update_name_space('charge_info',self.charge_info)
         self.widget_terminal.update_name_space('size_info',self.grain_size_info_all_scans)
         self.widget_terminal.update_name_space('strain_info',self.strain_info_all_scans)
         self.widget_terminal.update_name_space('main_win',self)
         self.widget_terminal.update_name_space('cv_info', self.cv_info)
+        self.widget_terminal.update_name_space('summary_data', self.summary_data_df)
 
         def _tag_p(text):
             return '<p>{}</p>'.format(text)
@@ -690,12 +728,15 @@ class MyMainWindow(QMainWindow):
         output_text.append("*q_cv(mc/m2): charge calculated from electrochemistry data (CV data)")
         output_text.append("*(d)_hor/ver_size(nm): horizontal/vertical size or the associated change with a d_ prefix")
         output_text.append("*(d)_hor/ver_strain(%): horizontal/vertical strain or the associated change with a d_ prefix")
+        output_text.append("*d_bulk_vol (%): The change of bulk vol wrt the total film volume: 2*d_hor_strain + d_ver_strain")
         output_text.append("*skin_vol_fraction (%): The skin volume fraction wrt the total film volume")
         output_text.append("*d_skin_avg (nm): The average thickness of the skin layer normalized to surface area of the crystal")
+        output_text.append(f"*OER_E: The OER potential at j(mA/cm2) = {float(self.lineEdit_OER_j.text())}")
+        output_text.append(f"*OER_j: The OER current at E (RHE/V) = {float(self.lineEdit_OER_E.text())}")
         for i in range(len(output_text)):
             output_text[i] = _tag_p(output_text[i])
 
-        self.plainTextEdit_summary.setHtml(data_df.to_html(index = False)+''.join(output_text))
+        self.plainTextEdit_summary.setHtml(self.summary_data_df.to_html(index = False)+''.join(output_text))
         #print("\n".join(output_text))
         #self.plainTextEdit_summary.setPlainText("\n".join(output_text))
 
@@ -1047,7 +1088,7 @@ class MyMainWindow(QMainWindow):
             self.mplwidget2.fig.clear()
             y_label_map = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
-                        'strain_ip':r'|$\Delta\varepsilon_\parallel$|  (%/V)',
+                        'strain_ip':r'$\Delta\varepsilon_\parallel$  (%/V)',
                         'strain_oop':r'$\Delta\varepsilon_\perp$  (%/V)',
                         'grain_size_oop':r'$\Delta d_\perp$  (nm/V)',
                         'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
@@ -1082,7 +1123,7 @@ class MyMainWindow(QMainWindow):
                         if use_absolute_value:
                             lim_y_temp[each].append(self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2])
                         else:
-                            lim_y_temp[each].append(-self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2])
+                            lim_y_temp[each].append(self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2])
             for each in lim_y_temp:
                 lim_y_temp[each] = [min(lim_y_temp[each]),max(lim_y_temp[each])]
             for each in lim_y_temp:
@@ -1098,16 +1139,16 @@ class MyMainWindow(QMainWindow):
                 for each in plot_y_labels:
                     plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2],self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
-                    labels = ['pH {}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
-                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range), self.pot_range.index(each_pot)+1+len(self.pot_range)*plot_y_labels.index(each))
+                    labels = ['{}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
+                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, self.pot_range.index(each_pot)+1+(len(self.pot_range)+1)*plot_y_labels.index(each))
                     if use_absolute_value:
                         ax_temp.bar(plot_data_x,plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
                         ax_temp.plot(plot_data_x,plot_data_y[:,0], '*:',color='0.1')
                         output_data.append(plot_data_y[:,0])
                     else:
-                        ax_temp.bar(plot_data_x,-plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
-                        ax_temp.plot(plot_data_x,-plot_data_y[:,0], '*:',color='0.1')
-                        output_data.append(-plot_data_y[:,0])
+                        ax_temp.bar(plot_data_x,plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
+                        ax_temp.plot(plot_data_x,plot_data_y[:,0], '*:',color='0.1')
+                        output_data.append(plot_data_y[:,0])
                     if each_pot == self.pot_range[0]:
                         ax_temp.set_ylabel(y_label_map[each],fontsize=12)
                         # ax_temp.set_ylim([lim_y_temp[each],0])
@@ -1120,12 +1161,60 @@ class MyMainWindow(QMainWindow):
                         else:
                             ax_temp.set_title('E range:{:4.2f}-->{:4.2f} V'.format(*each_pot), fontsize=12)
                     if each != plot_y_labels[-1]:
-                        ax_temp.set_xticklabels([])
+                        #ax_temp.set_xticklabels([])                        
+                        ax_temp.set_xticks(plot_data_x)
+                        ax_temp.set_xticklabels(labels,fontsize=10)
                     else:
                         ax_temp.set_xticks(plot_data_x)
-                        ax_temp.set_xticklabels(labels,fontsize=12)
+                        ax_temp.set_xticklabels(labels,fontsize=10)
+                        ax_temp.set_xlabel('pH')
                     if each_pot!=self.pot_range[0]:
                         ax_temp.set_yticklabels([])
+                def _extract_data(channel, which_pot_range):
+                    data_len = self.summary_data_df.shape[0]+1
+                    name_map = {'dV_bulk':lambda:self.summary_data_df['d_bulk_vol'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'dV_skin':lambda:self.summary_data_df['skin_vol_fraction'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                '<dskin>':lambda:self.summary_data_df['d_skin_avg'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'OER_E':lambda:self.summary_data_df['OER_E'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'OER_j':lambda:self.summary_data_df['OER_j'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'OER_j/<dskin>':lambda:(self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']).to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'pH':lambda:self.summary_data_df['pH'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'input':lambda:eval(self.lineEdit_input_values.text())}
+                    if which_pot_range>len(self.pot_range)-1:
+                        which_pot_range = 0
+                    return name_map[channel]()
+                    #return [self.data_summary[each_][channel][which_pot_range*2] for each_ in self.scans]
+                for i in range(self.comboBox_link_container.count()):
+                    channels = self.comboBox_link_container.itemText(i).rsplit('+')
+                    x = _extract_data(channels[0],self.spinBox_pot_range_idx.value())
+                    y = _extract_data(channels[1],self.spinBox_pot_range_idx.value())
+                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
+                    ax_temp.set_xlabel(channels[0])
+                    ax_temp.set_ylabel(channels[1])
+                    if 'OER_j/<dskin>' == channels[1]:
+                        slope_, intercept_, r_value_, *_ = stats.linregress(x, np.log10(y))
+                        ax_temp.set_ylabel('log({})'.format(channels[1]))
+                        [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        if self.checkBox_marker.isChecked():
+                            [ax_temp.text(x[jj], np.log10(y[jj]), str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if getattr(self, f'checkBox_panel{i+1}').isChecked():
+                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
+                    elif 'OER_j/<dskin>' == channels[0]:
+                        slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x), y)
+                        ax_temp.set_xlabel('log({})'.format(channels[0]))
+                        [ax_temp.scatter(np.log10(x[jj]), y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        if self.checkBox_marker.isChecked():
+                            [ax_temp.text(np.log10(x[jj]), y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if getattr(self, f'checkBox_panel{i+1}').isChecked():
+                            ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k')
+                    else:
+                        slope_, intercept_, r_value_, *_ = stats.linregress(x, y)
+                        [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        if self.checkBox_marker.isChecked():
+                            [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if getattr(self, f'checkBox_panel{i+1}').isChecked():
+                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
+
                 #print output data
                 output_data = np.array(output_data).T
                 output_data = np.append(output_data,np.array([int(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans])[:,np.newaxis],axis=1)
@@ -1137,7 +1226,7 @@ class MyMainWindow(QMainWindow):
                 for each_row in output_data:
                     # print("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:2.0f}".format(*each_row))
                     plain_text.append("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t\t{:2.0f}".format(*each_row))
-            self.mplwidget2.fig.subplots_adjust(hspace=0.04)
+            self.mplwidget2.fig.subplots_adjust(hspace=0.5, wspace=0.2)
             self.mplwidget2.canvas.draw()
             self.plainTextEdit_summary.setPlainText('\n'.join(plain_text))
         else:
@@ -1503,7 +1592,6 @@ class MyMainWindow(QMainWindow):
             return group_idx_single_rep
         max_pot_idx = _locate_unique_index(max(pot))
         min_pot_idx = _locate_unique_index(min(pot))
-        # print(min_pot_idx, max_pot_idx)
         if ref_pot_high>max(pot):
             target_pot_high_idx = max_pot_idx
         else:
@@ -1513,8 +1601,19 @@ class MyMainWindow(QMainWindow):
         else:
             target_pot_low_idx = _locate_unique_index(ref_pot_low)
         
+        #you may have cases where the located idx is too close to the adjacent max(min)_idx
+        #in these cases set the idx to the associated max or min idx
+        for i, each_ in enumerate(target_pot_high_idx):
+            indx = np.argmin(abs(np.array(max_pot_idx)-each_))
+            if abs(each_-max_pot_idx[indx])<=threshold:
+                target_pot_high_idx[i] = max_pot_idx[indx]
+        for i, each_ in enumerate(target_pot_low_idx):
+            indx = np.argmin(abs(np.array(min_pot_idx)-each_))
+            if abs(each_-min_pot_idx[indx])<=threshold:
+                target_pot_low_idx[i] = min_pot_idx[indx]
         cases_map_low_idx = {}
         cases_map_high_idx = {}
+        # print(ref_pot_high, max(pot), target_pot_high_idx)
         for each in target_pot_high_idx:
             max_idx = np.argmin(abs(np.array(max_pot_idx) - each))
             min_idx = np.argmin(abs(np.array(min_pot_idx) - each))
@@ -1542,10 +1641,12 @@ class MyMainWindow(QMainWindow):
                     cases_map_low_idx[(max_pot_idx[max_idx-1],each)] = each
                 elif max_pot_idx[max_idx]<each and (max_idx+1)<len(max_pot_idx):
                     cases_map_low_idx[(each,max_pot_idx[max_idx+1])] = each
+        # print(min_pot_idx, max_pot_idx)
         # print(cases_map_high_idx)
         # print(cases_map_low_idx)
         if ref_pot_low == ref_pot_high:
-            cases_map_high_idx = cases_map_low_idx
+            cases_map_high_idx.update(cases_map_low_idx)
+            cases_map_low_idx = cases_map_high_idx
 
         unique_keys = [each for each in cases_map_low_idx if each in cases_map_high_idx]
         final_group = {'up':[],'down':[]}
@@ -1589,7 +1690,11 @@ class MyMainWindow(QMainWindow):
 
         pot_ranges = final_group[sweep_direction]
         assert len(pot_ranges)>0, print('empty list in pot_ranges')
-        return pot_ranges[cycle]
+        try:
+            return pot_ranges[cycle]
+        except:
+            print(f'pot_ranges for scan {scan} could not be queried with the cycle index {cycle}, use last cycle instead')
+            return pot_ranges[-1]
         '''
         index_list = None
         if type(cycle)==int:
@@ -1627,10 +1732,13 @@ class MyMainWindow(QMainWindow):
         marker_index_container.append(index_right)
         pot_offset = abs(self.data_to_plot[scan]['potential'][index_left]-self.data_to_plot[scan]['potential'][index_right])
         if pot_offset==0:
-            self.data_summary[scan][channel].append((y_values[index_left]))
+            if channel == 'current':
+                self.data_summary[scan][channel].append(y_values[index_left])
+            else:
+                self.data_summary[scan][channel].append(y_values[index_left] + self.data_to_plot[scan][channel+'_max'])
             self.data_summary[scan][channel].append(std_val)
         else:#calculate the slope here
-            self.data_summary[scan][channel].append((y_values[index_left] - y_values[index_right])/pot_offset)
+            self.data_summary[scan][channel].append((y_values[index_right] - y_values[index_left])/pot_offset)
             self.data_summary[scan][channel].append(std_val/pot_offset)
         return marker_index_container
 
