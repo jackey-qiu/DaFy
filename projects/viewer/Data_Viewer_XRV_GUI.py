@@ -733,6 +733,7 @@ class MyMainWindow(QMainWindow):
         output_text.append("*d_skin_avg (nm): The average thickness of the skin layer normalized to surface area of the crystal")
         output_text.append(f"*OER_E: The OER potential at j(mA/cm2) = {float(self.lineEdit_OER_j.text())}")
         output_text.append(f"*OER_j: The OER current at E (RHE/V) = {float(self.lineEdit_OER_E.text())}")
+        self.output_text = output_text
         for i in range(len(output_text)):
             output_text[i] = _tag_p(output_text[i])
 
@@ -1179,20 +1180,42 @@ class MyMainWindow(QMainWindow):
                                 'OER_j':lambda:self.summary_data_df['OER_j'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'OER_j/<dskin>':lambda:(self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']).to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'pH':lambda:self.summary_data_df['pH'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'q_film':lambda:self.summary_data_df['q_film'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'q_cv':lambda:self.summary_data_df['q_cv'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'input':lambda:eval(self.lineEdit_input_values.text())}
                     if which_pot_range>len(self.pot_range)-1:
                         which_pot_range = 0
                     return name_map[channel]()
                     #return [self.data_summary[each_][channel][which_pot_range*2] for each_ in self.scans]
+
+                def _get_xy_for_linear_fit(panel_index, x, y):
+                    tag = getattr(self,f'lineEdit_partial_set_p{panel_index+1}').text()
+                    x_, y_ = [], []
+                    if tag == '[*]': #use all
+                        return x, y
+                    else:
+                        if tag.startswith('-'):
+                            tag = [each for each in range(len(x)) if each not in eval(tag[1:])]
+                        else:
+                            tag = eval(tag)
+                        if type(tag)!=list:
+                            return x, y
+                        else:
+                            for each in tag:
+                                x_.append(x[each])
+                                y_.append(y[each])
+                            return x_, y_
+
                 for i in range(self.comboBox_link_container.count()):
                     channels = self.comboBox_link_container.itemText(i).rsplit('+')
                     x = _extract_data(channels[0],self.spinBox_pot_range_idx.value())
                     y = _extract_data(channels[1],self.spinBox_pot_range_idx.value())
+                    x_, y_ = _get_xy_for_linear_fit(i, x, y)
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
                     ax_temp.set_xlabel(channels[0])
                     ax_temp.set_ylabel(channels[1])
                     if 'OER_j/<dskin>' == channels[1]:
-                        slope_, intercept_, r_value_, *_ = stats.linregress(x, np.log10(y))
+                        slope_, intercept_, r_value_, *_ = stats.linregress(x_, np.log10(y_))
                         ax_temp.set_ylabel('log({})'.format(channels[1]))
                         [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
@@ -1200,7 +1223,7 @@ class MyMainWindow(QMainWindow):
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
                     elif 'OER_j/<dskin>' == channels[0]:
-                        slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x), y)
+                        slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
                         ax_temp.set_xlabel('log({})'.format(channels[0]))
                         [ax_temp.scatter(np.log10(x[jj]), y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
@@ -1208,7 +1231,7 @@ class MyMainWindow(QMainWindow):
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k')
                     else:
-                        slope_, intercept_, r_value_, *_ = stats.linregress(x, y)
+                        slope_, intercept_, r_value_, *_ = stats.linregress(x_, y_)
                         [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
@@ -1221,14 +1244,17 @@ class MyMainWindow(QMainWindow):
                 output_data = np.append(np.array([int(each_) for each_ in self.scans])[:,np.newaxis],output_data,axis = 1)
                 # print('\n')
                 # print(each_pot)
-                plain_text.append(f'\npot = {each_pot} V')
-                plain_text.append('scan_no\tstrain_ip\tstrain_oop\tgrain_size_ip\tgrain_size_oop\tpH')
+                plain_text.append(f'<p>\npot = {each_pot} V</p>')
+                plain_text.append('<p>scan_no\tstrain_ip\tstrain_oop\tgrain_size_ip\tgrain_size_oop\tpH</p>')
                 for each_row in output_data:
                     # print("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:2.0f}".format(*each_row))
-                    plain_text.append("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t\t{:2.0f}".format(*each_row))
+                    plain_text.append("<p>{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t\t{:2.0f}</p>".format(*each_row))
             self.mplwidget2.fig.subplots_adjust(hspace=0.5, wspace=0.2)
             self.mplwidget2.canvas.draw()
-            self.plainTextEdit_summary.setPlainText('\n'.join(plain_text))
+            # self.plainTextEdit_summary.setPlainText('\n'.join(plain_text))
+            self.plainTextEdit_summary.setHtml('<h3>Table of complete information of pseudocapacitive charge and film structure (results extracted from master figure)</h3>'\
+                                               +self.summary_data_df.to_html(index = False)+''.join(self.output_text)
+                                               +'<br><h3>structural change normalized to potential (delta/V) (data used for plotting bar chart)</h3>'+''.join(plain_text))
         else:
             pass
 
@@ -1592,6 +1618,16 @@ class MyMainWindow(QMainWindow):
             return group_idx_single_rep
         max_pot_idx = _locate_unique_index(max(pot))
         min_pot_idx = _locate_unique_index(min(pot))
+        #note the len of each idx must be >2 for at least one case, not work if both have only one item.
+        #let's add one item to either max or min idx to make the following logic work
+        if len(max_pot_idx)==1 and len(min_pot_idx)==1:
+            if max_pot_idx[0]>min_pot_idx[0]:
+                max_pot_idx = [0] + max_pot_idx
+                min_pot_idx = min_pot_idx + [len(pot)-1]
+            else:
+                min_pot_idx = [0] + min_pot_idx
+                max_pot_idx = max_pot_idx + [len(pot)-1]
+
         if ref_pot_high>max(pot):
             target_pot_high_idx = max_pot_idx
         else:
@@ -1641,9 +1677,10 @@ class MyMainWindow(QMainWindow):
                     cases_map_low_idx[(max_pot_idx[max_idx-1],each)] = each
                 elif max_pot_idx[max_idx]<each and (max_idx+1)<len(max_pot_idx):
                     cases_map_low_idx[(each,max_pot_idx[max_idx+1])] = each
-        # print(min_pot_idx, max_pot_idx)
-        # print(cases_map_high_idx)
-        # print(cases_map_low_idx)
+        print(scan)
+        print(min_pot_idx, max_pot_idx)
+        print(cases_map_high_idx)
+        print(cases_map_low_idx)
         if ref_pot_low == ref_pot_high:
             cases_map_high_idx.update(cases_map_low_idx)
             cases_map_low_idx = cases_map_high_idx
