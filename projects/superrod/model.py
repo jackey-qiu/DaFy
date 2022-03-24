@@ -17,10 +17,10 @@ import numpy as np
 # GenX libraries
 #import data
 try:
-    from . import locate_path
+    from . import locate_path_superrod
 except:
-    import locate_path
-script_path = locate_path.module_path_locator()
+    import locate_path_superrod
+script_path = locate_path_superrod.module_path_locator()
 DaFy_path = os.path.dirname(os.path.dirname(script_path))
 sys.path.append(DaFy_path)
 sys.path.append(os.path.join(DaFy_path,'dump_files'))

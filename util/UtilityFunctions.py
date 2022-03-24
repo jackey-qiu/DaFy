@@ -1,4 +1,5 @@
 import numpy as np
+import xrayutilities as xu
 from Reciprocal_space_tools.HKLVlieg import Crystal, printPos, UBCalculator, VliegAngles, printPos_prim, vliegDiffracAngles
 from nexusformat.nexus import *
 from PyQt5 import QtCore
@@ -1966,7 +1967,161 @@ class tiff_image_loader:
         img=misc.imread(img_path)
         return img/mon_trans_factor
 
-class edf_image_loader:
+class edf_image_loader(object):
+    def __init__(self,clip_boundary,kwarg):
+        # self.nexus_path=nexus_path
+        # self.frame_prefix=frame_prefix
+        self.scan_number = None
+        self.frame_number = None
+        self.img_structure = 'one'#by default all images saved in one nexus file
+        self.potential = None
+        self.current = None
+        self.hkl = None
+        self.clip_boundary = clip_boundary
+        self.potential_profile_cal = None
+        self.potential_profile = None
+        self.potential_cal = None
+        for key in kwarg:
+            setattr(self, key, kwarg[key])
+        #by default the spec file is loacted in the parent folder of image folder with file name consisting of frame_prefix + _sixcvertical.spec
+        #if this is not true, you should manually change this line accordingly
+        self.spec = xu.io.SPECFile(os.path.join(os.path.dirname(self.nexus_path),self.frame_prefix+'_sixcvertical.spec'))
+
+    def set_flip_transpose(self, flip, transpose):
+        self.flip = flip
+        self.transpose = transpose
+
+    def update_scan_info(self,scan_number):
+        self.scan_number = scan_number
+        print('\nRunning scan {} now...'.format(scan_number))
+        # img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_name_1='{}_{:0>5}_00000.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #img_path_1=os.path.join(self.nexus_path,img_name.replace(".nxs",""),'lmbd',img_name_1)
+        self.nexus_data = getattr(self.spec,f'scan{scan_number}')
+        #nexus_data is the spec file info
+        self.nexus_data.ReadData()
+        #nexus_data_1 will be the image file format to be read
+        #looks like 060_0_1288
+        #when loop through all images, replace the second 0 and the last img index
+        self.nexus_data_1 = '{:0>3}_0_{:0>3}'.format(scan_number, self.nexus_data.getheader_element('UCCD').rsplit('#r')[-1].rsplit('.')[-2])
+        self.get_frame_number()
+        self.extract_pot_profile()
+        if self.check_abnormality:
+            self.abnormal_range = remove_abnormality_2(mon = self.extract_beam_mon_ct(),left_offset = self.left_offset, right_offset = self.right_offset)
+        else:
+            self.abnormal_range = [-10,-1]
+
+    def get_frame_number(self):
+        total_img_number = len(self.nexus_data.data)
+        self.total_frame_number = total_img_number
+        return total_img_number
+
+    def load_frame(self,frame_number):
+        while frame_number < self.total_frame_number:
+            img_file_items = self.nexus_data_1.rsplit('_')
+            img_file_items[1] = '{:0>3}'.format(frame_number)
+            img_file_items[2] = '{:0>3}'.format(frame_number + int(img_file_items[2]))
+
+            img_file = self.frame_prefix+'_'+'_'.join(img_file_items) + '.edf.gz'
+            img = np.array(EdfFile.EdfFile(os.path.join(self.nexus_path, img_file), 'r').GetData(0), dtype='float')
+
+            #print(self.nexus_data_1.entry.instrument.detector.data.shape)
+            #if img is None:
+            #    img=self.nexus_data_1.entry.instrument.detector.data._get_filedata(frame_number-1)
+            self.extract_motor_angles(frame_number)
+            self.extract_pot_current(frame_number)
+            self.extract_HKL(frame_number)
+            self.frame_number = frame_number
+            if self.flip and self.transpose:
+                img = np.flip(img.T,1)
+            elif self.flip and (not self.transpose):
+                img = np.flip(img, 1)
+            elif (not self.flip) and self.transpose:
+                img = img.T
+            img = img[self.clip_boundary['ver'][0]:self.clip_boundary['ver'][1],
+                    self.clip_boundary['hor'][0]:self.clip_boundary['hor'][1]]
+            #normalized the intensity by the monitor and trams counters
+            #self.current_img = img/self.motor_angles['mon']/self.motor_angles['transm']
+            yield img/self.motor_angles['mon']/self.motor_angles['transm']
+            #yield img/self.motor_angles['transm']/200000
+            frame_number +=1
+
+    def extract_beam_mon_ct(self):
+        return np.array(self.nexus_data.data['mon'])
+
+    def extract_motor_angles(self, frame_number):
+        #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #data=nxload(img_path)
+        motors={}
+        motor_names = ['phi', 'chi', 'delta', 'gamma', 'mu', 'omega_t','omega']
+        motor_names_in_spec = ['phicnt', 'chicnt', 'gamcnt', 'delcnt', 'thcnt', 'mucnt','omegacnt']
+        #for motor in self.constant_motors:
+        #    motors[motor] = self.constant_motors[motor]
+        for motor in motor_names:
+            which = motor_names.index(motor)
+            #if motor not in motors.keys():
+            try:#use those from nexus file if it is presence
+                motors[motor] = np.array(self.nexus_data.data[motor_names_in_spec[which]])[frame_number]
+            except:#if not then use the constant motor angles
+                try:
+                    motors[motor] = self.constant_motors[motor]
+                except:
+                    motors[motor] = 0
+        motors['mon'] = np.array(self.nexus_data.data['mon'])[frame_number]
+        motors['transm'] = np.array(self.nexus_data.data['transm'])[frame_number]
+        motors['time'] = np.array(self.nexus_data.data['Time'])[frame_number]
+        self.motor_angles = motors
+        #self.motor_angles['transm'] = 1
+        #self.motor_angles['mon'] =1
+        return motors
+
+    def extract_transm_and_mon(self,frame_number):
+        mon =  np.array(self.nexus_data.data['mon'])[frame_number]
+        transm = np.array(self.nexus_data.data['transm'])[frame_number]
+        return mon*transm
+
+    def extract_delta_angles(self):
+        #img_name='{}_{:0>5}.nxs'.format(self.frame_prefix,scan_number)
+        #img_path=os.path.join(self.nexus_path,img_name)
+        #data=nxload(img_path)
+        return np.array(self.nexus_data.data['gamcnt'])
+
+    def update_motor_angles_in_data(self,data):
+        for motor in self.motor_angles:
+            data[motor].append(self.motor_angles[motor])
+        return data
+
+    def extract_pot_current(self, frame_number):
+        self.potential = self.nexus_data.data['Eana'][frame_number]
+        self.current = self.nexus_data.data['Iana'][frame_number]
+        try:
+            self.potential_cal = self.potential_profile_cal[frame_number]
+        except:
+            self.potential_cal = self.potential
+            print('Use real potential for the potential_cal')
+        return self.potential, self.current
+
+    def extract_pot_profile(self):
+        pot_profile = self.nexus_data.data['Eana']
+        self.potential_profile = pot_profile
+        self.potential_profile_cal = FitEnginePool.fit_pot_profile(list(range(len(pot_profile))),pot_profile, show_fig = False)
+        return pot_profile
+
+    def extract_HKL(self, frame_number):
+        try:
+            H = np.array(self.nexus_data.data['Hcnt'])[frame_number]
+            K = np.array(self.nexus_data.data['Kcnt'])[frame_number]
+            L = np.array(self.nexus_data.data['Lcnt'])[frame_number]
+            self.hkl =(H,K,L)
+            #cur = np.array(self.nexus_data['scan/data/voltage1'])[frame_number]
+            return H, K, L
+        except:
+            self.hkl=(0,0,0)
+            return 0,0,0
+
+class edf_image_loader_old:
     def __init__(self, spec_filename, image_foldername,is_zap_scan):
         self.spec_file = pyspec(spec_filename)
         self.scan_selector = specfilewrapper.Specfile(spec_filename)

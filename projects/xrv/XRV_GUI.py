@@ -58,7 +58,7 @@ class MyMainWindow(QMainWindow):
         uic.loadUi(os.path.join(DaFy_path,'projects','xrv','XRV_GUI.ui'),self)
         self.setWindowTitle('Data analysis factory: XRV data analasis')
         self.use_q_mapping = self.radioButton_q.isChecked()
-        self.app_ctr=run_app(self.use_q_mapping, self.spinBox_order)
+        self.app_ctr=run_app(self.use_q_mapping, self.spinBox_order,self.comboBox_loader.currentText())
         self.current_image_no = 0
         self.current_scan_number = None
         self.bkg_intensity = 0
@@ -525,6 +525,7 @@ class MyMainWindow(QMainWindow):
         #update the path to save data
         data_file = os.path.join(self.lineEdit_data_file_path.text(),self.lineEdit_data_file_name.text())
         self.app_ctr.use_q_mapping = self.radioButton_q.isChecked()
+        self.app_ctr.img_loader_object = self.comboBox_loader.currentText()
         self.app_ctr.data_path = data_file
         self.app_ctr.run(self.lineEdit.text())
         self.update_poly_order(init_step=True)

@@ -684,20 +684,31 @@ class MyMainWindow(QMainWindow):
             pass
 
     def print_data_summary_(self):
-        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","ver_size","d_ver_size","hor_strain","d_hor_strain","ver_strain","d_ver_strain","d_bulk_vol","skin_vol_fraction","d_skin_avg", 'OER_E', 'OER_j']
+        header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","hor_size_err","ver_size","d_ver_size","ver_size_err","hor_strain","d_hor_strain","hor_strain_err","ver_strain","d_ver_strain","ver_strain_err","d_bulk_vol","d_bulk_vol_err","skin_vol_fraction","skin_vol_fraction_err","d_skin_avg", "d_skin_avg_err",'OER_E', 'OER_j']
         output_data = []
         for scan in self.scans:
             for pot_range in self.pot_ranges[scan]:
+                which = self.pot_ranges[scan].index(pot_range)
+                pot_range_value = 1
+                if pot_range[0] != pot_range[1]:
+                    pot_range_value = abs(pot_range[0]-pot_range[1])
                 #scan = each_scan
                 ph = self.grain_size_info_all_scans[scan][pot_range]['pH']
                 charges = [round(self.charge_info[scan][pot_range][each],2) for each in ['skin_charge','film_charge','total_charge']]
                 size_hor = [round(each,2) for each in list(self.grain_size_info_all_scans[scan][pot_range]["horizontal"])]
+                size_hor_error = [round(self.data_summary[scan]['grain_size_ip'][which*2+1]*pot_range_value,4)]
                 size_ver = [round(each, 2) for each in list(self.grain_size_info_all_scans[scan][pot_range]["vertical"])]
+                size_ver_error = [round(self.data_summary[scan]['grain_size_oop'][which*2+1]*pot_range_value,4)]
                 strain_hor = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["horizontal"])]
+                strain_hor_error = [round(self.data_summary[scan]['strain_ip'][which*2+1]*pot_range_value,4)]
                 strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
+                strain_ver_error = [round(self.data_summary[scan]['strain_oop'][which*2+1]*pot_range_value,4)]
                 d_bulk_vol = [2*abs(strain_hor[1])+abs(strain_ver[1])]
+                d_bulk_vol_error = [round((4*strain_hor_error[0]**2 + strain_ver_error[0]**2)**0.5,4)]
                 skin_vol_fraction = [round(abs(size_ver[1]/size_ver[0] + 2*size_hor[1]/size_hor[0])*100,3)]
+                skin_vol_fraction_error = [round(((size_ver_error[0]/size_ver[0])**2 + 4 * (size_hor_error[0]/size_hor[0])**2)**0.5*100,4)]
                 d_skin_avg = [round(abs(size_ver[1] + 2* size_ver[0]/size_hor[0] * size_hor[1]), 4)] #refer to ACS catalysis paper https://doi.org/10.1021/acscatal.1c05169 SI (Section 2)
+                d_skin_avg_error = [round((size_ver_error[0]**2 + 4 * (size_ver[0]/size_hor[0])**2*size_hor_error[0]**2)**0.5,4)]
                 try:
                     idx_OER_E = sorted(list(np.argpartition(abs(self.cv_info[scan]['potential']-float(self.lineEdit_OER_E.text())), 18)[0:18]))[0]
                     idx_OER_j = sorted(list(np.argpartition(abs(self.cv_info[scan]['current_density']-float(self.lineEdit_OER_j.text())), 18)[0:18]))[0]
@@ -706,7 +717,7 @@ class MyMainWindow(QMainWindow):
                     idx_OER_j = sorted(list(np.argpartition(abs(self.data_to_plot[scan]['current']*8-float(self.lineEdit_OER_j.text())), 18)[0:18]))[0]
                 OER_E = [round(self.cv_info[scan]['potential'][idx_OER_j],4)]
                 OER_j = [round(self.cv_info[scan]['current_density'][idx_OER_E],4)]
-                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_ver + strain_hor + strain_ver + d_bulk_vol + skin_vol_fraction+ d_skin_avg + OER_E + OER_j
+                data_temp = [scan, ph] +[round(each,3) for each in list(pot_range)]+ charges + size_hor + size_hor_error + size_ver + size_ver_error + strain_hor + strain_hor_error + strain_ver + strain_ver_error + d_bulk_vol + d_bulk_vol_error + skin_vol_fraction + skin_vol_fraction_error + d_skin_avg + d_skin_avg_error + OER_E + OER_j
                 output_data.append(data_temp)
         self.summary_data_df = pd.DataFrame(np.array(output_data),columns = header)
         self.widget_terminal.update_name_space('charge_info',self.charge_info)
@@ -727,10 +738,15 @@ class MyMainWindow(QMainWindow):
         output_text.append("*q_film(mc/m2): charge calculated assuming all Co2+ in the film material has been oxidized to Co3+")
         output_text.append("*q_cv(mc/m2): charge calculated from electrochemistry data (CV data)")
         output_text.append("*(d)_hor/ver_size(nm): horizontal/vertical size or the associated change with a d_ prefix")
+        output_text.append("*hor/ver_size_err(nm): error for horizontal/vertical size")
         output_text.append("*(d)_hor/ver_strain(%): horizontal/vertical strain or the associated change with a d_ prefix")
+        output_text.append("*hor/ver_strain_err(%): error for horizontal/vertical strain")
         output_text.append("*d_bulk_vol (%): The change of bulk vol wrt the total film volume: 2*d_hor_strain + d_ver_strain")
+        output_text.append("*d_bulk_vol_err: error of d_bulk_vol")
         output_text.append("*skin_vol_fraction (%): The skin volume fraction wrt the total film volume")
+        output_text.append("*skin_vol_fraction_err: error of skin_vol_fraction")
         output_text.append("*d_skin_avg (nm): The average thickness of the skin layer normalized to surface area of the crystal")
+        output_text.append("*d_skin_avg_err: the error of d_skin_avg")
         output_text.append(f"*OER_E: The OER potential at j(mA/cm2) = {float(self.lineEdit_OER_j.text())}")
         output_text.append(f"*OER_j: The OER current at E (RHE/V) = {float(self.lineEdit_OER_E.text())}")
         self.output_text = output_text
@@ -1183,9 +1199,19 @@ class MyMainWindow(QMainWindow):
                                 'q_film':lambda:self.summary_data_df['q_film'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'q_cv':lambda:self.summary_data_df['q_cv'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'input':lambda:eval(self.lineEdit_input_values.text())}
+                    name_map_error = {'dV_bulk':lambda:self.summary_data_df['d_bulk_vol_err'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'dV_skin':lambda:self.summary_data_df['skin_vol_fraction_err'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                '<dskin>':lambda:self.summary_data_df['d_skin_avg_err'].to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'OER_E':lambda:[None]*self.summary_data_df.shape[0],
+                                'OER_j':lambda:[None]*self.summary_data_df.shape[0],
+                                'OER_j/<dskin>':lambda:(self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']**2*self.summary_data_df['d_skin_avg_err']).to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'pH':lambda:[None]*self.summary_data_df.shape[0],
+                                'q_film':lambda:[None]*self.summary_data_df.shape[0],
+                                'q_cv':lambda:[None]*self.summary_data_df.shape[0],
+                                'input':lambda:[None]*self.summary_data_df.shape[0]}
                     if which_pot_range>len(self.pot_range)-1:
                         which_pot_range = 0
-                    return name_map[channel]()
+                    return name_map[channel](), name_map_error[channel]()
                     #return [self.data_summary[each_][channel][which_pot_range*2] for each_ in self.scans]
 
                 def _get_xy_for_linear_fit(panel_index, x, y):
@@ -1208,8 +1234,8 @@ class MyMainWindow(QMainWindow):
 
                 for i in range(self.comboBox_link_container.count()):
                     channels = self.comboBox_link_container.itemText(i).rsplit('+')
-                    x = _extract_data(channels[0],self.spinBox_pot_range_idx.value())
-                    y = _extract_data(channels[1],self.spinBox_pot_range_idx.value())
+                    x, x_error = _extract_data(channels[0],self.spinBox_pot_range_idx.value())
+                    y, y_error = _extract_data(channels[1],self.spinBox_pot_range_idx.value())
                     x_, y_ = _get_xy_for_linear_fit(i, x, y)
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
                     ax_temp.set_xlabel(channels[0])
@@ -1217,7 +1243,8 @@ class MyMainWindow(QMainWindow):
                     if 'OER_j/<dskin>' == channels[1]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, np.log10(y_))
                         ax_temp.set_ylabel('log({})'.format(channels[1]))
-                        [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        [ax_temp.errorbar(x[jj], np.log10(y[jj]), xerr=x_error[jj], yerr = y_error[jj]/y[jj]/np.log(10), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj], np.log10(y[jj]), str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
@@ -1225,14 +1252,16 @@ class MyMainWindow(QMainWindow):
                     elif 'OER_j/<dskin>' == channels[0]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
                         ax_temp.set_xlabel('log({})'.format(channels[0]))
-                        [ax_temp.scatter(np.log10(x[jj]), y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        # [ax_temp.scatter(np.log10(x[jj]), y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        [ax_temp.errorbar(np.log10(x[jj]), y[jj], xerr=x_error[jj]/x[jj]/np.log(10), yerr=y_error[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(np.log10(x[jj]), y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k')
                     else:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, y_)
-                        [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        # [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        [ax_temp.errorbar(x[jj], y[jj], xerr = x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
@@ -1760,14 +1789,42 @@ class MyMainWindow(QMainWindow):
             index_list = pot_ranges[0]#only take the first range
         return total_change, std_val_norm, index_list
         '''
+    
+    #cal std for channel centering at point_index with left and right boundary defined such that the span potential_range is reached
+    def _cal_std_at_pt(self, scan, channel, point_index, potential_range = 0.02):
+        data = self.data_to_plot[scan][channel]
+        pot = self.data_to_plot[scan]['potential']
+        index_left = point_index
+        index_right = point_index
+        while True:
+            if index_left == 0:
+                break
+            else:
+                if abs(pot[index_left]-pot[point_index])>=potential_range:
+                    break
+                else:
+                    index_left = index_left - 1
 
-    def _cal_structural_change_rate(self,scan, channel,y_values, std_val, data_range, pot_range, marker_index_container):
+        while True:
+            if index_right == len(pot)-1:
+                break
+            else:
+                if abs(pot[index_right]-pot[point_index])>=potential_range:
+                    break
+                else:
+                    index_right = index_right + 1
+
+        return np.std(data[index_left:index_right])
+
+    def _cal_structural_change_rate(self,scan, channel,y_values, std_val, data_range, pot_range, marker_index_container, cal_std = True):
         assert 'potential' in list(self.data_to_plot[scan].keys())
         index_left = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[0])) + data_range[0]
         index_right = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[1])) + data_range[0]
         marker_index_container.append(index_left)
         marker_index_container.append(index_right)
         pot_offset = abs(self.data_to_plot[scan]['potential'][index_left]-self.data_to_plot[scan]['potential'][index_right])
+        if cal_std:#use whichever is larger
+            std_val = max([self._cal_std_at_pt(scan, channel, index_left),self._cal_std_at_pt(scan, channel, index_right)])
         if pot_offset==0:
             if channel == 'current':
                 self.data_summary[scan][channel].append(y_values[index_left])
@@ -1891,6 +1948,7 @@ class MyMainWindow(QMainWindow):
         y_smooth_temp = signal.savgol_filter(y,41,2)
         #std is calculated this way for estimation of error bar values
         std_val = np.sum(np.abs(y_smooth_temp - y))/len(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]])
+        # std_val = (np.sum((y_smooth_temp - y)**2)/len(self.data_to_plot[scan][self.plot_label_x[self.scans.index(scan)]]-1))**0.5
         return y, y_smooth_temp, std_val
 
     def _get_fmt_style(self, scan, channel):

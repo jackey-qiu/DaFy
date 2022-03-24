@@ -26,7 +26,7 @@ from FitEnginePool import background_subtraction_single_img
 from util.XRD_tools import reciprocal_space_v3 as rsp
 from util.UtilityFunctions import image_generator
 from util.UtilityFunctions import scan_generator
-from util.UtilityFunctions import nexus_image_loader
+from util.UtilityFunctions import nexus_image_loader, edf_image_loader
 from util.UtilityFunctions import find_boundary, timer_placer
 from util.UtilityFunctions import extract_global_vars_from_string
 from util.UtilityFunctions import extract_vars_from_config
@@ -34,7 +34,7 @@ from util.UtilityFunctions import get_console_size
 from functools import wraps
 
 class run_app(object):
-    def __init__(self, use_q_mapping = True, filter_order_object = None):
+    def __init__(self, use_q_mapping = True, filter_order_object = None, img_loader = 'nexus_image_loader'):
         self.stop = True
         self.conf_file = None
         self.data = {}
@@ -42,7 +42,7 @@ class run_app(object):
         self.data_path = os.path.join(DaFy_path, 'dump_files')
         self.use_q_mapping = use_q_mapping
         self.filter_order_object = filter_order_object
-
+        self.img_loader_object = img_loader
 
     def run(self, config):
         self.conf_file = config
@@ -83,7 +83,7 @@ class run_app(object):
         self.bkg_sub = background_subtraction_single_img(self.cen_clip, self.conf_file, sections = ['Background_Subtraction'])
         self.rsp_instance = Reciprocal_Space_Mapping(img =None, cen=self.cen_clip, kwarg = self.kwarg_rsp)
         self.peak_fitting_instance = XRD_Peak_Fitting(img = None, cen=self.cen_clip, kwarg = self.kwarg_peak_fit, use_q_mapping = self.use_q_mapping, rsp_mapping = self.rsp_instance)
-        self.img_loader = nexus_image_loader(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image)
+        self.img_loader = eval(self.img_loader_object)(clip_boundary = self.clip_boundary, kwarg = self.kwarg_image)
         self.create_mask_new = create_mask(kwarg = self.kwarg_mask)
         self.lattice_skin = rsp.lattice.from_cif(os.path.join(DaFy_path, 'util','cif',"{}".format(self.kwarg_film['film_material_cif'])),
                                             HKL_normal=self.kwarg_film['film_hkl_normal'],\
