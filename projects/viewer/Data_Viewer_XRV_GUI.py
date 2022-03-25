@@ -192,14 +192,16 @@ class MyMainWindow(QMainWindow):
 
     def init_pandas_model_ax_format(self):
         data_ = {}
-        data_['use'] = [True]*6
-        data_['type'] = ['master']*6
+        data_['use'] = [True]*6 + [False] * 14
+        data_['type'] = ['master']*6 + ['bar']*14
         data_['channel'] = ['potential','current','strain_ip','strain_oop','grain_size_ip','grain_size_oop']
-        data_['tick_locs'] = ['[0,1,2,3]']*6
-        data_['padding'] = ['0.1']*6
-        data_['#minor_tick'] = ['4']*6
-        data_['fmt_str'] = ["{: 4.2f}"]*6
-        data_['func'] = ['set_xlim'] + ['set_ylim']*5
+        data_['channel'] = data_['channel'] + ['strain_ip','strain_oop','grain_size_ip','grain_size_oop'] + \
+                           ['dV_bulk', 'dV_skin', '<dskin>','OER_E', 'OER_j', 'OER_j/<dskin>','pH', 'q_cv','q_film','input'] 
+        data_['tick_locs'] = ['[0,1,2,3]']*(6+14)
+        data_['padding'] = ['0.1']*(6+14)
+        data_['#minor_tick'] = ['4']*(6+14)
+        data_['fmt_str'] = ["{: 4.2f}"]*(6+14)
+        data_['func'] = ['set_xlim'] + ['set_ylim']*(5+14)
         self.pandas_model_in_ax_format = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_ax_format, main_gui = self, check_columns = [0])
         self.tableView_ax_format.setModel(self.pandas_model_in_ax_format)
         self.tableView_ax_format.resizeColumnsToContents()
@@ -893,7 +895,15 @@ class MyMainWindow(QMainWindow):
                         elif channel == 'plainTextEdit_tick_label_settings':
                             getattr(self,channel).setPlainText(value.replace(";","\n"))
                         elif channel == 'tableView_ax_format':
-                            self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
+                            value=eval(value)
+                            cols = self.pandas_model_in_ax_format._data.columns.tolist()
+                            data_shape = self.pandas_model_in_ax_format._data.shape
+                            for i in range(len(cols)):
+                                #print(i,cols[i], value['use'])
+                                for j in value[cols[i]]:
+                                    if j<data_shape[0] and i<data_shape[1]:
+                                        self.pandas_model_in_ax_format._data.iloc[j,i] = value[cols[i]][j]
+                            #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
                         elif channel == 'tableView_cv_setting':
                             self.update_pandas_model_cv_setting(reset = True, data = eval(value))
 
@@ -1109,7 +1119,17 @@ class MyMainWindow(QMainWindow):
                         'strain_oop':r'$\Delta\varepsilon_\perp$  (%/V)',
                         'grain_size_oop':r'$\Delta d_\perp$  (nm/V)',
                         'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
-                        'peak_intensity':r'Intensity / a.u.'}
+                        'peak_intensity':r'Intensity / a.u.',
+                        '<dskin>': r'$d_{skin}$ / nm',
+                        'dV_bulk':r'($\Delta V / V$) / %',
+                        'dV_skin':r'($\Delta V_{skin} / V$) / %',
+                        'OER_E': r'$\eta (1 mAcm^{-2}) / V$',
+                        'OER_j':r'$j (1.65 V) / mAcm^{-2})$',
+                        'q_cv':r'$Q_0 / mCcm$^{-2}$',
+                        'q_film': r'$Q_0 / mCcm$^{-2}$',
+                        'OER_j/<dskin>':r'$log(j/d_{skin}) / mAcm^{-2})/nm$'
+                        }
+
             y_label_map_abs = {'potential':'E / V$_{RHE}$',
                         'current':r'j / mAcm$^{-2}$',
                         'strain_ip':r'$\varepsilon_\parallel$  (%)',
@@ -1148,7 +1168,14 @@ class MyMainWindow(QMainWindow):
                 lim_y_temp[each] = [lim_y_temp[each][0]-offset,lim_y_temp[each][1]+offset]
             if use_absolute_value:
                y_label_map = y_label_map_abs 
+            gs_left = plt.GridSpec(len(plot_y_labels), len(self.pot_range)+1,hspace=0.02,wspace=0.2)
+            hwspace = eval(self.lineEdit_hwspace.text())
+            gs_right = plt.GridSpec(max([2,self.comboBox_link_container.count()]), len(self.pot_range)+1,hspace=hwspace[0],wspace=hwspace[1])
             #print(self.data_summary)
+            def _extract_setting(channel):
+                data = self.pandas_model_in_ax_format._data
+                return data[(data['type'] == 'bar') & (data['channel'] == channel)].to_dict(orient = 'records')[0]
+
             for each_pot in self.pot_range:
                 output_data = []
                 #use_absolute_value = each_pot[0] == each_pot[1]
@@ -1157,7 +1184,19 @@ class MyMainWindow(QMainWindow):
                     plot_data_y = np.array([[self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2],self.data_summary[each_scan][each][self.pot_range.index(each_pot)*2+1]] for each_scan in self.scans])
                     plot_data_x = np.arange(len(plot_data_y))
                     labels = ['{}'.format(self.phs[self.scans.index(each_scan)]) for each_scan in self.scans]
-                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, self.pot_range.index(each_pot)+1+(len(self.pot_range)+1)*plot_y_labels.index(each))
+                    # ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, self.pot_range.index(each_pot)+1+(len(self.pot_range)+1)*plot_y_labels.index(each))
+                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(gs_left[plot_y_labels.index(each), self.pot_range.index(each_pot)])
+                    self._format_axis(ax_temp)
+                    settings = _extract_setting(each)
+                    if settings['use'] and self.checkBox_use.isChecked():
+                        self._format_ax_tick_labels(ax = ax_temp,
+                                                    fun_set_bounds = settings['func'],#'set_xlim', 
+                                                    bounds = [0,1],#will be replaced
+                                                    bound_padding = float(settings['padding']), 
+                                                    major_tick_location = eval(settings['tick_locs']), #x_locator
+                                                    show_major_tick_label = True, #show major tick label for the first scan
+                                                    num_of_minor_tick_marks=int(settings['#minor_tick']), #4
+                                                    fmt_str = settings['fmt_str'])#'{:3.1f}'
                     if use_absolute_value:
                         ax_temp.bar(plot_data_x,plot_data_y[:,0],0.5, yerr = plot_data_y[:,-1], color = colors_bar)
                         ax_temp.plot(plot_data_x,plot_data_y[:,0], '*:',color='0.1')
@@ -1211,7 +1250,10 @@ class MyMainWindow(QMainWindow):
                                 'input':lambda:[None]*self.summary_data_df.shape[0]}
                     if which_pot_range>len(self.pot_range)-1:
                         which_pot_range = 0
-                    return name_map[channel](), name_map_error[channel]()
+                    if self.checkBox_error.isChecked():
+                        return name_map[channel](), name_map_error[channel]()
+                    else:
+                        return name_map[channel](), [None]*self.summary_data_df.shape[0]
                     #return [self.data_summary[each_][channel][which_pot_range*2] for each_ in self.scans]
 
                 def _get_xy_for_linear_fit(panel_index, x, y):
@@ -1237,35 +1279,67 @@ class MyMainWindow(QMainWindow):
                     x, x_error = _extract_data(channels[0],self.spinBox_pot_range_idx.value())
                     y, y_error = _extract_data(channels[1],self.spinBox_pot_range_idx.value())
                     x_, y_ = _get_xy_for_linear_fit(i, x, y)
-                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
-                    ax_temp.set_xlabel(channels[0])
-                    ax_temp.set_ylabel(channels[1])
+                    # ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
+                    ax_temp = self.mplwidget2.canvas.figure.add_subplot(gs_right[i,len(self.pot_range)])
+                    self._format_axis(ax_temp)
+                    if channels[0] in y_label_map:
+                        ax_temp.set_xlabel(y_label_map[channels[0]])
+                    else:
+                        ax_temp.set_xlabel(channels[0])
+                    if channels[1] in y_label_map:
+                        ax_temp.set_ylabel(y_label_map[channels[1]])
+                    else:
+                        ax_temp.set_ylabel(channels[1])
+                    if channels[0]=='input':
+                        ax_temp.set_xlabel(self.lineEdit_input_name.text())
+                    if channels[1]=='input':
+                        ax_temp.set_ylabel(self.lineEdit_input_name.text())
                     if 'OER_j/<dskin>' == channels[1]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, np.log10(y_))
-                        ax_temp.set_ylabel('log({})'.format(channels[1]))
+                        # ax_temp.set_ylabel('log({})'.format(channels[1]))
+                        ax_temp.set_ylabel(y_label_map[channels[1]])
                         # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
-                        [ax_temp.errorbar(x[jj], np.log10(y[jj]), xerr=x_error[jj], yerr = y_error[jj]/y[jj]/np.log(10), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        for jj in range(len(x)):
+                            if y_error[jj] == None:
+                                ax_temp.errorbar(x[jj], np.log10(y[jj]), xerr=x_error[jj], yerr =None, c=colors_bar[jj], marker = 's', ms = 4)
+                            else:
+                                ax_temp.errorbar(x[jj], np.log10(y[jj]), xerr=x_error[jj], yerr = y_error[jj]/y[jj]/np.log(10), c=colors_bar[jj], marker = 's', ms = 4)
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj], np.log10(y[jj]), str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
                     elif 'OER_j/<dskin>' == channels[0]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
-                        ax_temp.set_xlabel('log({})'.format(channels[0]))
+                        # ax_temp.set_xlabel('log({})'.format(channels[0]))
+                        ax_temp.set_xlabel(y_label_map[channels[0]])
                         # [ax_temp.scatter(np.log10(x[jj]), y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
-                        [ax_temp.errorbar(np.log10(x[jj]), y[jj], xerr=x_error[jj]/x[jj]/np.log(10), yerr=y_error[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
-                        if self.checkBox_marker.isChecked():
+                        for jj in range(len(x)):
+                            if x_error[jj] == None:
+                                ax_temp.errorbar(np.log10(x[jj]), y[jj], xerr=None, yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
+                            else:
+                                ax_temp.errorbar(np.log10(x[jj]), y[jj], xerr=x_error[jj]/x[jj]/np.log(10), yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
                             [ax_temp.text(np.log10(x[jj]), y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k')
                     else:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, y_)
                         # [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
-                        [ax_temp.errorbar(x[jj], y[jj], xerr = x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        [ax_temp.errorbar(x[jj], y[jj], xerr = x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = 's', ms = 4) for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
+                    for channel in channels:
+                        settings = _extract_setting(channel)
+                        if settings['use'] and self.checkBox_use.isChecked():
+                            self._format_ax_tick_labels(ax = ax_temp,
+                                                        fun_set_bounds = settings['func'],#'set_xlim', 
+                                                        bounds = [0,1],#will be replaced
+                                                        bound_padding = float(settings['padding']), 
+                                                        major_tick_location = eval(settings['tick_locs']), #x_locator
+                                                        show_major_tick_label = True, #show major tick label for the first scan
+                                                        num_of_minor_tick_marks=int(settings['#minor_tick']), #4
+                                                        fmt_str = settings['fmt_str'])#'{:3.1f}'
 
                 #print output data
                 output_data = np.array(output_data).T
@@ -1278,7 +1352,7 @@ class MyMainWindow(QMainWindow):
                 for each_row in output_data:
                     # print("{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:2.0f}".format(*each_row))
                     plain_text.append("<p>{:3.0f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t{:6.3f}\t\t{:2.0f}</p>".format(*each_row))
-            self.mplwidget2.fig.subplots_adjust(hspace=0.5, wspace=0.2)
+            #self.mplwidget2.fig.subplots_adjust(hspace=0.5, wspace=0.2)
             self.mplwidget2.canvas.draw()
             # self.plainTextEdit_summary.setPlainText('\n'.join(plain_text))
             self.plainTextEdit_summary.setHtml('<h3>Table of complete information of pseudocapacitive charge and film structure (results extracted from master figure)</h3>'\
