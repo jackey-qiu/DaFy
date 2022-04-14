@@ -1907,7 +1907,7 @@ class MyMainWindow(QMainWindow):
                 self.data_summary[scan][channel].append(y_values[index_left])
             else:
                 self.data_summary[scan][channel].append(y_values[index_left] + self.data_to_plot[scan][channel+'_max'])
-            self.data_summary[scan][channel].append(std_val/(2**0.5)
+            self.data_summary[scan][channel].append(std_val/(2**0.5))
         else:#calculate the slope here
             self.data_summary[scan][channel].append((y_values[index_right] - y_values[index_left])/pot_offset)
             self.data_summary[scan][channel].append(std_val/pot_offset)
