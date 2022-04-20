@@ -387,6 +387,7 @@ class cvAnalysis(object):
                 axes1[i].text(1.1,2,'x{}'.format(cv_scale_factor),color=color)
                 axes1[i].legend()
             '''
+            '''
             if len(axs)==0:
                 if i in [0,4]:
                     axes2[i].set_ylabel(r'j / mAcm$^{-2}$')
@@ -398,6 +399,7 @@ class cvAnalysis(object):
                 if i == 6:
                     axes2[i].set_xlabel(r'E / V$_{RHE}$')
                 #axes2[i].set_yticklabels([])
+            '''
             '''
             if i == len(self.info['sequence_id'])-1:
                 axes1[i].set_xlabel(r'E / V$_{RHE}$')
@@ -444,7 +446,7 @@ class cvAnalysis(object):
             #remove axis tick lable
 
     #plot tafel slope for one scan
-    def plot_tafel_from_formatted_cv_info_one_scan_2(self,scan, ax, forward_cycle = True):
+    def plot_tafel_from_formatted_cv_info_one_scan_2(self,scan, ax, forward_cycle = True, use_marker = True):
         #half = 0, first half cycle E scan from low to high values
         #how many points to be extended beyond the Tafel E range
         return_text = [str(scan)]
@@ -501,20 +503,21 @@ class cvAnalysis(object):
                 current_fit = current[int(len(pot)/2):len(pot)][::-1]
             indx1,indx2 = [np.argmin(abs(np.array(pot_fit)-pot_start)),np.argmin(abs(np.array(pot_fit)-pot_end))]
             ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],color = color)
-            if cv_info[scans[i]]['pH']==13:
-                if self.pH13_count==1:
-                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.4, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation =30)
-                elif self.pH13_count==3:
-                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation=30)
+            if use_marker:
+                if cv_info[scans[i]]['pH']==13:
+                    if self.pH13_count==1:
+                        ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.4, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation =30)
+                    elif self.pH13_count==3:
+                        ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation=30)
+                    else:
+                        ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation=30)
+                    self.pH13_count+=1
+                elif cv_info[scans[i]]['pH']==10:
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH '+str(cv_info[scans[i]]['pH']), ha = 'left',fontsize=int(self.info['fontsize_text_marker']), color = color,rotation = 0)
+                elif cv_info[scans[i]]['pH']==7:
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.2, 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color,rotation = 0)
                 else:
-                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH 13 ({})'.format(self.pH13_count),fontsize = int(self.info['fontsize_text_marker']), color = color,rotation=30)
-                self.pH13_count+=1
-            elif cv_info[scans[i]]['pH']==10:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]-0.2, 'pH '+str(cv_info[scans[i]]['pH']), ha = 'left',fontsize=int(self.info['fontsize_text_marker']), color = color,rotation = 0)
-            elif cv_info[scans[i]]['pH']==7:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2]+0.2, 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color,rotation = 0)
-            else:
-                ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color)
+                    ax.text(pot_fit[indx2]-resistance[i]*(current_fit[indx2]/8*0.001),current_fit[indx2], 'pH '+str(cv_info[scans[i]]['pH']), ha = 'right',fontsize=int(self.info['fontsize_text_marker']), color = color)
             # ax.plot(pot_fit[indx1:indx2]-resistance[i]*(current_fit[indx1:indx2]/8*0.001),current_fit[indx1:indx2],label=label,color = color)
             # ax.plot(pot_fit[indx1-offset:indx1]-resistance[i]*(current_fit[indx1-offset:indx1]/8*0.001),current_fit[indx1-offset:indx1],':',label=label,color = color)
             min_x, max_x = min(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001)),max(pot_fit[indx1-offset:indx2]-resistance[i]*(current_fit[indx1-offset:indx2]/8*0.001))
@@ -603,12 +606,12 @@ class cvAnalysis(object):
                 pass
         return min_x, max_x, min_y, max_y
     
-    def plot_tafel_with_reaction_order(self,ax_tafel, ax_order,constant_value = 1,mode = 'constant_current', forward_cycle = True):
-        self.plot_reaction_order_with_pH(constant_value = constant_value, ax = ax_order, mode = mode, forward_cycle = forward_cycle)
+    def plot_tafel_with_reaction_order(self,ax_tafel, ax_order,constant_value = 1,mode = 'constant_current', forward_cycle = True, use_marker = True):
+        self.plot_reaction_order_with_pH(constant_value = constant_value, ax = ax_order, mode = mode, forward_cycle = forward_cycle, use_marker = use_marker)
         self.pH13_count = 1
         text_log = {}
         for scan in self.info['sequence_id']:
-            *dump, return_text = self.plot_tafel_from_formatted_cv_info_one_scan_2(scan=scan, ax=ax_tafel, forward_cycle = forward_cycle)
+            *dump, return_text = self.plot_tafel_from_formatted_cv_info_one_scan_2(scan=scan, ax=ax_tafel, forward_cycle = forward_cycle, use_marker = use_marker)
             text_log[scan] = '\n'.join(return_text)
         return text_log
 
@@ -616,7 +619,7 @@ class cvAnalysis(object):
     #two modes: 
     # constant_current: current density at the same potential
     # constant_potential: potential at the same current density
-    def plot_reaction_order_with_pH(self, constant_value = 1, ax = None, mode = 'constant_current', forward_cycle = True):
+    def plot_reaction_order_with_pH(self, constant_value = 1, ax = None, mode = 'constant_current', forward_cycle = True, use_marker = True):
         if forward_cycle:
             half = 0
         else:
@@ -675,7 +678,8 @@ class cvAnalysis(object):
         for j,pH in enumerate(pHs):
             ax.plot(pH, values[j], 'o', color = self.info['color'][j])
             if pH ==13:
-                ax.text(pH+0.1,values[j],str(pH13_count),fontsize=int(self.info['fontsize_text_marker']))
+                if use_marker:
+                    ax.text(pH+0.1,values[j],str(pH13_count),fontsize=int(self.info['fontsize_text_marker']))
                 pH13_count+=1
         slope_, intercept_, r_value_, *_ = stats.linregress(pHs, values)
         f = lambda x: slope_*x + intercept_

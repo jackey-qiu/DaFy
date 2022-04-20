@@ -1437,7 +1437,7 @@ class MyMainWindow(QMainWindow):
             constant_value = self.cv_tool.info['current_reaction_order']
         mode = self.cv_tool.info['reaction_order_mode']
         forward_cycle = True
-        text_log_tafel = self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle)
+        text_log_tafel = self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle, use_marker = self.checkBox_use_marker.isChecked())
         plainText = '\n'.join([text_log_tafel[each] for each in text_log_tafel])
         self.plainTextEdit_cv_summary.setPlainText(self.plainTextEdit_cv_summary.toPlainText() + '\n\n' + plainText)
 
@@ -1488,14 +1488,14 @@ class MyMainWindow(QMainWindow):
         coord_top_left = [eval(tafel_bounds_pot)[0]-float(padding_tafel_pot),eval(tafel_bounds_current)[1]+float(padding_tafel_current)]
         offset = np.array(self.cv_tool.info['index_header_pos_offset_tafel'])
         coord_top_index_marker = coord_top_left+offset
-        label_map = dict(zip(range(10),list('abcdefghij')))
+        label_map = dict(zip(range(15),list('abcdefghijklmno')))
         cvs_total_num = len([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())])
         ax_tafel.text(*coord_top_index_marker, '{})'.format(label_map[cvs_total_num]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
 
         coord_top_left = [eval(order_bounds_ph)[0]-float(padding_order_ph),eval(order_bounds_y)[1]+float(padding_order_y)]
         offset = np.array(self.cv_tool.info['index_header_pos_offset_order'])
         coord_top_index_marker = coord_top_left+offset
-        label_map = dict(zip(range(10),list('abcdefghij')))
+        label_map = dict(zip(range(15),list('abcdefghijklmno')))
         #cvs_total_num = len([self.cv_tool.info['selected_scan'],self.cv_tool.info['sequence_id']][int(self.checkBox_use_all.isChecked())])
         ax_order.text(*coord_top_index_marker, '{})'.format(label_map[cvs_total_num+1]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
         for each in [ax_tafel,ax_order]:
@@ -1583,10 +1583,16 @@ class MyMainWindow(QMainWindow):
                             pH_text = pH_text+'({})'.format(which_pH13)
                             break
             labels.append(pH_text)
-            ph_marker_pos = coord_top_left-[-0.1,eval(bounds_current)[1]*0.3]
+            # ph_marker_pos = coord_top_left-[-0.1,eval(bounds_current)[1]*0.3]
+            ph_marker_pos = coord_top_left-[-abs(eval(bounds_pot)[0]-eval(bounds_pot)[1])*0.2,eval(bounds_current)[1]*0.35]
             each.text(*ph_marker_pos, pH_text, fontsize = int(self.cv_tool.info['fontsize_text_marker']),color = self.cv_tool.info['color'][i_full])
             #set axis label
-            each.set_ylabel(r'j / mAcm$^{-2}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
+            if len(axs)<7:#show all y labels when the total num of ax is fewer than 7
+                each.set_ylabel(r'j / mAcm$^{-2}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
+            else:#only show the y label for the middle panel
+                if i== int((len(axs)-1)/2):
+                    each.set_ylabel(r'j / mAcm$^{-2}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
+
             if each == axs[-1]:
                 each.set_xlabel(r'E / V$_{RHE}$',fontsize = int(self.cv_tool.info['fontsize_axis_label']))
             #now set the fontsize for tick marker
@@ -1631,20 +1637,41 @@ class MyMainWindow(QMainWindow):
         #charge_col = [int(self.lineEdit_col_charge.text()),1][int(self.checkBox_default.isChecked())]
         # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[tafel_row_lf:tafel_row_rt,tafel_col_lf:tafel_col_rt]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[order_row_lf:order_row_rt,order_col_lf:order_col_rt])]
-        try:
-            self.plot_reaction_order_and_tafel(axs = axs_2)
-            # ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
-            ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[charge_row_lf:charge_row_rt,charge_col_lf:charge_col_rt])
-            bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
-            ax_3.set_ylabel(r'q / mCcm$^{-2}$')
-            #ax_3.set_title('Comparison of charge')
-            ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
-            #labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
-            ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
-            for i, bar_ in enumerate(bar_list):
-                bar_.set_color(self.cv_tool.info['color'][i])
-        except:
-            pass
+
+        self.plot_reaction_order_and_tafel(axs = axs_2)
+        # ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
+        ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[charge_row_lf:charge_row_rt,charge_col_lf:charge_col_rt])
+        self._format_axis(ax_3)
+        bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
+        ax_3.set_ylabel(r'q / mCcm$^{-2}$')
+        ax_3.set_xlabel(r'Measurement sequence')
+        ax_3.set_ylim(0,max(self.cv_tool.info['charge'])*1.2)
+        ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
+        ax_3.set_xticklabels(range(1,1+len(self.cv_tool.info['charge'])))
+        # ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
+
+        coord_top_left = np.array([len(bar_list)-1-0.1, max(self.cv_tool.info['charge'])*1.1])
+        offset = np.array([0,0])
+        coord_top_index_marker = coord_top_left+offset
+        label_map = dict(zip(range(26),list('abcdefghijklmnopqrstuvwxyz')))
+        ax_3.text(*coord_top_index_marker, '{})'.format(label_map[len(axs)+2]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
+
+        for i, bar_ in enumerate(bar_list):
+            bar_.set_color(self.cv_tool.info['color'][i])
+        # try:
+        #     self.plot_reaction_order_and_tafel(axs = axs_2)
+        #     # ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
+        #     ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[charge_row_lf:charge_row_rt,charge_col_lf:charge_col_rt])
+        #     bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
+        #     ax_3.set_ylabel(r'q / mCcm$^{-2}$')
+        #     #ax_3.set_title('Comparison of charge')
+        #     ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
+        #     #labels = ['HM1','HM2', 'HM3', 'PEEK1', 'PEEK2']
+        #     ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
+        #     for i, bar_ in enumerate(bar_list):
+        #         bar_.set_color(self.cv_tool.info['color'][i])
+        # except:
+        #     pass
 
         #ax_3.legend()
         #self.widget_cv_view.fig.subplots_adjust(wspace=0.31,hspace=0.15)
