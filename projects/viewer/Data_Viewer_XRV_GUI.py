@@ -660,7 +660,10 @@ class MyMainWindow(QMainWindow):
         # index_lf = np.argmin(np.abs(pots - pot_lf))
         # index_rt = np.argmin(np.abs(pots - pot_rt))
         pot_lf, pot_rt = pot_range
-        pots = self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]]
+        if data_range[0]==data_range[1]:
+            pots = self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]+1]
+        else:
+            pots = self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]]
         values = np.array(self.data_to_plot[scan][label])+self.data_to_plot[scan][label+'_max']
         values_smooth = signal.savgol_filter(values,41,2)
         index_lf = np.argmin(np.abs(pots - pot_lf)) + data_range[0]
@@ -1437,7 +1440,7 @@ class MyMainWindow(QMainWindow):
             constant_value = self.cv_tool.info['current_reaction_order']
         mode = self.cv_tool.info['reaction_order_mode']
         forward_cycle = True
-        text_log_tafel = self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle, use_marker = self.checkBox_use_marker.isChecked())
+        text_log_tafel = self.cv_tool.plot_tafel_with_reaction_order(ax_tafel, ax_order,constant_value = constant_value,mode = mode, forward_cycle = forward_cycle, use_marker = self.checkBox_use_marker.isChecked(), use_all = self.checkBox_use_all.isChecked())
         plainText = '\n'.join([text_log_tafel[each] for each in text_log_tafel])
         self.plainTextEdit_cv_summary.setPlainText(self.plainTextEdit_cv_summary.toPlainText() + '\n\n' + plainText)
 
@@ -1642,12 +1645,19 @@ class MyMainWindow(QMainWindow):
         # ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
         ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[charge_row_lf:charge_row_rt,charge_col_lf:charge_col_rt])
         self._format_axis(ax_3)
-        bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
+        if self.checkBox_use_all.isChecked():
+            bar_list = ax_3.bar(range(len(self.cv_tool.info['charge'])),self.cv_tool.info['charge'],0.5)
+            bar_colors = self.cv_tool.info['color']
+        else:
+            index_ = [i for i in range(len(self.cv_tool.info['sequence_id'])) if self.cv_tool.info['sequence_id'][i] in self.cv_tool.info['selected_scan']]
+            bar_list = ax_3.bar(range(len(self.cv_tool.info['selected_scan'])),[self.cv_tool.info['charge'][i] for i in index_],0.5)
+            bar_colors = [self.cv_tool.info['color'][i] for i in index_]
+
         ax_3.set_ylabel(r'q / mCcm$^{-2}$')
         ax_3.set_xlabel(r'Measurement sequence')
-        ax_3.set_ylim(0,max(self.cv_tool.info['charge'])*1.2)
-        ax_3.set_xticks(range(len(self.cv_tool.info['charge'])))
-        ax_3.set_xticklabels(range(1,1+len(self.cv_tool.info['charge'])))
+        ax_3.set_ylim(0,max(self.cv_tool.info['charge'])*1.3)
+        ax_3.set_xticks(range(len(bar_list)))
+        ax_3.set_xticklabels(range(1,1+len(bar_list)))
         # ax_3.set_xticklabels(labels[0:len(self.cv_tool.info['charge'])])
 
         coord_top_left = np.array([len(bar_list)-1-0.1, max(self.cv_tool.info['charge'])*1.1])
@@ -1657,7 +1667,8 @@ class MyMainWindow(QMainWindow):
         ax_3.text(*coord_top_index_marker, '{})'.format(label_map[len(axs)+2]),weight = 'bold', fontsize = int(self.cv_tool.info['fontsize_index_header']))
 
         for i, bar_ in enumerate(bar_list):
-            bar_.set_color(self.cv_tool.info['color'][i])
+            # bar_.set_color(self.cv_tool.info['color'][i])
+            bar_.set_color(bar_colors[i])
         # try:
         #     self.plot_reaction_order_and_tafel(axs = axs_2)
         #     # ax_3 = self.widget_cv_view.canvas.figure.add_subplot(gs_right[3:,1])
@@ -1921,8 +1932,12 @@ class MyMainWindow(QMainWindow):
 
     def _cal_structural_change_rate(self,scan, channel,y_values, std_val, data_range, pot_range, marker_index_container, cal_std = True):
         assert 'potential' in list(self.data_to_plot[scan].keys())
-        index_left = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[0])) + data_range[0]
-        index_right = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[1])) + data_range[0]
+        if data_range[0]==data_range[1]:
+            index_left = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]+1] - pot_range[0])) + data_range[0]
+            index_right = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]+1] - pot_range[1])) + data_range[0]
+        else:            
+            index_left = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[0])) + data_range[0]
+            index_right = np.argmin(np.abs(self.data_to_plot[scan]['potential'][data_range[0]:data_range[1]] - pot_range[1])) + data_range[0]
         marker_index_container.append(index_left)
         marker_index_container.append(index_right)
         pot_offset = abs(self.data_to_plot[scan]['potential'][index_left]-self.data_to_plot[scan]['potential'][index_right])

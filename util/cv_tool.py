@@ -606,11 +606,15 @@ class cvAnalysis(object):
                 pass
         return min_x, max_x, min_y, max_y
     
-    def plot_tafel_with_reaction_order(self,ax_tafel, ax_order,constant_value = 1,mode = 'constant_current', forward_cycle = True, use_marker = True):
-        self.plot_reaction_order_with_pH(constant_value = constant_value, ax = ax_order, mode = mode, forward_cycle = forward_cycle, use_marker = use_marker)
+    def plot_tafel_with_reaction_order(self,ax_tafel, ax_order,constant_value = 1,mode = 'constant_current', forward_cycle = True, use_marker = True, use_all = True):
+        self.plot_reaction_order_with_pH(constant_value = constant_value, ax = ax_order, mode = mode, forward_cycle = forward_cycle, use_marker = use_marker, use_all = use_all)
         self.pH13_count = 1
         text_log = {}
-        for scan in self.info['sequence_id']:
+        if use_all:
+            all_scans = self.info['sequence_id']
+        else:
+            all_scans = self.info['selected_scan']
+        for scan in all_scans:
             *dump, return_text = self.plot_tafel_from_formatted_cv_info_one_scan_2(scan=scan, ax=ax_tafel, forward_cycle = forward_cycle, use_marker = use_marker)
             text_log[scan] = '\n'.join(return_text)
         return text_log
@@ -619,7 +623,7 @@ class cvAnalysis(object):
     #two modes: 
     # constant_current: current density at the same potential
     # constant_potential: potential at the same current density
-    def plot_reaction_order_with_pH(self, constant_value = 1, ax = None, mode = 'constant_current', forward_cycle = True, use_marker = True):
+    def plot_reaction_order_with_pH(self, constant_value = 1, ax = None, mode = 'constant_current', forward_cycle = True, use_marker = True, use_all = True):
         if forward_cycle:
             half = 0
         else:
@@ -632,6 +636,7 @@ class cvAnalysis(object):
         ax.set_xlabel(r'pH',fontsize = int(self.info['fontsize_axis_label']))
         pHs = []
         values = [] #either pot values or current density values depending on the mode 
+        colors = []
         mode = self.info['reaction_order_mode']
         if mode == 'constant_current':
             constant_value = self.info['current_reaction_order']
@@ -656,8 +661,12 @@ class cvAnalysis(object):
         elif mode == 'constant_current':
             ax.set_ylabel(r'E / V$_{RHE}$' + f'at j = {constant_value}'+r'mAcm$^{-2}$',fontsize = int(self.info['fontsize_axis_label']))
         for i, scan in enumerate(self.info['sequence_id']):
+            if not use_all:
+                if scan not in self.info['selected_scan']:
+                    continue
             pot_fit, current_fit = _get_pot_current(scan, self.info['resistance'][i], half)
             pHs.append(self.cv_info[scan]['pH'])
+            colors.append(self.cv_info[scan]['color'])
             if mode == 'constant_potential':
                 pot_start = self.info['pot_starts_tafel'][i]
                 pot_end = self.info['pot_ends_tafel'][i]
@@ -676,7 +685,8 @@ class cvAnalysis(object):
         # pHs, values = pHs_unique, values_unique
         pH13_count = 1
         for j,pH in enumerate(pHs):
-            ax.plot(pH, values[j], 'o', color = self.info['color'][j])
+            # ax.plot(pH, values[j], 'o', color = self.info['color'][j])
+            ax.plot(pH, values[j], 'o', color = colors[j])
             if pH ==13:
                 if use_marker:
                     ax.text(pH+0.1,values[j],str(pH13_count),fontsize=int(self.info['fontsize_text_marker']))
