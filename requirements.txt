@@ -7,7 +7,7 @@ periodictable: pip3 install periodictable
 pycifrw: pip3 install pycifrw
 pyqt5: pip3 install pyqt5
 nexusformat: pip3 install nexusformat==0.4.20
-pyqtgraph:pip3 install pyqtgraph
+pyqtgraph:pip3 install pyqtgraph==0.11.1
 pandas: pip3 install pandas==1.0.5
 pymca5: pip3 install PyMca5
 matplotlib: pip3 install matplotlib
