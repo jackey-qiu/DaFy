@@ -170,6 +170,45 @@ class DataSet:
         self.sim_linetype = new_set.sim_linetype
         self.sim_linethickness = new_set.sim_linethickness
 
+    def copy_and_extend(self, dL=0.08, pt=10):
+        ''' Make a copy of the current Data Set'''
+        cpy = DataSet()
+        cpy.safe_copy(self)
+        cpy.safe_copy_and_extend_l(self, dL, pt)
+        return cpy
+
+    #extend l to Bragg_L + or - dL, the extended l segment has pt points
+    #it will only work for simply situation where there is only one dL
+    #i.e. the Bragg's peaks are evently spaced, a more complicated func will 
+    #needed if other than this situation
+    def safe_copy_and_extend_l(self, new_set, dL=0.08, pt=10):
+        inserted_l = []
+        l = self.x
+        dl = list(set(self.extra_data['dL']))[0]
+        lB = list(set(self.extra_data['LB']))[0]
+        Bragg_Peaks = [lB+i*dl for i in range(10) if min(l)<lB+i*dl<max(l)]
+        for each in Bragg_Peaks:
+            index_ = np.argmin(abs(np.array(l)-each))
+            if l[index_]<each:
+                index_lf, index_rt = index_, int(index_+1)
+            else:
+                index_lf, index_rt = int(index_-1), index_
+            inserted_l = inserted_l + np.arange(l[index_lf]+dL/pt, each-0.02+dL/pt, dL/pt).tolist()
+            inserted_l = inserted_l + np.arange(each+0.02, l[index_rt], dL/pt).tolist()
+        
+        num_ = len(inserted_l)
+        self.x = np.array(new_set.x.tolist()+inserted_l)
+        self.y = np.array(new_set.y.tolist()+[0]*num_)
+        self.y_sim = np.array(new_set.y_sim.tolist() +[0]*num_)
+        self.error = np.array(new_set.error.tolist()+[0]*num_)
+        # The raw data
+        self.x_raw = np.array(new_set.x_raw.tolist()+inserted_l)
+        self.y_raw = np.array(new_set.y_raw.tolist()+[0]*num_)
+        self.error_raw = np.array(new_set.error_raw.tolist()+[0]*num_)
+        self.mask = np.array(new_set.mask.tolist() + [True]*num_)
+        for each in self.extra_data.keys():
+            self.extra_data[each ]= np.array(self.extra_data[each].tolist()+[self.extra_data[each][0]]*num_)
+
     def get_extra_data_names(self):
         '''get_extra_data_names(self) --> names [list]
 

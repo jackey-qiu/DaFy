@@ -210,11 +210,13 @@ class MplWidget2(QWidget):
             ax.set_xlabel('L(r.l.u)', fontsize = 10)
             ax.set_title(keys_rods[i], fontsize = 10)
             for key in keys:
-                l, I, Ierr, y_sim, I_ideal = self.data[key][keys_rods[i]]#ctr data [l, I, Ierr, y_sim, I_ideal]
+                l, I, Ierr, y_sim, I_ideal, extended_set = self.data[key][keys_rods[i]]#ctr data [l, I, Ierr, y_sim, I_ideal]
                 #if keys_rods[i]!='ed_profile':#indicate a ctr or RAXS data
                 applied_offset = _calc_offset(min(y_sim),offset,keys.index(key))
-                ax.plot(l, y_sim*applied_offset, color = self.plot_pars[key]['color'],linewidth = int(str(self.plot_pars[key]['lw'])),linestyle = self.plot_pars[key]['ls'], label = self.plot_pars[key]['label'])
-                ax.plot(l, I_ideal*applied_offset, color = '0.5')
+                # ax.plot(l, y_sim*applied_offset, color = self.plot_pars[key]['color'],linewidth = int(str(self.plot_pars[key]['lw'])),linestyle = self.plot_pars[key]['ls'], label = self.plot_pars[key]['label'])
+                ax.plot(extended_set[0], extended_set[1]*applied_offset, color = self.plot_pars[key]['color'],linewidth = int(str(self.plot_pars[key]['lw'])),linestyle = self.plot_pars[key]['ls'], label = self.plot_pars[key]['label'])
+                #ax.plot(l, I_ideal*applied_offset, color = '0.5')
+                ax.plot(extended_set[0], extended_set[2]*applied_offset, color = 'k', alpha = 0.5)
                 ax.scatter(l,I*applied_offset,s = int(str(self.plot_pars[key]['symbol_size'])), marker = self.plot_pars[key]['symbol'],c = self.plot_pars[key]['symbol_color'])
             self._format_ax_tick_labels(ax, self.ax_format_pars_x[i])
             self._format_ax_tick_labels(ax, self.ax_format_pars_y[i])
@@ -229,6 +231,9 @@ class MplWidget2(QWidget):
             self._format_ax_tick_labels(self.ax_handle_ed, self.ax_format_pars_x[len(self.ax_handles_ctr)])
             self._format_ax_tick_labels(self.ax_handle_ed, self.ax_format_pars_y[len(self.ax_handles_ctr)])
         self.canvas.draw()
+
+    def draw_ideal_ctr_profile(self, ax, l, f_ideal):
+        pass
 
     def get_uniform_offset(self):
         return int(self.parent.lineEdit_vert_offset.text())
@@ -522,5 +527,17 @@ class MplWidget2(QWidget):
         label,edf = model_.script_module.sample.plot_electron_density_superrod(z_min=z_min, z_max=z_max,N_layered_water=500,resolution =1000, raxs_el = None, use_sym = True)
         ed_profile = {key:value for key, value in zip(label,edf)}
         data['ed_profile'] = ed_profile
+        #now cal the sf for an extended dataset, which will be used for plotting ctr profile for points closer to Bragg peaks
+        for i in range(len(model_.data)):
+            model_.data.items[i]=model_.data.items[i].copy_and_extend(dL=0.1)
+        model_.data.concatenate_all_ctr_datasets()
+        model_.simulate()
+        f_ideal = self.calc_f_ideal(model_)
+        for i in range(len(model_.data)):
+            each = model_.data[i]
+            key = _make_key(each)
+            data_pd = pd.DataFrame({'x':each.x, 'y':each.y_sim, 'z':f_ideal[i]})
+            data_pd = data_pd.sort_values(by='x')
+            data[key].append([data_pd.x.to_numpy(), data_pd.y.to_numpy(), data_pd.z.to_numpy()])
         return data
 
