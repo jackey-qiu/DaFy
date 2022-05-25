@@ -1,0 +1,52 @@
+[Fig_settings]
+figsize = (9,6)
+hspace = [0.04,0.3]
+wspace = [0.6,0.5]
+
+[Data_Info]
+sequence_id = [805, 807]
+selected_scan = [805, 807]
+cv_folder = D:\\beamtime\\P23_11_18_I20180114\\ids\\I20180014
+path = ['023.ids', '025.ids']
+ph = [13, 8]
+
+[General_Format_Settings]
+fontsize_tick_label = 10
+fontsize_axis_label = 10
+fontsize_text_marker = 9
+fontsize_index_header = 11
+fmt = ['-']*2
+color = ['r', 'g']
+index_header_pos_offset_cv = [-0.4,-0.4]
+index_header_pos_offset_tafel = [-0.09,2.5]
+index_header_pos_offset_order = [-1.35,0.]
+tafel_show_tick_label_x_y = [True,True]
+order_show_tick_label_x_y = [True,True]
+
+[Axis_Format_Settings]
+cv_bounds_pot = [0.7000000000000001,2.1]+[0.8,1.0,1.2,1.4,1.6,1.8,2]+0.1+4+{: 4.1f}+set_xlim
+cv_bounds_current = [-2.1,8.1]+[-2,0,2,4,6,8]+0.1+4+{: 4.2f}+set_ylim
+tafel_bounds_pot = [1.55,2.1]+[1.6, 1.7,1.8,1.9,2]+0.01+4+{: 4.2f}+set_xlim
+tafel_bounds_current = [0.1,6]+[0.1,1,10]+0.01+9+{: 4.1f}+set_ylim
+order_bounds_ph = [7,13]+[8,13]+1+0+{: 4.0f}+set_xlim
+order_bounds_y = [1.65,1.9]+[1.6,1.7,1.8,1.9]+0.03+4+{: 3.2f}+set_ylim
+cv_show_tick_label_x = [False, True]
+cv_show_tick_label_y = [True, True]
+
+[Data_Analysis_settings]
+cv_scale_factor = [30, 30]
+scale_factor_text_pos = [(1.35, 2.0), (1.35, 2.0)]
+cv_spike_cut = [0.002, 0.002]
+scan_rate = [0.005, 0.005]
+resistance = [70, 70]
+which_cycle = [2, 2]
+method = ['extract_cv_file_ivium']*2
+pot_range = [[1.2, 1.6], [1.2, 1.6]]
+pot_starts_tafel = [1.64, 1.84]
+pot_ends_tafel = [1.74, 1.95]
+potential_reaction_order = 1.65
+current_reaction_order = 1
+reaction_order_mode = constant_current
+current_filter_length = 7
+current_filter_order = 0
+

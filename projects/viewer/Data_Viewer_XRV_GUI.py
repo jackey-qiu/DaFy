@@ -7,6 +7,7 @@ import PyQt5
 import random
 import numpy as np
 import matplotlib.pyplot as plt
+import zipfile, pickle
 try:
     from . import locate_path_viewer
 except:
@@ -915,6 +916,52 @@ class MyMainWindow(QMainWindow):
         self.update_pot_offset()
         self.make_plot_lib()
 
+    def load_config_raw(self, fileName):
+        #TODO: this func is not finished yet
+        with open(fileName,'r') as f:
+            lines = f.readlines()
+            for line in lines:
+                items = line.rstrip().rsplit(':')
+                if len(items)>2:
+                    channel,value = items[0], ':'.join(items[1:])
+                else:
+                    channel,value = items
+                if value=='True':
+                    getattr(self,channel).setChecked(True)
+                elif value=='False':
+                    getattr(self,channel).setChecked(False)
+                else:
+                    try:
+                        if channel == "textEdit_plot_lib":
+                            getattr(self,channel).setText(value.replace(";","\n"))
+                        else:
+                            getattr(self,channel).setText(value)
+                    except:
+                        if channel == 'plainTextEdit_img_range':
+                            getattr(self,channel).setPlainText(value.replace(";","\n"))
+                            if value=="":
+                                pass
+                            else:
+                                self.image_range_info = {}
+                                items = value.rsplit(';')
+                                for each_item in items:
+                                    a,b = each_item.rstrip().rsplit(":")
+                                    self.image_range_info[int(a)] = eval(b)
+                        elif channel == 'plainTextEdit_tick_label_settings':
+                            getattr(self,channel).setPlainText(value.replace(";","\n"))
+                        elif channel == 'tableView_ax_format':
+                            value=eval(value)
+                            cols = self.pandas_model_in_ax_format._data.columns.tolist()
+                            data_shape = self.pandas_model_in_ax_format._data.shape
+                            for i in range(len(cols)):
+                                #print(i,cols[i], value['use'])
+                                for j in value[cols[i]]:
+                                    if j<data_shape[0] and i<data_shape[1]:
+                                        self.pandas_model_in_ax_format._data.iloc[j,i] = value[cols[i]][j]
+                            #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
+                        elif channel == 'tableView_cv_setting':
+                            self.update_pandas_model_cv_setting(reset = True, data = eval(value)
+
     #save config file
     def save_config(self):
         options = QFileDialog.Options()
@@ -939,6 +986,52 @@ class MyMainWindow(QMainWindow):
                 f.write("tableView_ax_format:"+str(self.pandas_model_in_ax_format._data.to_dict())+'\n')
             if hasattr(self,'tableView_cv_setting'):
                 f.write("tableView_cv_setting:"+str(self.pandas_model_cv_setting._data.to_dict())+'\n')
+
+    #save all meta-parameters and data files (xrv data and cv data) into a zip file
+    def save_config_raw(self):
+        #options = QFileDialog.Options()
+        #options |= QFileDialog.DontUseNativeDialog
+        #filename, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","config file (*.zip)", options=options)
+        filename = 'test.zip'
+        if filename:
+            try:
+                savefile = zipfile.ZipFile(filename, 'w')
+            except Exception as e:
+                raise IOError(str(e), filename)
+            channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
+                        'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
+                        'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
+                        'checkBox_show_marker','checkBox_merge']
+            for each in channels:
+                if each.startswith('checkBox'):
+                    savefile.writestr(each, str(getattr(self,each).isChecked()))
+                else:
+                    savefile.writestr(each, getattr(self,each).text())
+            savefile.writestr("plainTextEdit_img_range", self.plainTextEdit_img_range.toPlainText().replace("\n",";"))
+            # savefile.writestr("plainTextEdit_tick_label_settings", self.plainTextEdit_tick_label_settings.toPlainText().replace("\n",";"))
+            savefile.writestr("tableView_ax_format", str(self.pandas_model_in_ax_format._data.to_dict()))
+            savefile.writestr("tableView_cv_setting",str(self.pandas_model_cv_setting._data.to_dict()))
+        savefile.writestr('xrv_data', pickle.dumps(self.data))
+        savefile.writestr('cv_data_raw', pickle.dumps([open(self.plot_lib[each][0],'r').read() for each in self.plot_lib]))
+        savefile.writestr('cv_data_names', pickle.dumps([self.plot_lib[each][0] for each in self.plot_lib]))
+        savefile.close()
+
+    #zipfile is of format zipfile.ZipFile('','r')
+    #this step will be done first before lauching the plot func
+    def _save_temp_cv_excel_file(self, zipfile):
+        root_folder = os.path.join(DaFy_path,'dump_files')
+        #pandas DataFrame
+        xrv_data = pickle.loads(zipfile.read('xrv_data'))
+        cv_data_list = pickle.loads(zipfile.read('cv_data_raw'))
+        cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
+        xrv_data.to_excel(os.path.join(root_folder,'xrv_data.xlsx'))
+        for i in range(len(cv_data_list)):
+            #str format already
+            cv_data = cv_data_list[i]
+            _, cv_name = os.path.split(cv_data_names[i])
+            with open(os.path.join(root_folder,cv_name), 'w') as f:
+                print(os.path.join(root_folder,cv_name))
+                f.write(cv_data)        
 
     def set_plot_channels(self):
         time_scan = self.checkBox_time_scan.isChecked()
