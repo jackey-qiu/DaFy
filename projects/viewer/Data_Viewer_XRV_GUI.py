@@ -871,7 +871,7 @@ class MyMainWindow(QMainWindow):
     def load_cv_config_file(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","CV config Files (*.ini);;All Files (*.txt)", options=options)
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","CV config Files (*.ini);;zip Files (*.zip)", options=options)
         if fileName:
             self.lineEdit_cv_config_path.setText(fileName)
             self.widget_par_tree.update_parameter(fileName)
@@ -886,7 +886,10 @@ class MyMainWindow(QMainWindow):
         # with open(self.lineEdit_cv_config_path.text(),'w') as f:
             # f.write(self.plainTextEdit_cv_config.toPlainText())
         self.widget_par_tree.save_parameter(self.lineEdit_cv_config_path.text())
-        missed_items = self.cv_tool._extract_parameter_from_config(self.lineEdit_cv_config_path.text())
+        if self.lineEdit_cv_config_path.text().endswith('.ini'):
+            missed_items = self.cv_tool._extract_parameter_from_config(self.lineEdit_cv_config_path.text())
+        elif self.lineEdit_cv_config_path.text().endswith('.zip'): 
+            missed_items = self.cv_tool._extract_parameter_from_config(self.lineEdit_cv_config_path.text().replace('.zip','.ini'))
         if len(missed_items)==0:
             self.cv_tool.extract_cv_info()
             error_pop_up('The config file is overwritten!','Information')

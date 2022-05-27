@@ -1,5 +1,6 @@
 # -*- coding: utf-8 -*-
 import pyqtgraph as pg
+import os, pickle
 from pyqtgraph.parametertree import Parameter, ParameterTree
 import pyqtgraph.parametertree.parameterTypes as pTypes
 import zipfile
@@ -114,10 +115,10 @@ class Parameters(ParameterTree):
             config_string = zip.read('config').decode()
             kwarg_temp = extract_vars_from_config(config_string, string_mode=True)
             #save cv files
-            rout_folder,_ = os.path.split(config_file)
+            root_folder,_ = os.path.split(config_file)
             self._save_cv_files(zip, root_folder)
             #now update the cv_folder
-            kwarg_temp[('Data_info', 'cv_folder')] = rout_folder
+            kwarg_temp[('Data_info', 'cv_folder')] = root_folder
         else:
             kwarg_temp = extract_vars_from_config(config_file)
         for each in kwarg_temp:
@@ -125,7 +126,7 @@ class Parameters(ParameterTree):
             self.par[each] = str(kwarg_temp[each])
 
     def save_parameter(self, config_file):
-        if config_file.endswith('.ini'):
+        def _save_config(file):
             config = configparser.ConfigParser()
             sections = self.par.names.keys()
             for section in sections:
@@ -134,10 +135,23 @@ class Parameters(ParameterTree):
                 for each in sub_sections:
                     items[each] = str(self.par[(section,each)])
                 config[section] = items
-            with open(config_file,'w') as config_file:
-                config.write(config_file)
+            with open(file,'w') as f:
+                config.write(f)
+        if config_file.endswith('.ini'):
+            _save_config(config_file)
         elif config_file.endswith('.zip'):
-            pass
+            savefile = zipfile.ZipFile(config_file, 'w')
+            config_file_ini = config_file.replace('.zip','.ini')
+            _save_config(config_file_ini)
+            _str = open(config_file_ini,'r').read()
+            savefile.writestr('config', _str)
+            cv_data_raw_list = []
+            for each in eval(self.par[('Data_Info', 'path')]):
+                content = open(os.path.join(self.par[('Data_Info', 'cv_folder')],each),'r', encoding= 'unicode_escape').read()
+                cv_data_raw_list.append(content)
+            savefile.writestr('cv_data_raw', pickle.dumps(cv_data_raw_list))
+            savefile.writestr('cv_data_names', pickle.dumps(eval(self.par[('Data_Info', 'path')])))
+            savefile.close()
 
     def set_field(self, section_name, field_name, value):
         self.par.param(section_name).param(field_name).setValue(str(value))
