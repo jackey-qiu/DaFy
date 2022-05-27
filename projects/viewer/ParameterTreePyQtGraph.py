@@ -2,15 +2,19 @@
 import pyqtgraph as pg
 from pyqtgraph.parametertree import Parameter, ParameterTree
 import pyqtgraph.parametertree.parameterTypes as pTypes
+import zipfile
 #from util.UtilityFunctions import extract_vars_from_config
 try:
     import ConfigParser as configparser
 except:
     import configparser
 
-def extract_vars_from_config(config_file, section_var = None):
+def extract_vars_from_config(config_file, section_var = None, string_mode = False):
     config = configparser.ConfigParser()
-    config.read(config_file)
+    if string_mode:
+        config.read_string(config_file)
+    else:
+        config.read(config_file)
     if section_var == None:
         section_var = config.sections()
     kwarg = {}
@@ -94,23 +98,46 @@ class Parameters(ParameterTree):
         self.setParameters(p, showTop=False)
         self.par = p
 
+    def _save_cv_files(self, zipfile, root_folder):
+        cv_data_list = pickle.loads(zipfile.read('cv_data_raw'))
+        cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
+        for i in range(len(cv_data_list)):
+            #str format already
+            cv_data = cv_data_list[i]
+            cv_name = cv_data_names[i]
+            with open(os.path.join(root_folder,cv_name), 'w') as f:
+                f.write(cv_data)
+
     def update_parameter(self,config_file):
-        kwarg_temp = extract_vars_from_config(config_file)
+        if config_file.endswith('.zip'):
+            zip = zipfile.ZipFile(config_file,'r')
+            config_string = zip.read('config').decode()
+            kwarg_temp = extract_vars_from_config(config_string, string_mode=True)
+            #save cv files
+            rout_folder,_ = os.path.split(config_file)
+            self._save_cv_files(zip, root_folder)
+            #now update the cv_folder
+            kwarg_temp[('Data_info', 'cv_folder')] = rout_folder
+        else:
+            kwarg_temp = extract_vars_from_config(config_file)
         for each in kwarg_temp:
             assert type(each)==tuple and len(each) == 2, 'the keys has to be tuple of length 2'
             self.par[each] = str(kwarg_temp[each])
 
     def save_parameter(self, config_file):
-        config = configparser.ConfigParser()
-        sections = self.par.names.keys()
-        for section in sections:
-            sub_sections = self.par.names[section].names.keys()
-            items = {}
-            for each in sub_sections:
-                items[each] = str(self.par[(section,each)])
-            config[section] = items
-        with open(config_file,'w') as config_file:
-            config.write(config_file)
+        if config_file.endswith('.ini'):
+            config = configparser.ConfigParser()
+            sections = self.par.names.keys()
+            for section in sections:
+                sub_sections = self.par.names[section].names.keys()
+                items = {}
+                for each in sub_sections:
+                    items[each] = str(self.par[(section,each)])
+                config[section] = items
+            with open(config_file,'w') as config_file:
+                config.write(config_file)
+        elif config_file.endswith('.zip'):
+            pass
 
     def set_field(self, section_name, field_name, value):
         self.par.param(section_name).param(field_name).setValue(str(value))
