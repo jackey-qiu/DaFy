@@ -348,11 +348,12 @@ class MyMainWindow(QMainWindow):
             self.tableView_cv_setting.setSelectionBehavior(PyQt5.QtWidgets.QAbstractItemView.SelectRows)
 
     def project_cv_settings(self):
+        self.lineEdit_cv_config_path.setText(os.path.join(DaFy_path,'dump_files','temp.ini'))
         num_items = self.pandas_model_cv_setting._data.shape[0]
         pot_padding = eval(self.pandas_model_in_ax_format._data.iloc[0,4])
         pot_min = eval(self.pandas_model_in_ax_format._data.iloc[0,3])[0]-pot_padding
         pot_max = eval(self.pandas_model_in_ax_format._data.iloc[0,3])[-1]+pot_padding
-        pot_bounds = f'[{pot_min},{pot_max}]'
+        pot_bounds = f'[{round(pot_min,3)},{round(pot_max,3)}]'
 
         current_padding = eval(self.pandas_model_in_ax_format._data.iloc[1,4])
         current_min = eval(self.pandas_model_in_ax_format._data.iloc[1,3])[0]-current_padding
@@ -367,7 +368,13 @@ class MyMainWindow(QMainWindow):
                                      'ph':str(list(map(eval, self.pandas_model_cv_setting._data['pH'].to_list())))},
                           'General_Format_Settings':
                                      {'fmt':"['-']*{}".format(num_items),
-                                      'color':str(self.pandas_model_cv_setting._data['color'].to_list())},
+                                      'color':str(self.pandas_model_cv_setting._data['color'].to_list()),
+                                      'index_header_pos_offset_cv':str([0]*num_items),
+                                      'index_header_pos_offset_tafel':str([0]*num_items),
+                                      'index_header_pos_offset_order':str([0]*num_items),
+                                      'tafel_show_tick_label_x_y':str([True]*num_items),
+                                      'order_show_tick_label_x_y':str([True]*num_items),
+                                      },
                           'Axis_Format_Settings':
                                       {'cv_bounds_pot':pot_bounds+'+'+'+'.join(self.pandas_model_in_ax_format._data.iloc[0,3:].to_list()),
                                        'cv_bounds_current':current_bounds+'+'+'+'.join(self.pandas_model_in_ax_format._data.iloc[1,3:].to_list()),
@@ -375,13 +382,13 @@ class MyMainWindow(QMainWindow):
                                        'cv_show_tick_label_y':str([True]*num_items)
                                       },
                           'Data_Analysis_settings':
-                                      {'cv_scale_factor':str([30]*num_items),
+                                      {'cv_scale_factor':str([int(each) for each in self.pandas_model_cv_setting._data.iloc[:,4].to_list()]),
                                        'scale_factor_text_pos':str([(1.35,2.0)]*num_items),
                                        'cv_spike_cut':str([0.002]*num_items),
-                                       'scan_rate':str([0.005]*num_items),
-                                       'resistance':str([100]*num_items),
-                                       'which_cycle':str([1]*num_items),
-                                       'method':"['extract_cv_file_fouad']*{}".format(num_items),
+                                       'scan_rate':str([float(self.lineEdit_scan_rate.text())]*num_items),
+                                       'resistance':str([50]*num_items),
+                                       'which_cycle':str([eval(each)[0] for each in self.pandas_model_cv_setting._data.iloc[:,3].to_list()]),
+                                       'method':str(self.pandas_model_cv_setting._data.iloc[:,-1].to_list()),
                                        'pot_range':str([[1.2,1.6]]*num_items),
                                        'pot_starts_tafel':str([1.68]*num_items),
                                        'pot_ends_tafel':str([1.72]*num_items),
@@ -1652,14 +1659,23 @@ class MyMainWindow(QMainWindow):
 
     def plot_cv_data(self):
         self.widget_cv_view.canvas.figure.clear()
+        '''
         if self.checkBox_default.isChecked():
             col_num = 2
             row_num = len(self.cv_tool.cv_info)
         else:
             col_num = max([2,self.spinBox_cols.value()])
             row_num = max([len(self.cv_tool.cv_info),self.spinBox_rows.value()])
+        '''
+        if self.checkBox_default.isChecked():
+            col_num = 2
+            row_num = max([3,len(self.cv_tool.cv_info)])
+        else:
+            col_num = max([2,int(self.widget_par_tree.par[('Figure_Layout_settings','total_columns')])])
+            row_num = max([len(self.cv_tool.cv_info),int(self.widget_par_tree.par[('Figure_Layout_settings','total_rows')])])
+        
         if not self.checkBox_use_all.isChecked():
-            row_num = len(self.cv_tool.info['selected_scan'])
+            row_num = max([3,len(self.cv_tool.info['selected_scan'])])
         gs_left = plt.GridSpec(row_num,col_num,hspace=self.cv_tool.info['hspace'][0],wspace=self.cv_tool.info['wspace'][0])
         gs_right = plt.GridSpec(row_num,col_num, hspace=self.cv_tool.info['hspace'][1],wspace=self.cv_tool.info['wspace'][1])
         if self.checkBox_use_all.isChecked():
@@ -1750,26 +1766,26 @@ class MyMainWindow(QMainWindow):
             else:
                 print('scale_factor_text_pos NOT existing in the config file, use default pos (1,3) instead!')
             each.text(*text_pos,'x{}'.format(self.cv_tool.info['cv_scale_factor'][i_full]),color=self.cv_tool.info['color'][i_full], fontsize = int(self.cv_tool.info['fontsize_text_marker']))
-        '''
-        axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:2,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[2:,1])]
-        self.plot_reaction_order_and_tafel(axs = axs_2)
-        '''
-        tafel_row_lf = [eval(self.lineEdit_row_tafel.text())[0],0][int(self.checkBox_default.isChecked())]
-        tafel_row_rt = [eval(self.lineEdit_row_tafel.text())[1],1][int(self.checkBox_default.isChecked())]
-        tafel_col_lf = [eval(self.lineEdit_col_tafel.text())[0],1][int(self.checkBox_default.isChecked())]
-        tafel_col_rt = [eval(self.lineEdit_col_tafel.text())[1],2][int(self.checkBox_default.isChecked())]
-        # tafel_col = [int(self.lineEdit_col_tafel.text()),1][int(self.checkBox_default.isChecked())]
+        tafel_row_range = eval(self.widget_par_tree.par[('Figure_Layout_settings','tafel_row_range')])
+        tafel_col_range = eval(self.widget_par_tree.par[('Figure_Layout_settings','tafel_col_range')])
+        tafel_row_lf = [tafel_row_range[0],0][int(self.checkBox_default.isChecked())]
+        tafel_row_rt = [tafel_row_range[1],1][int(self.checkBox_default.isChecked())]
+        tafel_col_lf = [tafel_col_range[0],1][int(self.checkBox_default.isChecked())]
+        tafel_col_rt = [tafel_col_range[1],2][int(self.checkBox_default.isChecked())]
 
-        order_row_lf = [eval(self.lineEdit_row_rxn_order.text())[0],1][int(self.checkBox_default.isChecked())]
-        order_row_rt = [eval(self.lineEdit_row_rxn_order.text())[1],3][int(self.checkBox_default.isChecked())]
-        order_col_lf = [eval(self.lineEdit_col_rxn_order.text())[0],1][int(self.checkBox_default.isChecked())]
-        order_col_rt = [eval(self.lineEdit_col_rxn_order.text())[1],2][int(self.checkBox_default.isChecked())]
-        # order_col = [int(self.lineEdit_col_rxn_order.text()),1][int(self.checkBox_default.isChecked())]
+        order_row_range = eval(self.widget_par_tree.par[('Figure_Layout_settings','rxn_order_row_range')])
+        order_col_range = eval(self.widget_par_tree.par[('Figure_Layout_settings','rxn_order_col_range')])
+        order_row_lf = [order_row_range[0],1][int(self.checkBox_default.isChecked())]
+        order_row_rt = [order_row_range[1],2][int(self.checkBox_default.isChecked())]
+        order_col_lf = [order_col_range[0],1][int(self.checkBox_default.isChecked())]
+        order_col_rt = [order_col_range[1],2][int(self.checkBox_default.isChecked())]
 
-        charge_row_lf = [eval(self.lineEdit_row_charge.text())[0],3][int(self.checkBox_default.isChecked())]
-        charge_row_rt = [eval(self.lineEdit_row_charge.text())[1],4][int(self.checkBox_default.isChecked())]
-        charge_col_lf = [eval(self.lineEdit_col_charge.text())[0],1][int(self.checkBox_default.isChecked())]
-        charge_col_rt = [eval(self.lineEdit_col_charge.text())[1],2][int(self.checkBox_default.isChecked())]
+        charge_row_range = eval(self.widget_par_tree.par[('Figure_Layout_settings','charge_row_range')])
+        charge_col_range = eval(self.widget_par_tree.par[('Figure_Layout_settings','charge_col_range')])
+        charge_row_lf = [charge_row_range[0],2][int(self.checkBox_default.isChecked())]
+        charge_row_rt = [charge_row_range[1],3][int(self.checkBox_default.isChecked())]
+        charge_col_lf = [charge_col_range[0],1][int(self.checkBox_default.isChecked())]
+        charge_col_rt = [charge_col_range[1],2][int(self.checkBox_default.isChecked())]
         #charge_col = [int(self.lineEdit_col_charge.text()),1][int(self.checkBox_default.isChecked())]
         # axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[0:1,1]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[1:3,1])]
         axs_2 = [self.widget_cv_view.canvas.figure.add_subplot(gs_right[tafel_row_lf:tafel_row_rt,tafel_col_lf:tafel_col_rt]),self.widget_cv_view.canvas.figure.add_subplot(gs_right[order_row_lf:order_row_rt,order_col_lf:order_col_rt])]

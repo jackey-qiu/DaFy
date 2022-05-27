@@ -48,10 +48,10 @@ general_format_settings = {'name': 'General_Format_Settings', 'type': 'group', '
 axis_format_settings = {'name': 'Axis_Format_Settings', 'type': 'group', 'children': [
         {'name': 'cv_bounds_pot', 'type': 'str', 'value': "[1,1.9]+[1, 1.2, 1.4, 1.6,1.8]+0.1+1+{: 4.1f}+set_xlim"},
         {'name': 'cv_bounds_current', 'type': 'str', 'value': "[-1.2,6.2]+[0, 2, 4, 6]+1+4+{: 4.2f}+set_ylim"},
-        {'name': 'tafel_bounds_pot', 'type': 'str', 'value': "[1.55,1.85]+[1.6, 1.7,1.8]+0.01+4+{: 4.2f}+set_xlim"},
-        {'name': 'tafel_bounds_current', 'type': 'str', 'value': "[0.1,6]+[0.1,1]+0.01+9+{: 4.1f}+set_ylim"},
-        {'name': 'order_bounds_ph', 'type': 'str', 'value': "[7,13]+[7,8,10,13]+1+0+{: 4.0f}+set_xlim"},
-        {'name': 'order_bounds_y', 'type': 'str', 'value': "[1.65,1.8]+[1.65,1.7,1.75,1.8]+0.03+4+{: 3.2f}+set_ylim"},
+        {'name': 'tafel_bounds_pot', 'type': 'str', 'value': "[1.55,1.85, 2.1]+[1.6, 1.7,1.8,2.]+0.1+4+{: 4.2f}+set_xlim"},
+        {'name': 'tafel_bounds_current', 'type': 'str', 'value': "[0.1,15]+[0.1,1,10]+0.1+9+{: 4.1f}+set_ylim"},
+        {'name': 'order_bounds_ph', 'type': 'str', 'value': "[7,13]+[7,8,9,10,11,12,13]+1+0+{: 4.0f}+set_xlim"},
+        {'name': 'order_bounds_y', 'type': 'str', 'value': "[1.65,2.3]+[1.6,1.8,2.0,2.2]+0.1+4+{: 3.2f}+set_ylim"},
         {'name': 'cv_show_tick_label_x', 'type': 'str', 'value': "[False, False, False, False, True, False]"},
         {'name': 'cv_show_tick_label_y', 'type': 'str', 'value': "[True, True, True, True, True, True]"}]}
 
@@ -72,7 +72,17 @@ data_analysis_settings = {'name': 'Data_Analysis_settings', 'type': 'group', 'ch
         {'name': 'current_filter_length', 'type': 'str', 'value': "19"},
         {'name': 'current_filter_order', 'type': 'str', 'value': '0'}]}
 
-params = [fig_settings, data_info, general_format_settings, axis_format_settings, data_analysis_settings]
+figure_layout_settings = {'name': 'Figure_Layout_settings', 'type': 'group', 'children': [
+        {'name': 'total_rows', 'type': 'str', 'value': "4"},
+        {'name': 'total_columns', 'type': 'str', 'value': "3"},
+        {'name': 'tafel_row_range', 'type': 'str', 'value': "[0,2]"},
+        {'name': 'tafel_col_range', 'type': 'str', 'value': "[1,3]"},
+        {'name': 'rxn_order_row_range', 'type': 'str', 'value': "[2,4]"},
+        {'name': 'rxn_order_col_range', 'type': 'str', 'value': "[1,2]"},
+        {'name': 'charge_row_range', 'type': 'str', 'value': "[2,4]"},
+        {'name': 'charge_col_range', 'type': 'str', 'value': "[2,3]"}]}
+
+params = [fig_settings, data_info, general_format_settings, axis_format_settings, data_analysis_settings, figure_layout_settings]
 
 
 ## Create tree of Parameter objects
