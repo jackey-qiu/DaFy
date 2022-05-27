@@ -138,6 +138,30 @@ class MyMainWindow(QMainWindow):
         self.pushButton_add_link.clicked.connect(self.add_one_link)
         self.pushButton_remove_selected.clicked.connect(self.remove_one_item)
         self.pushButton_remove_all.clicked.connect(lambda:self.comboBox_link_container.clear())
+        self.GUI_metaparameter_channels  = ['lineEdit_data_file',
+                                            'checkBox_time_scan',
+                                            'checkBox_use',
+                                            'checkBox_mask',
+                                            'checkBox_max',
+                                            'lineEdit_x',
+                                            'lineEdit_y',
+                                            'scan_numbers_append',
+                                            'lineEdit_fmt',
+                                            'lineEdit_potential_range', 
+                                            'lineEdit_pot_range', 
+                                            'lineEdit_scan_rate',
+                                            'lineEdit_data_range',
+                                            'lineEdit_colors_bar',
+                                            'checkBox_use_external_cv',
+                                            'checkBox_use_internal_cv',
+                                            'checkBox_plot_slope',
+                                            'checkBox_use_external_slope',
+                                            'lineEdit_pot_offset',
+                                            'lineEdit_cv_folder',
+                                            'lineEdit_slope_file',
+                                            'lineEdit_reference_potential',
+                                            'checkBox_show_marker',
+                                            'checkBox_merge']
 
     def add_one_link(self):
         link_1 = self.comboBox_link_1.currentText()
@@ -866,113 +890,146 @@ class MyMainWindow(QMainWindow):
     def load_config(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","Data Files (*.ini);;All Files (*.txt)", options=options)
-        with open(fileName,'r') as f:
-            lines = f.readlines()
-            for line in lines:
-                items = line.rstrip().rsplit(':')
-                if len(items)>2:
-                    channel,value = items[0], ':'.join(items[1:])
-                else:
-                    channel,value = items
-                if value=='True':
-                    getattr(self,channel).setChecked(True)
-                elif value=='False':
-                    getattr(self,channel).setChecked(False)
-                else:
-                    try:
-                        if channel == "textEdit_plot_lib":
-                            getattr(self,channel).setText(value.replace(";","\n"))
-                        else:
-                            getattr(self,channel).setText(value)
-                    except:
-                        if channel == 'plainTextEdit_img_range':
-                            getattr(self,channel).setPlainText(value.replace(";","\n"))
-                            if value=="":
-                                pass
+        fileName, _ = QFileDialog.getOpenFileName(self,"QFileDialog.getOpenFileName()", "","zip Files (*.zip);;config Files (*.ini)", options=options)
+        if fileName.endswith('.ini'):
+            with open(fileName,'r') as f:
+                lines = f.readlines()
+                for line in lines:
+                    items = line.rstrip().rsplit(':')
+                    if len(items)>2:
+                        channel,value = items[0], ':'.join(items[1:])
+                    else:
+                        channel,value = items
+                    if value=='True':
+                        getattr(self,channel).setChecked(True)
+                    elif value=='False':
+                        getattr(self,channel).setChecked(False)
+                    else:
+                        try:
+                            if channel == "textEdit_plot_lib":
+                                getattr(self,channel).setText(value.replace(";","\n"))
                             else:
-                                self.image_range_info = {}
-                                items = value.rsplit(';')
-                                for each_item in items:
-                                    a,b = each_item.rstrip().rsplit(":")
-                                    self.image_range_info[int(a)] = eval(b)
-                        elif channel == 'plainTextEdit_tick_label_settings':
-                            getattr(self,channel).setPlainText(value.replace(";","\n"))
-                        elif channel == 'tableView_ax_format':
-                            value=eval(value)
-                            cols = self.pandas_model_in_ax_format._data.columns.tolist()
-                            data_shape = self.pandas_model_in_ax_format._data.shape
-                            for i in range(len(cols)):
-                                #print(i,cols[i], value['use'])
-                                for j in value[cols[i]]:
-                                    if j<data_shape[0] and i<data_shape[1]:
-                                        self.pandas_model_in_ax_format._data.iloc[j,i] = value[cols[i]][j]
-                            #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
-                        elif channel == 'tableView_cv_setting':
-                            self.update_pandas_model_cv_setting(reset = True, data = eval(value))
+                                getattr(self,channel).setText(value)
+                        except:
+                            if channel == 'plainTextEdit_img_range':
+                                getattr(self,channel).setPlainText(value.replace(";","\n"))
+                                if value=="":
+                                    pass
+                                else:
+                                    self.image_range_info = {}
+                                    items = value.rsplit(';')
+                                    for each_item in items:
+                                        a,b = each_item.rstrip().rsplit(":")
+                                        self.image_range_info[int(a)] = eval(b)
+                            elif channel == 'plainTextEdit_tick_label_settings':
+                                getattr(self,channel).setPlainText(value.replace(";","\n"))
+                            elif channel == 'tableView_ax_format':
+                                value=eval(value)
+                                cols = self.pandas_model_in_ax_format._data.columns.tolist()
+                                data_shape = self.pandas_model_in_ax_format._data.shape
+                                for i in range(len(cols)):
+                                    #print(i,cols[i], value['use'])
+                                    for j in value[cols[i]]:
+                                        if j<data_shape[0] and i<data_shape[1]:
+                                            self.pandas_model_in_ax_format._data.iloc[j,i] = value[cols[i]][j]
+                                #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
+                            elif channel == 'tableView_cv_setting':
+                                self.update_pandas_model_cv_setting(reset = True, data = eval(value))
+        elif fileName.endswith('.zip'):
+            self.load_config_raw(zipfile.ZipFile(fileName,'r'))
 
         self._load_file()
         self.append_scans_xrv()
         self.update_pot_offset()
         self.make_plot_lib()
 
-    def load_config_raw(self, fileName):
-        #TODO: this func is not finished yet
-        with open(fileName,'r') as f:
-            lines = f.readlines()
-            for line in lines:
-                items = line.rstrip().rsplit(':')
-                if len(items)>2:
-                    channel,value = items[0], ':'.join(items[1:])
-                else:
-                    channel,value = items
-                if value=='True':
-                    getattr(self,channel).setChecked(True)
-                elif value=='False':
-                    getattr(self,channel).setChecked(False)
+    #zipfile is of format zipfile.ZipFile('','r')
+    #this step will be done first before lauching the plot func
+    def _save_temp_cv_excel_file(self, zipfile):
+        root_folder = os.path.join(DaFy_path,'dump_files')
+        #pandas DataFrame
+        xrv_data = pickle.loads(zipfile.read('xrv_data'))
+        cv_data_list = pickle.loads(zipfile.read('cv_data_raw'))
+        cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
+        xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()))
+        for i in range(len(cv_data_list)):
+            #str format already
+            cv_data = cv_data_list[i]
+            _, cv_name = os.path.split(cv_data_names[i])
+            with open(os.path.join(root_folder,cv_name), 'w') as f:
+                f.write(cv_data)     
+
+    def load_config_raw(self, zipfile):
+        print('save temp cv and xrv excel file...')
+        self._save_temp_cv_excel_file(zipfile)
+        print('files being saved and set meta parameters now ...')
+        #lineedit or checkbox channels
+        #channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
+        #            'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
+        #            'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
+        #            'checkBox_show_marker','checkBox_merge']
+        more_channels = ['plainTextEdit_img_range', 'tableView_ax_format', 'tableView_cv_setting']
+        
+        for channel in self.GUI_metaparameter_channels:
+            if channel.startswith('lineEdit'):
+                if channel == 'lineEdit_cv_folder':
+                    getattr(self, channel).setText(os.path.join(DaFy_path,'dump_files'))
+                elif channel == 'lineEdit_data_file':
+                    filename = zipfile.read('xrv_data_file_name').decode()
+                    getattr(self, channel).setText(os.path.join(DaFy_path,'dump_files',filename))
                 else:
                     try:
-                        if channel == "textEdit_plot_lib":
-                            getattr(self,channel).setText(value.replace(";","\n"))
-                        else:
-                            getattr(self,channel).setText(value)
+                        getattr(self, channel).setText(zipfile.read(channel).decode())
                     except:
-                        if channel == 'plainTextEdit_img_range':
-                            getattr(self,channel).setPlainText(value.replace(";","\n"))
-                            if value=="":
-                                pass
-                            else:
-                                self.image_range_info = {}
-                                items = value.rsplit(';')
-                                for each_item in items:
-                                    a,b = each_item.rstrip().rsplit(":")
-                                    self.image_range_info[int(a)] = eval(b)
-                        elif channel == 'plainTextEdit_tick_label_settings':
-                            getattr(self,channel).setPlainText(value.replace(";","\n"))
-                        elif channel == 'tableView_ax_format':
-                            value=eval(value)
-                            cols = self.pandas_model_in_ax_format._data.columns.tolist()
-                            data_shape = self.pandas_model_in_ax_format._data.shape
-                            for i in range(len(cols)):
-                                #print(i,cols[i], value['use'])
-                                for j in value[cols[i]]:
-                                    if j<data_shape[0] and i<data_shape[1]:
-                                        self.pandas_model_in_ax_format._data.iloc[j,i] = value[cols[i]][j]
-                            #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
-                        elif channel == 'tableView_cv_setting':
-                            self.update_pandas_model_cv_setting(reset = True, data = eval(value)
+                        pass
+            elif channel.startswith('checkBox'):
+                try:
+                    getattr(self, channel).setChecked(eval(zipfile.read(channel).decode()))
+                except:
+                    pass
+            else:#scan_numbers_append
+                getattr(self, channel).setText(zipfile.read(channel).decode())
+        for channel in more_channels:
+            value = zipfile.read(channel).decode()
+            if channel == 'plainTextEdit_img_range':
+                getattr(self,channel).setPlainText(value.replace(";","\n"))
+                if value=="":
+                    pass
+                else:
+                    self.image_range_info = {}
+                    items = value.rsplit(';')
+                    for each_item in items:
+                        a,b = each_item.rstrip().rsplit(":")
+                        self.image_range_info[int(a)] = eval(b)
+            elif channel == 'tableView_ax_format':
+                value=eval(value)
+                cols = self.pandas_model_in_ax_format._data.columns.tolist()
+                data_shape = self.pandas_model_in_ax_format._data.shape
+                for i in range(len(cols)):
+                    #print(i,cols[i], value['use'])
+                    for j in value[cols[i]]:
+                        if j<data_shape[0] and i<data_shape[1]:
+                            self.pandas_model_in_ax_format._data.iloc[j,i] = value[cols[i]][j]
+                #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
+            elif channel == 'tableView_cv_setting':
+                self.update_pandas_model_cv_setting(reset = True, data = eval(value))
+        zipfile.close()
+        print('everything for setup is finished now!')
 
     #save config file
     def save_config(self):
         options = QFileDialog.Options()
         options |= QFileDialog.DontUseNativeDialog
-        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","config file (*.ini);Text Files (*.txt);all files(*.*)", options=options)
+        fileName, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","zip File (*.zip);;config file (*.ini)", options=options)
+        if fileName.endswith('.zip'):
+            self.save_config_raw(fileName)
+            return
         with open(fileName,'w') as f:
-            channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
-                        'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
-                        'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
-                        'checkBox_show_marker','checkBox_merge']
-            for channel in channels:
+            #channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
+            #            'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
+            #            'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
+            #            'checkBox_show_marker','checkBox_merge']
+            for channel in self.GUI_metaparameter_channels:
                 try:
                     f.write(channel+':'+str(getattr(self,channel).isChecked())+'\n')
                 except:
@@ -988,21 +1045,20 @@ class MyMainWindow(QMainWindow):
                 f.write("tableView_cv_setting:"+str(self.pandas_model_cv_setting._data.to_dict())+'\n')
 
     #save all meta-parameters and data files (xrv data and cv data) into a zip file
-    def save_config_raw(self):
+    def save_config_raw(self, filename):
         #options = QFileDialog.Options()
         #options |= QFileDialog.DontUseNativeDialog
         #filename, _ = QFileDialog.getSaveFileName(self,"QFileDialog.getSaveFileName()","","config file (*.zip)", options=options)
-        filename = 'test.zip'
         if filename:
             try:
                 savefile = zipfile.ZipFile(filename, 'w')
             except Exception as e:
                 raise IOError(str(e), filename)
-            channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
-                        'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
-                        'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
-                        'checkBox_show_marker','checkBox_merge']
-            for each in channels:
+            #channels = ['lineEdit_data_file','checkBox_time_scan','checkBox_use','checkBox_mask','checkBox_max','lineEdit_x','lineEdit_y','scan_numbers_append','lineEdit_fmt',\
+            #            'lineEdit_potential_range', 'lineEdit_data_range','lineEdit_colors_bar','checkBox_use_external_cv','checkBox_use_internal_cv',\
+            #            'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
+            #            'checkBox_show_marker','checkBox_merge']
+            for each in self.GUI_metaparameter_channels:
                 if each.startswith('checkBox'):
                     savefile.writestr(each, str(getattr(self,each).isChecked()))
                 else:
@@ -1011,27 +1067,11 @@ class MyMainWindow(QMainWindow):
             # savefile.writestr("plainTextEdit_tick_label_settings", self.plainTextEdit_tick_label_settings.toPlainText().replace("\n",";"))
             savefile.writestr("tableView_ax_format", str(self.pandas_model_in_ax_format._data.to_dict()))
             savefile.writestr("tableView_cv_setting",str(self.pandas_model_cv_setting._data.to_dict()))
-        savefile.writestr('xrv_data', pickle.dumps(self.data))
-        savefile.writestr('cv_data_raw', pickle.dumps([open(self.plot_lib[each][0],'r').read() for each in self.plot_lib]))
-        savefile.writestr('cv_data_names', pickle.dumps([self.plot_lib[each][0] for each in self.plot_lib]))
-        savefile.close()
-
-    #zipfile is of format zipfile.ZipFile('','r')
-    #this step will be done first before lauching the plot func
-    def _save_temp_cv_excel_file(self, zipfile):
-        root_folder = os.path.join(DaFy_path,'dump_files')
-        #pandas DataFrame
-        xrv_data = pickle.loads(zipfile.read('xrv_data'))
-        cv_data_list = pickle.loads(zipfile.read('cv_data_raw'))
-        cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
-        xrv_data.to_excel(os.path.join(root_folder,'xrv_data.xlsx'))
-        for i in range(len(cv_data_list)):
-            #str format already
-            cv_data = cv_data_list[i]
-            _, cv_name = os.path.split(cv_data_names[i])
-            with open(os.path.join(root_folder,cv_name), 'w') as f:
-                print(os.path.join(root_folder,cv_name))
-                f.write(cv_data)        
+            savefile.writestr('xrv_data', pickle.dumps(self.data))
+            savefile.writestr('xrv_data_file_name', os.path.split(self.lineEdit_data_file.text())[1])
+            savefile.writestr('cv_data_raw', pickle.dumps([open(self.plot_lib[each][0],'r').read() for each in self.plot_lib]))
+            savefile.writestr('cv_data_names', pickle.dumps([self.plot_lib[each][0] for each in self.plot_lib]))
+            savefile.close()
 
     def set_plot_channels(self):
         time_scan = self.checkBox_time_scan.isChecked()
