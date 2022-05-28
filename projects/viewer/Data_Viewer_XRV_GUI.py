@@ -369,9 +369,9 @@ class MyMainWindow(QMainWindow):
                           'General_Format_Settings':
                                      {'fmt':"['-']*{}".format(num_items),
                                       'color':str(self.pandas_model_cv_setting._data['color'].to_list()),
-                                      'index_header_pos_offset_cv':str([0]*num_items),
-                                      'index_header_pos_offset_tafel':str([0]*num_items),
-                                      'index_header_pos_offset_order':str([0]*num_items),
+                                      'index_header_pos_offset_cv':str([0]*2),
+                                      'index_header_pos_offset_tafel':str([0]*2),
+                                      'index_header_pos_offset_order':str([0]*2),
                                       'tafel_show_tick_label_x_y':str([True]*num_items),
                                       'order_show_tick_label_x_y':str([True]*num_items),
                                       },
@@ -390,7 +390,7 @@ class MyMainWindow(QMainWindow):
                                        'which_cycle':str([eval(each)[0] for each in self.pandas_model_cv_setting._data.iloc[:,3].to_list()]),
                                        'method':str(self.pandas_model_cv_setting._data.iloc[:,-1].to_list()),
                                        'pot_range':str([[1.2,1.6]]*num_items),
-                                       'pot_starts_tafel':str([1.68]*num_items),
+                                       'pot_starts_tafel':str([1.6]*num_items),
                                        'pot_ends_tafel':str([1.72]*num_items),
                                       }
                         }
