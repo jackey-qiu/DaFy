@@ -106,7 +106,7 @@ class Parameters(ParameterTree):
             #str format already
             cv_data = cv_data_list[i]
             cv_name = cv_data_names[i]
-            with open(os.path.join(root_folder,cv_name), 'w') as f:
+            with open(os.path.join(root_folder,cv_name), 'w', encoding="utf-8") as f:
                 f.write(cv_data)
 
     def update_parameter(self,config_file):
