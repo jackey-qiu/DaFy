@@ -118,7 +118,7 @@ class Parameters(ParameterTree):
             root_folder,_ = os.path.split(config_file)
             self._save_cv_files(zip, root_folder)
             #now update the cv_folder
-            kwarg_temp[('Data_info', 'cv_folder')] = root_folder
+            kwarg_temp[('Data_Info', 'cv_folder')] = root_folder
         else:
             kwarg_temp = extract_vars_from_config(config_file)
         for each in kwarg_temp:
