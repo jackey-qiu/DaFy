@@ -697,7 +697,7 @@ class MyMainWindow(QMainWindow):
         pg.setConfigOptions(imageAxisOrder='row-major', background = (50,50,100))
         pg.mkQApp()
         #load GUI ui file made by qt designer
-        uic.loadUi(os.path.join(DaFy_path,'projects','SuperRod','superrod_gui.ui'),self)
+        uic.loadUi(os.path.join(DaFy_path,'projects','superrod','superrod_gui.ui'),self)
         self.widget_terminal.update_name_space("win",self)
         self.setWindowTitle('Data analysis factory: CTR data modeling')
         icon = QIcon(os.path.join(script_path,"icons","DAFY.png"))
