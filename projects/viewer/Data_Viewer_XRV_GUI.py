@@ -7,7 +7,8 @@ import PyQt5
 import random
 import numpy as np
 import matplotlib.pyplot as plt
-import zipfile, pickle
+import pickle
+import zipfile
 try:
     from . import locate_path_viewer
 except:
@@ -139,6 +140,7 @@ class MyMainWindow(QMainWindow):
         self.pushButton_remove_selected.clicked.connect(self.remove_one_item)
         self.pushButton_remove_all.clicked.connect(lambda:self.comboBox_link_container.clear())
         self.GUI_metaparameter_channels  = ['lineEdit_data_file',
+                                            'lineEdit_resistance',
                                             'checkBox_time_scan',
                                             'checkBox_use',
                                             'checkBox_mask',
@@ -518,6 +520,15 @@ class MyMainWindow(QMainWindow):
             pot,current = results
         else:
             print('unsupported cycle index:', which_cycle)
+        print('IR correction to the potential with:-->')
+        Rs = eval(self.lineEdit_resistance.text())
+        #get scan numbers
+        text = self.scan_numbers_append.text()
+        scans = list(set([int(each) for each in text.rstrip().rsplit(',')]))
+        scans.sort()
+        assert len(Rs)>=len(scans), 'Shape of Rs and scans mismatch!'
+        print(f'R = {Rs[scans.index(scan_no)]}')
+        pot = pot - abs(current)*0.001*Rs[scans.index(scan_no)]
         pot_filtered, current_filtered = pot, current
         pot_filtered = RHE(pot_filtered,pH=ph)
         # print(file_name,func_name,pot,current)
@@ -961,7 +972,7 @@ class MyMainWindow(QMainWindow):
         xrv_data = pickle.loads(zipfile.read('xrv_data'))
         cv_data_list = pickle.loads(zipfile.read('cv_data_raw'))
         cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
-        xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()))
+        xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()), index=False)
         for i in range(len(cv_data_list)):
             #str format already
             cv_data = cv_data_list[i]
@@ -1077,10 +1088,13 @@ class MyMainWindow(QMainWindow):
             # savefile.writestr("plainTextEdit_tick_label_settings", self.plainTextEdit_tick_label_settings.toPlainText().replace("\n",";"))
             savefile.writestr("tableView_ax_format", str(self.pandas_model_in_ax_format._data.to_dict()))
             savefile.writestr("tableView_cv_setting",str(self.pandas_model_cv_setting._data.to_dict()))
-            savefile.writestr('xrv_data', pickle.dumps(self.data))
+            data_tmp = self.data.copy(deep = True)
+            data_tmp['potential'] += data_tmp['iR']
+            data_tmp['potential_cal'] += data_tmp['iR']
+            savefile.writestr('xrv_data', pickle.dumps(data_tmp))
             savefile.writestr('xrv_data_file_name', os.path.split(self.lineEdit_data_file.text())[1])
             savefile.writestr('cv_data_raw', pickle.dumps([open(self.plot_lib[each][0],'r').read() for each in self.plot_lib]))
-            savefile.writestr('cv_data_names', pickle.dumps([self.plot_lib[each][0] for each in self.plot_lib]))
+            savefile.writestr('cv_data_names', pickle.dumps([os.path.split(self.plot_lib[each][0])[1] for each in self.plot_lib]))
             savefile.close()
 
     def set_plot_channels(self):
@@ -1092,12 +1106,35 @@ class MyMainWindow(QMainWindow):
             self.lineEdit_x.setText('potential')
             self.lineEdit_y.setText('current,strain_ip,strain_oop,grain_size_ip,grain_size_oop')
 
+    def _ir_correction(self, Rs):
+        text = self.scan_numbers_append.text()
+        if text!='':
+            scans = list(set([int(each) for each in text.rstrip().rsplit(',')]))
+        else:
+            return
+        scans.sort()
+        if not hasattr(self, 'data'):
+            return
+        self.data['iR'] = 0
+        assert len(scans)<=len(Rs), 'The shape of total scans and the total Rs does not match'
+        for i, scan in enumerate(scans):
+            R = Rs[i]
+            idx = self.data['potential'][self.data['scan_no']==scan].index
+            for id in idx:
+                #current in mA, R in om
+                self.data.at[id, 'potential']-=abs(self.data['current'][id]*0.001)*R
+                self.data.at[id, 'potential_cal']-=abs(self.data['current'][id]*0.001)*R
+                #this column is needed for saving the original potential to excel file
+                self.data.at[id, 'iR'] = abs(self.data['current'][id]*0.001)*R
+
     #fill the info in the summary text block
     #and init the self.data attribute by reading data from excel file
     def _load_file(self):
         fileName = self.lineEdit_data_file.text()
         self.lineEdit_data_file.setText(fileName)
         self.data = pd.read_excel(fileName)
+        #do ir correction now
+        self._ir_correction(Rs = eval(self.lineEdit_resistance.text()))
         col_labels = 'col_labels\n'+str(list(self.data.columns))+'\n'
         scans = list(set(list(self.data['scan_no'])))
         self.scans_all = scans
