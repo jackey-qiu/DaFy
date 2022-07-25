@@ -751,7 +751,7 @@ class MyMainWindow(QMainWindow):
                 strain_hor_error = [round(self.data_summary[scan]['strain_ip'][which*2+1]*pot_range_value,4)]
                 strain_ver = [round(each,4) for each in list(self.strain_info_all_scans[scan][pot_range]["vertical"])]
                 strain_ver_error = [round(self.data_summary[scan]['strain_oop'][which*2+1]*pot_range_value,4)]
-                d_bulk_vol = [2*abs(strain_hor[1])+abs(strain_ver[1])]
+                d_bulk_vol = [-(2*abs(strain_hor[1])+abs(strain_ver[1]))]
                 d_bulk_vol_error = [round((4*strain_hor_error[0]**2 + strain_ver_error[0]**2)**0.5,4)]
                 skin_vol_fraction = [round(abs(size_ver[1]/size_ver[0] + 2*size_hor[1]/size_hor[0])*100,3)]
                 skin_vol_fraction_error = [round(((size_ver_error[0]/size_ver[0])**2 + 4 * (size_hor_error[0]/size_hor[0])**2)**0.5*100,4)]
@@ -1303,7 +1303,7 @@ class MyMainWindow(QMainWindow):
                         'grain_size_oop':r'$\Delta d_\perp$  (nm/V)',
                         'grain_size_ip':r'$\Delta d_\parallel$  (nm/V)',
                         'peak_intensity':r'Intensity / a.u.',
-                        '<dskin>': r'$d_{skin}$ / nm',
+                        '<dskin>': r'$<d_{skin}>$ / nm',
                         'dV_bulk':r'($\Delta V / V$) / %',
                         'dV_skin':r'($\Delta V_{skin} / V$) / %',
                         'OER_E': r'$\eta (1 mAcm^{-2}) / V$',
