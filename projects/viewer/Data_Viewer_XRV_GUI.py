@@ -1307,6 +1307,7 @@ class MyMainWindow(QMainWindow):
                         'dV_bulk':r'($\Delta V / V$) / %',
                         'dV_skin':r'($\Delta V_{skin} / V$) / %',
                         'OER_E': r'$\eta (1 mAcm^{-2}) / V$',
+                        'TOF': r'$TOF \ / \ (s^{-1})$',
                         'OER_j':r'$j (1.65 V) / mAcm^{-2})$',
                         'q_cv':r'$Q_0\hspace{1} /\hspace{1} mC{\bullet}cm^{-2}$',
                         'q_film': r'$Q_0\hspace{1} /\hspace{1} mC{\bullet}cm^{-2}$',
@@ -1418,6 +1419,7 @@ class MyMainWindow(QMainWindow):
                                 'OER_E':lambda:self.summary_data_df['OER_E'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'OER_j':lambda:self.summary_data_df['OER_j'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'OER_j/<dskin>':lambda:(self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']).to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'TOF':lambda:(0.3437*self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']).to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'pH':lambda:self.summary_data_df['pH'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'q_film':lambda:self.summary_data_df['q_film'].to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'q_cv':lambda:self.summary_data_df['q_cv'].to_list()[which_pot_range:data_len:len(self.pot_range)],
@@ -1428,6 +1430,7 @@ class MyMainWindow(QMainWindow):
                                 'OER_E':lambda:[None]*self.summary_data_df.shape[0],
                                 'OER_j':lambda:[None]*self.summary_data_df.shape[0],
                                 'OER_j/<dskin>':lambda:(self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']**2*self.summary_data_df['d_skin_avg_err']).to_list()[which_pot_range:data_len:len(self.pot_range)],
+                                'TOF':lambda:(0.3437*self.summary_data_df['OER_j']/self.summary_data_df['d_skin_avg']**2*self.summary_data_df['d_skin_avg_err']).to_list()[which_pot_range:data_len:len(self.pot_range)],
                                 'pH':lambda:[None]*self.summary_data_df.shape[0],
                                 'q_film':lambda:[None]*self.summary_data_df.shape[0],
                                 'q_cv':lambda:[None]*self.summary_data_df.shape[0],
@@ -1506,6 +1509,39 @@ class MyMainWindow(QMainWindow):
                             [ax_temp.text(np.log10(x[jj]), y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k')
+                    elif 'TOF' == channels[1]:
+                        #scale_factor of 0.3437 has been applied to j/<d> to convert to TOF: TOF = sf * (j/<d>)
+                        #note j in mA/cm2, d in nm
+                        #read details from Wiegmann_2022 (https://doi.org/10.1021/acscatal.1c05169): last paragraph in section 4.2
+                        #-14 term is due to the unit of cm-2 transformed to nm-2, the scalling factor will be 10-14 becoming -14 after applying the log
+                        slope_, intercept_, r_value_, *_ = stats.linregress(x_, np.log10(y_))
+                        # ax_temp.set_ylabel('log({})'.format(channels[1]))
+                        ax_temp.set_ylabel(y_label_map[channels[1]])
+                        # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        for jj in range(len(x)):
+                            if y_error[jj] == None:
+                                ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr =None, c=colors_bar[jj], marker = 's', ms = 4)
+                            else:
+                                ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
+                        if self.checkBox_marker.isChecked():
+                            [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if getattr(self, f'checkBox_panel{i+1}').isChecked():
+                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
+                        ax_temp.set_yscale('log')
+                    elif 'TOF' == channels[0]:
+                        slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
+                        # ax_temp.set_ylabel('log({})'.format(channels[1]))
+                        ax_temp.set_xlabel(y_label_map[channels[0]])
+                        # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
+                        for jj in range(len(x)):
+                            if x_error[jj] == None:
+                                ax_temp.errorbar(x[jj], y[jj], xerr=None, yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
+                            else:
+                                ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
+                            [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if getattr(self, f'checkBox_panel{i+1}').isChecked():
+                            ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k') 
+                        ax_temp.set_xscale('log')
                     else:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, y_)
                         # [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]

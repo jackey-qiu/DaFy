@@ -6,8 +6,8 @@
    <rect>
     <x>0</x>
     <y>0</y>
-    <width>1920</width>
-    <height>1038</height>
+    <width>1525</width>
+    <height>1039</height>
    </rect>
   </property>
   <property name="windowTitle">
@@ -1879,6 +1879,11 @@
                   </item>
                   <item>
                    <property name="text">
+                    <string>TOF</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
                     <string>pH</string>
                    </property>
                   </item>
@@ -2041,6 +2046,11 @@
                   <item>
                    <property name="text">
                     <string>OER_j/&lt;dskin&gt;</string>
+                   </property>
+                  </item>
+                  <item>
+                   <property name="text">
+                    <string>TOF</string>
                    </property>
                   </item>
                   <item>
@@ -2261,7 +2271,7 @@
     <rect>
      <x>0</x>
      <y>0</y>
-     <width>1920</width>
+     <width>1525</width>
      <height>24</height>
     </rect>
    </property>
