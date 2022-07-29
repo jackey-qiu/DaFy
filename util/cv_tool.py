@@ -432,6 +432,9 @@ class cvAnalysis(object):
         for scan in scans:
             i = self.info['sequence_id'].index(scan)
             pot_origin, current_origin = getattr(self,self.info['method'][i])(file_path = os.path.join(self.info['cv_folder'],self.info['path'][i]), which_cycle = self.info['which_cycle'][i])
+            iR = self.info['resistance'][i]*np.array(current_origin)*0.001
+            #iR correction
+            pot_origin -= iR 
             ph = self.info['ph'][i]
             color = self.info['color'][i]
             cv_spike_cut = self.info['cv_spike_cut'][i]
