@@ -163,7 +163,23 @@ class MyMainWindow(QMainWindow):
                                             'lineEdit_slope_file',
                                             'lineEdit_reference_potential',
                                             'checkBox_show_marker',
-                                            'checkBox_merge']
+                                            'checkBox_merge',
+                                            'lineEdit_input_values',
+                                            'lineEdit_input_name',
+                                            'lineEdit_OER_j',
+                                            'lineEdit_OER_E',
+                                            'lineEdit_hwspace',
+                                            'checkBox_panel1',
+                                            'checkBox_panel2',
+                                            'checkBox_panel3',
+                                            'checkBox_panel4',
+                                            'lineEdit_partial_set_p1',
+                                            'lineEdit_partial_set_p2',
+                                            'lineEdit_partial_set_p3',
+                                            'lineEdit_partial_set_p4',
+                                            'checkBox_marker',
+                                            'comboBox_link_container'
+                                            ]
 
     def add_one_link(self):
         link_1 = self.comboBox_link_1.currentText()
@@ -219,16 +235,16 @@ class MyMainWindow(QMainWindow):
 
     def init_pandas_model_ax_format(self):
         data_ = {}
-        data_['use'] = [True]*6 + [False] * 14
-        data_['type'] = ['master']*6 + ['bar']*14
+        data_['use'] = [True]*6 + [False] * 15
+        data_['type'] = ['master']*6 + ['bar']*15
         data_['channel'] = ['potential','current','strain_ip','strain_oop','grain_size_ip','grain_size_oop']
         data_['channel'] = data_['channel'] + ['strain_ip','strain_oop','grain_size_ip','grain_size_oop'] + \
-                           ['dV_bulk', 'dV_skin', '<dskin>','OER_E', 'OER_j', 'OER_j/<dskin>','pH', 'q_cv','q_film','input']
-        data_['tick_locs'] = ['[0,1,2,3]']*(6+14)
-        data_['padding'] = ['0.1']*(6+14)
-        data_['#minor_tick'] = ['4']*(6+14)
-        data_['fmt_str'] = ["{: 4.2f}"]*(6+14)
-        data_['func'] = ['set_xlim'] + ['set_ylim']*(5+14)
+                           ['dV_bulk', 'dV_skin', '<dskin>','OER_E', 'OER_j', 'OER_j/<dskin>','pH', 'q_cv','q_film','input','TOF']
+        data_['tick_locs'] = ['[0,1,2,3]']*(6+15)
+        data_['padding'] = ['0.1']*(6+15)
+        data_['#minor_tick'] = ['4']*(6+15)
+        data_['fmt_str'] = ["{: 4.2f}"]*(6+15)
+        data_['func'] = ['set_xlim'] + ['set_ylim']*(5+15)
         self.pandas_model_in_ax_format = PandasModel(data = pd.DataFrame(data_), tableviewer = self.tableView_ax_format, main_gui = self, check_columns = [0])
         self.tableView_ax_format.setModel(self.pandas_model_in_ax_format)
         self.tableView_ax_format.resizeColumnsToContents()
@@ -956,6 +972,10 @@ class MyMainWindow(QMainWindow):
                                 #self.pandas_model_in_ax_format._data = pd.DataFrame(eval(value))
                             elif channel == 'tableView_cv_setting':
                                 self.update_pandas_model_cv_setting(reset = True, data = eval(value))
+                            elif channel.startswith('comboBox'):
+                                getattr(self, channel).clear()
+                                getattr(self, channel).addItems(eval(value))
+
         elif fileName.endswith('.zip'):
             self.load_config_raw(zipfile.ZipFile(fileName,'r'))
 
@@ -1008,6 +1028,12 @@ class MyMainWindow(QMainWindow):
                     getattr(self, channel).setChecked(eval(zipfile.read(channel).decode()))
                 except:
                     pass
+            elif channel.startswith('comboBox'):
+                try:
+                    getattr(self, channel).clear()
+                    getattr(self, channel).addItems(eval(zipfile.read(channel).decode()))
+                except:
+                    pass
             else:#scan_numbers_append
                 getattr(self, channel).setText(zipfile.read(channel).decode())
         for channel in more_channels:
@@ -1051,10 +1077,14 @@ class MyMainWindow(QMainWindow):
             #            'checkBox_plot_slope','checkBox_use_external_slope','lineEdit_pot_offset','lineEdit_cv_folder','lineEdit_slope_file','lineEdit_reference_potential',\
             #            'checkBox_show_marker','checkBox_merge']
             for channel in self.GUI_metaparameter_channels:
-                try:
+                try:#checkBox case
                     f.write(channel+':'+str(getattr(self,channel).isChecked())+'\n')
                 except:
-                    f.write(channel+':'+getattr(self,channel).text()+'\n')
+                    try:#lineEdit case
+                        f.write(channel+':'+getattr(self,channel).text()+'\n')
+                    except:#comboBox case
+                        f.write(channel+':'+str([getattr(self, channel).itemText(i) for i in range(getattr(self, channel).count())])+'\n')
+
             f.write("plainTextEdit_img_range:"+self.plainTextEdit_img_range.toPlainText().replace("\n",";")+'\n')
 
             #f.write("textEdit_plot_lib:"+self.textEdit_plot_lib.toPlainText().replace("\n",";")+'\n')
@@ -1082,6 +1112,8 @@ class MyMainWindow(QMainWindow):
             for each in self.GUI_metaparameter_channels:
                 if each.startswith('checkBox'):
                     savefile.writestr(each, str(getattr(self,each).isChecked()))
+                elif each.startswith('comboBox'):
+                    savefile.writestr(each, str([getattr(self, each).itemText(i) for i in range(getattr(self, each).count())]))
                 else:
                     savefile.writestr(each, getattr(self,each).text())
             savefile.writestr("plainTextEdit_img_range", self.plainTextEdit_img_range.toPlainText().replace("\n",";"))
@@ -1307,7 +1339,7 @@ class MyMainWindow(QMainWindow):
                         'dV_bulk':r'($\Delta V / V$) / %',
                         'dV_skin':r'($\Delta V_{skin} / V$) / %',
                         'OER_E': r'$\eta (1 mAcm^{-2}) / V$',
-                        'TOF': r'$TOF \ / \ (s^{-1})$',
+                        'TOF': r'$TOF \ / \ s^{-1}$',
                         'OER_j':r'$j (1.65 V) / mAcm^{-2})$',
                         'q_cv':r'$Q_0\hspace{1} /\hspace{1} mC{\bullet}cm^{-2}$',
                         'q_film': r'$Q_0\hspace{1} /\hspace{1} mC{\bullet}cm^{-2}$',
@@ -1484,6 +1516,7 @@ class MyMainWindow(QMainWindow):
                     if 'OER_j/<dskin>' == channels[1]:
                         #-14 term is due to the unit of cm-2 transformed to nm-2, the scalling factor will be 10-14 becoming -14 after applying the log
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, np.log10(y_)-14)
+                        print(f'R2={r_value_}, slope for log(OER_j/<dskin>) as y axis = {slope_}')
                         # ax_temp.set_ylabel('log({})'.format(channels[1]))
                         ax_temp.set_ylabel(y_label_map[channels[1]])
                         # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
@@ -1515,6 +1548,7 @@ class MyMainWindow(QMainWindow):
                         #read details from Wiegmann_2022 (https://doi.org/10.1021/acscatal.1c05169): last paragraph in section 4.2
                         #-14 term is due to the unit of cm-2 transformed to nm-2, the scalling factor will be 10-14 becoming -14 after applying the log
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, np.log10(y_))
+                        print(f'R2={r_value_}, slope for log(TOF) as y axis = {slope_}')
                         # ax_temp.set_ylabel('log({})'.format(channels[1]))
                         ax_temp.set_ylabel(y_label_map[channels[1]])
                         # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
@@ -1526,7 +1560,7 @@ class MyMainWindow(QMainWindow):
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
+                            ax_temp.plot(x_, 10**(np.array(x_)*slope_ + intercept_), ':k')
                         ax_temp.set_yscale('log')
                     elif 'TOF' == channels[0]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
@@ -1540,7 +1574,7 @@ class MyMainWindow(QMainWindow):
                                 ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
                             [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k') 
+                            ax_temp.plot(x_, np.log10(x_)*slope_ + intercept_, ':k') 
                         ax_temp.set_xscale('log')
                     else:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, y_)
