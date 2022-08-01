@@ -989,10 +989,13 @@ class MyMainWindow(QMainWindow):
     def _save_temp_cv_excel_file(self, zipfile):
         root_folder = os.path.join(DaFy_path,'dump_files')
         #pandas DataFrame
-        xrv_data = pickle.loads(zipfile.read('xrv_data'))
         cv_data_list = pickle.loads(zipfile.read('cv_data_raw'))
         cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
-        xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()), index=False)
+        try:
+            xrv_data = pickle.loads(zipfile.read('xrv_data'))
+            xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()), index=False)
+        except:
+            print('fail to pickle load due to pandas version dismatch, you should manually copy the exel file to the targeted folder')
         for i in range(len(cv_data_list)):
             #str format already
             cv_data = cv_data_list[i]
