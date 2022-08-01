@@ -1504,6 +1504,28 @@ class MyMainWindow(QMainWindow):
                     # ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(gs_right[i,len(self.pot_range)])
                     self._format_axis(ax_temp)
+                    for channel in channels:
+                        settings = _extract_setting(channel)
+                        if settings['use'] and self.checkBox_use.isChecked():
+                            self._format_ax_tick_labels(ax = ax_temp,
+                                                        fun_set_bounds = settings['func'],#'set_xlim',
+                                                        bounds = [0,1],#will be replaced
+                                                        bound_padding = float(settings['padding']),
+                                                        major_tick_location = eval(settings['tick_locs']), #x_locator
+                                                        show_major_tick_label = True, #show major tick label for the first scan
+                                                        num_of_minor_tick_marks=int(settings['#minor_tick']), #4
+                                                        fmt_str = settings['fmt_str'])#'{:3.1f}'
+                    y_axis_range_l, y_axis_range_r = ax_temp.get_ylim()
+                    y_axis_span = abs(y_axis_range_r - y_axis_range_l)
+                    x_axis_range_l, x_axis_range_r = ax_temp.get_xlim()
+                    x_axis_span = abs(x_axis_range_r - x_axis_range_l)
+                    HA = 'center' if channels[0]!='pH' else 'left'
+                    VA = 'baseline'
+                    if channels[0]!='pH':
+                        x_axis_span = 0
+                    else:
+                        x_axis_span = x_axis_span/5
+                        y_axis_span = y_axis_span*0
                     if channels[0] in y_label_map:
                         ax_temp.set_xlabel(y_label_map[channels[0]])
                     else:
@@ -1529,9 +1551,9 @@ class MyMainWindow(QMainWindow):
                             else:
                                 ax_temp.errorbar(x[jj], np.log10(y[jj])-14, xerr=x_error[jj], yerr = y_error[jj]/y[jj]/np.log(10), c=colors_bar[jj], marker = 's', ms = 4)
                         if self.checkBox_marker.isChecked():
-                            [ax_temp.text(x[jj], np.log10(y[jj])-14, str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                            [ax_temp.text(x[jj]+x_axis_span/20, np.log10(y[jj]+y_axis_span/20)-14, str(jj+1), ha=HA, va=VA, c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
+                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, '-k')
                     elif 'OER_j/<dskin>' == channels[0]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_)-14, y_)
                         # ax_temp.set_xlabel('log({})'.format(channels[0]))
@@ -1542,9 +1564,10 @@ class MyMainWindow(QMainWindow):
                                 ax_temp.errorbar(np.log10(x[jj])-14, y[jj], xerr=None, yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
                             else:
                                 ax_temp.errorbar(np.log10(x[jj])-14, y[jj], xerr=x_error[jj]/x[jj]/np.log(10), yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
-                            [ax_temp.text(np.log10(x[jj]), y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if self.checkBox_marker.isChecked():
+                            [ax_temp.text(np.log10(x[jj]+x_axis_span/20), y[jj]+y_axis_span/20, str(jj+1), ha=HA, va=VA, c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, ':k')
+                            ax_temp.plot(np.log10(x), np.log10(x)*slope_ + intercept_, '-k')
                     elif 'TOF' == channels[1]:
                         #scale_factor of 0.3437 has been applied to j/<d> to convert to TOF: TOF = sf * (j/<d>)
                         #note j in mA/cm2, d in nm
@@ -1561,9 +1584,9 @@ class MyMainWindow(QMainWindow):
                             else:
                                 ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
                         if self.checkBox_marker.isChecked():
-                            [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                            [ax_temp.text(x[jj]+x_axis_span/20, y[jj]+y_axis_span/20, str(jj+1), ha=HA, va=VA,c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(x_, 10**(np.array(x_)*slope_ + intercept_), ':k')
+                            ax_temp.plot(x_, 10**(np.array(x_)*slope_ + intercept_), '-k')
                         ax_temp.set_yscale('log')
                     elif 'TOF' == channels[0]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
@@ -1575,29 +1598,19 @@ class MyMainWindow(QMainWindow):
                                 ax_temp.errorbar(x[jj], y[jj], xerr=None, yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
                             else:
                                 ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr=y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
-                            [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                        if self.checkBox_marker.isChecked():
+                            [ax_temp.text(x[jj]+x_axis_span/20, y[jj]+y_axis_span/20, str(jj+1), ha=HA, va=VA,c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(x_, np.log10(x_)*slope_ + intercept_, ':k') 
+                            ax_temp.plot(x_, np.log10(x_)*slope_ + intercept_, '-k') 
                         ax_temp.set_xscale('log')
                     else:
                         slope_, intercept_, r_value_, *_ = stats.linregress(x_, y_)
                         # [ax_temp.scatter(x[jj], y[jj], c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         [ax_temp.errorbar(x[jj], y[jj], xerr = x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = 's', ms = 4) for jj in range(len(x))]
                         if self.checkBox_marker.isChecked():
-                            [ax_temp.text(x[jj], y[jj], str(jj), c=colors_bar[jj], size = 'small') for jj in range(len(x))]
+                            [ax_temp.text(x[jj]+x_axis_span/20, y[jj]+y_axis_span/20, str(jj+1), ha=HA, va=VA,c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
-                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, ':k')
-                    for channel in channels:
-                        settings = _extract_setting(channel)
-                        if settings['use'] and self.checkBox_use.isChecked():
-                            self._format_ax_tick_labels(ax = ax_temp,
-                                                        fun_set_bounds = settings['func'],#'set_xlim',
-                                                        bounds = [0,1],#will be replaced
-                                                        bound_padding = float(settings['padding']),
-                                                        major_tick_location = eval(settings['tick_locs']), #x_locator
-                                                        show_major_tick_label = True, #show major tick label for the first scan
-                                                        num_of_minor_tick_marks=int(settings['#minor_tick']), #4
-                                                        fmt_str = settings['fmt_str'])#'{:3.1f}'
+                            ax_temp.plot(x, np.array(x)*slope_ + intercept_, '-k')
 
                 #print output data
                 output_data = np.array(output_data).T
