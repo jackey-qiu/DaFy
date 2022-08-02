@@ -993,7 +993,12 @@ class MyMainWindow(QMainWindow):
         cv_data_names = pickle.loads(zipfile.read('cv_data_names'))
         try:
             xrv_data = pickle.loads(zipfile.read('xrv_data'))
-            xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()), index=False)
+            if type(xrv_data)==pd.DataFrame:
+                print('The xrv data was saved directly in pd.DataFrame format')
+                xrv_data.to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()), index=False)
+            else:
+                print('The xrv data was saved in dict format, convert it to dataframe first')
+                pd.DataFrame.from_dict(xrv_data).to_excel(os.path.join(root_folder,zipfile.read('xrv_data_file_name').decode()), index=False)
         except:
             print('fail to pickle load due to pandas version dismatch, you should manually copy the exel file to the targeted folder')
         for i in range(len(cv_data_list)):
@@ -1126,7 +1131,8 @@ class MyMainWindow(QMainWindow):
             data_tmp = self.data.copy(deep = True)
             data_tmp['potential'] += data_tmp['iR']
             data_tmp['potential_cal'] += data_tmp['iR']
-            savefile.writestr('xrv_data', pickle.dumps(data_tmp))
+            data_tmp = data_tmp[[each for each in data_tmp.columns if not each.startswith('Unnamed')]]
+            savefile.writestr('xrv_data', pickle.dumps(data_tmp.to_dict()))
             savefile.writestr('xrv_data_file_name', os.path.split(self.lineEdit_data_file.text())[1])
             savefile.writestr('cv_data_raw', pickle.dumps([open(self.plot_lib[each][0],'r').read() for each in self.plot_lib]))
             savefile.writestr('cv_data_names', pickle.dumps([os.path.split(self.plot_lib[each][0])[1] for each in self.plot_lib]))
