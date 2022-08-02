@@ -1326,6 +1326,7 @@ class MyMainWindow(QMainWindow):
             return
         #here you should update the self.data_summary info
         self.plot_figure_xrv()
+        self.print_data_summary()
         #plain text to be displayed in the data summary tab
         plain_text = []
 
