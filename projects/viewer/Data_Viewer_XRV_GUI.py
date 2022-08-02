@@ -1156,7 +1156,7 @@ class MyMainWindow(QMainWindow):
         scans.sort()
         if not hasattr(self, 'data'):
             return
-        self.data['iR'] = 0
+        self.data['iR'] = 0.0
         assert len(scans)<=len(Rs), 'The shape of total scans and the total Rs does not match'
         for i, scan in enumerate(scans):
             R = Rs[i]
