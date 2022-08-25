@@ -1335,6 +1335,8 @@ class MyMainWindow(QMainWindow):
         self.print_data_summary()
         #plain text to be displayed in the data summary tab
         plain_text = []
+        #set it manually to True when you want to plot TOF and j/V on the same plot
+        plot_dual_y_axis_TOF_j = False
 
         if self.data_summary!={}:
             self.mplwidget2.fig.clear()
@@ -1510,7 +1512,15 @@ class MyMainWindow(QMainWindow):
                     x_, y_ = _get_xy_for_linear_fit(i, x, y)
                     # ax_temp = self.mplwidget2.canvas.figure.add_subplot(len(plot_y_labels), len(self.pot_range)+1, 2+(len(self.pot_range)+1)*i)
                     ax_temp = self.mplwidget2.canvas.figure.add_subplot(gs_right[i,len(self.pot_range)])
-                    self._format_axis(ax_temp)
+                    if plot_dual_y_axis_TOF_j:
+                        if 'TOF' == channels[1]:
+                            ax_temp_right = ax_temp.twinx()
+                            self._format_axis_customized(ax_temp, right=False, left=True, labelright=False, labelleft=True)
+                            self._format_axis_customized(ax_temp_right, left=False, right=True, labelleft=False, labelright=True)
+                        else:
+                            self._format_axis(ax_temp)
+                    else:
+                        self._format_axis(ax_temp)
                     for channel in channels:
                         settings = _extract_setting(channel)
                         if settings['use'] and self.checkBox_use.isChecked():
@@ -1584,17 +1594,25 @@ class MyMainWindow(QMainWindow):
                         print(f'R2={r_value_}, slope for log(TOF) as y axis = {slope_}')
                         # ax_temp.set_ylabel('log({})'.format(channels[1]))
                         ax_temp.set_ylabel(y_label_map[channels[1]])
+                        if plot_dual_y_axis_TOF_j:
+                            ax_temp_right.set_ylabel(r'$(j/V_{skin})\hspace{1}/\hspace{1}mA{\bullet}nm^{-3}$')
                         # [ax_temp.scatter(x[jj], np.log10(y[jj]), c=colors_bar[jj], marker = '.') for jj in range(len(x))]
                         for jj in range(len(x)):
                             if y_error[jj] == None:
                                 ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr =None, c=colors_bar[jj], marker = 's', ms = 4)
+                                # ax_temp_right.errorbar(x[jj], y[jj]/0.3437, xerr=x_error[jj], yerr =None, c=colors_bar[jj], marker = 's', ms = 4)
                             else:
                                 ax_temp.errorbar(x[jj], y[jj], xerr=x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
+                                # ax_temp_right.errorbar(x[jj], y[jj]/0.3437, xerr=x_error[jj], yerr = y_error[jj], c=colors_bar[jj], marker = 's', ms = 4)
                         if self.checkBox_marker.isChecked():
                             [ax_temp.text(x[jj]+x_axis_span/20, y[jj]+y_axis_span/20, str(jj+1), ha=HA, va=VA,c=colors_bar[jj], size = 'small') for jj in range(len(x))]
                         if getattr(self, f'checkBox_panel{i+1}').isChecked():
                             ax_temp.plot(x_, 10**(np.array(x_)*slope_ + intercept_), '-k')
                         ax_temp.set_yscale('log')
+                        if plot_dual_y_axis_TOF_j:
+                            ax_temp_right.set_yscale('log')
+                            #with log scale, TOF data points are just shift down by log10(0.3437) compared to (j/V), therefore to only show one set of points, let us shift the y_lim accordingly
+                            ax_temp_right.set_ylim(*np.array(ax_temp.get_ylim())/0.3437)
                     elif 'TOF' == channels[0]:
                         slope_, intercept_, r_value_, *_ = stats.linregress(np.log10(x_), y_)
                         # ax_temp.set_ylabel('log({})'.format(channels[1]))
@@ -2619,6 +2637,46 @@ class MyMainWindow(QMainWindow):
             ax.tick_params(which = 'major', bottom=True, top=True, left=True, right=True)
             ax.tick_params(which = 'minor', bottom=True, top=True, left=True, right=True)
             ax.tick_params(labelbottom=True, labeltop=False, labelleft=True, labelright=False)
+
+    def _format_axis_customized(self,ax, **settings):
+        major_length = 4
+        minor_length = 2
+        bottom, top, left, right=True, True, True, True
+        labelbottom, labeltop,labelleft,labelright=True, False, True, False
+        if 'bottom' in settings:
+            bottom = settings['bottom']
+        if 'top' in settings:
+            top = settings['top']
+        if 'left' in settings:
+            left = settings['left']
+        if 'right' in settings:
+            right = settings['right']
+        if 'labelbottom' in settings:
+            labelbottom = settings['labelbottom']
+        if 'labeltop' in settings:
+            labeltop = settings['labeltop']
+        if 'labelleft' in settings:
+            labelleft = settings['labelleft']
+        if 'labelright' in settings:
+            labelright = settings['labelright']
+
+        if hasattr(ax,'__len__'):
+            for each in ax:
+                each.tick_params(which = 'major', axis="x", length = major_length, direction="in")
+                each.tick_params(which = 'minor', axis="x", length = minor_length,direction="in")
+                each.tick_params(which = 'major', axis="y", length = major_length, direction="in")
+                each.tick_params(which = 'minor', axis="y", length = minor_length,direction="in")
+                each.tick_params(which = 'major', bottom=bottom, top=top, left=left, right=right)
+                each.tick_params(which = 'minor', bottom=bottom, top=top, left=left, right=right)
+                each.tick_params(labelbottom=labelbottom, labeltop=labeltop, labelleft=labelleft, labelright=labelright)
+        else:
+            ax.tick_params(which = 'major', axis="x", length = major_length,direction="in")
+            ax.tick_params(which = 'minor', axis="x", length = minor_length,direction="in")
+            ax.tick_params(which = 'major', axis="y", length = major_length,direction="in")
+            ax.tick_params(which = 'minor', axis="y", length = minor_length,direction="in")
+            ax.tick_params(which = 'major', bottom=bottom, top=top, left=left, right=right)
+            ax.tick_params(which = 'minor', bottom=bottom, top=top, left=left, right=right)
+            ax.tick_params(labelbottom=labelbottom, labeltop=labeltop, labelleft=labelleft, labelright=labelright)
 
     def _format_ax_tick_labels(self,ax,fun_set_bounds = 'set_ylim', bounds = [0,1], bound_padding = 0, major_tick_location = [], show_major_tick_label = True, num_of_minor_tick_marks=5, fmt_str = '{: 4.2f}'):
         mapping = {'set_ylim':'yaxis','set_xlim':'xaxis'}
