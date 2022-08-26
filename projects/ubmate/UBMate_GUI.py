@@ -1146,7 +1146,7 @@ class MyMainWindow(QMainWindow):
         self.widget_glview.text_sym_rods = [list(self.widget_glview.RM.dot([*each,self.qz_lims[1]]))+['S'] for each in zip(qxs_sym, qys_sym)]
 
         self.widget_glview.update_text_item_selected_rod()
-        self.widget_glview.update_text_item_sym_rods()
+        # self.widget_glview.update_text_item_sym_rods()
 
         self.widget_glview_zoomin.show_structure()
 
