@@ -502,7 +502,7 @@ class MyMainWindow(QMainWindow):
             return
         else:
             self.comboBox_bragg_peak.setCurrentIndex(index)
-            self.radioButton_single_rod.setChecked(True)
+            # self.radioButton_single_rod.setChecked(True)
             self.extract_peaks_in_zoom_viewer()
             self.lineEdit_delta_angle.setText(self.lineEdit_delta.text())
             self.lineEdit_rot_x.setText(self.lineEdit_eta.text())

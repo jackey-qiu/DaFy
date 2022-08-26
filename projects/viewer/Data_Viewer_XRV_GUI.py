@@ -61,7 +61,7 @@ class MyMainWindow(QMainWindow):
         self.setWindowTitle('XRV data Viewer')
         self.data_to_save = {}
         self.image_range_info = {}
-        self.lineEdit_data_file_path.setText(os.path.join(DaFy_path,'dump_files','temp_xrv.csv'))
+        # self.lineEdit_data_file_path.setText(os.path.join(DaFy_path,'dump_files','temp_xrv.csv'))
         #pot_offset is the difference between the spock value and those recorded by potentiostat
         #you need some calibration step to figure out this value not necessarily always 0.055 V
         #the correction will be real_pot = spock_value + pot_offset
@@ -90,7 +90,7 @@ class MyMainWindow(QMainWindow):
         self.actionPlotData.triggered.connect(self.plot_figure_xrv)
         self.actionPlotData.triggered.connect(self.print_data_summary)
         self.actionPlotRate.triggered.connect(self.plot_data_summary_xrv)
-        self.actionSaveData.triggered.connect(self.save_data_method)
+        # self.actionSaveData.triggered.connect(self.save_data_method)
         self.actionShowHide.triggered.connect(self.show_or_hide)
         self.pushButton_cal_charge.clicked.connect(self.plot_figure_xrv)
         self.pushButton_cal_charge.clicked.connect(self.print_data_summary)
@@ -745,7 +745,8 @@ class MyMainWindow(QMainWindow):
         try:
             self.print_data_summary_()
         except:
-            pass
+            if len(self.cv_info)==0:
+                print('You should provide CV file information to continue on!')
 
     def print_data_summary_(self):
         header = ["scan", "pH", "pot_lf", "pot_rt", "q_skin", "q_film", "q_cv", "hor_size","d_hor_size","hor_size_err","ver_size","d_ver_size","ver_size_err","hor_strain","d_hor_strain","hor_strain_err","ver_strain","d_ver_strain","ver_strain_err","d_bulk_vol","d_bulk_vol_err","skin_vol_fraction","skin_vol_fraction_err","d_skin_avg", "d_skin_avg_err",'OER_E', 'OER_j']
@@ -2448,7 +2449,9 @@ class MyMainWindow(QMainWindow):
                     self.charge_info[scan][each_pot_range]['skin_charge'] = q_skin
                     self.charge_info[scan][each_pot_range]['film_charge'] = q_film
             except:
-                print('Fail to cal charge info. Check!')
+                print('Fail to cal charge info. Check! All charges are set to zero!')
+                self.charge_info[scan] = {}
+                self.charge_info[scan][each_pot_range] = {'skin_charge':0,'film_charge':0,'total_charge':0}
 
     def _do_text_label(self, scan, count_pH13, x_min_value, y_max_values):
         #overwrite max_y using the format setting

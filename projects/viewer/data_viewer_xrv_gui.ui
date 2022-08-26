@@ -676,7 +676,7 @@
                   </font>
                  </property>
                  <property name="text">
-                  <string>1-1.5,1.-1.4</string>
+                  <string>1-1.5</string>
                  </property>
                 </widget>
                </item>
@@ -1301,59 +1301,10 @@
              </layout>
             </item>
             <item>
-             <widget class="QLabel" name="label_2">
-              <property name="sizePolicy">
-               <sizepolicy hsizetype="Fixed" vsizetype="Fixed">
-                <horstretch>0</horstretch>
-                <verstretch>0</verstretch>
-               </sizepolicy>
-              </property>
-              <property name="font">
-               <font>
-                <pointsize>13</pointsize>
-                <weight>75</weight>
-                <bold>true</bold>
-               </font>
-              </property>
-              <property name="text">
-               <string>Data Storage</string>
-              </property>
-             </widget>
-            </item>
-            <item>
              <layout class="QHBoxLayout" name="horizontalLayout_4">
               <property name="sizeConstraint">
                <enum>QLayout::SetFixedSize</enum>
               </property>
-              <item>
-               <widget class="QLabel" name="label_16">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Preferred" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="text">
-                 <string>File_path</string>
-                </property>
-               </widget>
-              </item>
-              <item>
-               <widget class="QLineEdit" name="lineEdit_data_file_path">
-                <property name="sizePolicy">
-                 <sizepolicy hsizetype="Expanding" vsizetype="Fixed">
-                  <horstretch>0</horstretch>
-                  <verstretch>0</verstretch>
-                 </sizepolicy>
-                </property>
-                <property name="maximumSize">
-                 <size>
-                  <width>3500</width>
-                  <height>16777215</height>
-                 </size>
-                </property>
-               </widget>
-              </item>
              </layout>
             </item>
            </layout>
@@ -2272,7 +2223,7 @@
      <x>0</x>
      <y>0</y>
      <width>1525</width>
-     <height>24</height>
+     <height>21</height>
     </rect>
    </property>
   </widget>
@@ -2291,7 +2242,6 @@
    <addaction name="actionLoadConfig"/>
    <addaction name="actionPlotData"/>
    <addaction name="actionPlotRate"/>
-   <addaction name="actionSaveData"/>
    <addaction name="actionSaveConfig"/>
    <addaction name="separator"/>
    <addaction name="actionShowHide"/>
@@ -2315,15 +2265,6 @@
    </property>
    <property name="toolTip">
     <string>Plot rate of structural change</string>
-   </property>
-  </action>
-  <action name="actionSaveData">
-   <property name="icon">
-    <iconset>
-     <normaloff>icons/save.png</normaloff>icons/save.png</iconset>
-   </property>
-   <property name="text">
-    <string>SaveData</string>
    </property>
   </action>
   <action name="actionLoadConfig">
