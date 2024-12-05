@@ -9,7 +9,7 @@ pyface==7.0.1
 periodictable==1.5.2
 traits==6.1.0
 pandas==1.0.5
-numpy==1.19.0
+numpy==1.21.0
 imageio==2.9.0
 mayavi==4.7.2.dev0
 PyOpenGL==3.1.5
